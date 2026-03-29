@@ -1,0 +1,163 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.deps import get_current_user
+from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.db.session import get_db
+from app.models.models import User
+from app.schemas.user import (
+    LoginRequest,
+    RefreshTokenRequest,
+    TOTPSetupResponse,
+    TOTPVerifyRequest,
+    Token,
+    UserCreate,
+    UserResponse,
+)
+from app.services.totp_service import (
+    generate_totp_qr_code_base64,
+    generate_totp_secret,
+    get_totp_provisioning_uri,
+    verify_totp,
+)
+from app.services.user_service import UserService
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register(data: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
+    service = UserService(db)
+    existing = await service.get_by_email(data.email)
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email already registered",
+        )
+    return await service.create(data)
+
+
+@router.post("/login", response_model=Token)
+async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
+    service = UserService(db)
+    user = await service.authenticate(data.email, data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+
+    if user.totp_enabled:
+        if not data.totp_code:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="TOTP code required",
+            )
+        if not user.totp_secret or not verify_totp(user.totp_secret, data.totp_code):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid TOTP code",
+            )
+
+    return Token(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)) -> Token:
+    payload = decode_token(data.refresh_token)
+    if not payload or payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    user_id: str | None = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    service = UserService(db)
+    user = await service.get_by_id(user_id)
+    if not user or not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found or inactive",
+        )
+    return Token(
+        access_token=create_access_token(user.id),
+        refresh_token=create_refresh_token(user.id),
+    )
+
+
+@router.get("/me", response_model=UserResponse)
+async def get_me(current_user: User = Depends(get_current_user)) -> User:
+    return current_user
+
+
+@router.post("/totp/setup", response_model=TOTPSetupResponse)
+async def setup_totp(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> TOTPSetupResponse:
+    secret = generate_totp_secret()
+    provisioning_uri = get_totp_provisioning_uri(secret, current_user.email)
+    qr_code = generate_totp_qr_code_base64(provisioning_uri)
+
+    service = UserService(db)
+    await service.set_totp_secret(current_user, secret)
+
+    return TOTPSetupResponse(
+        secret=secret,
+        qr_code_url=qr_code,
+        provisioning_uri=provisioning_uri,
+    )
+
+
+@router.post("/totp/verify")
+async def verify_totp_endpoint(
+    data: TOTPVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    if not current_user.totp_secret:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="TOTP not set up",
+        )
+    if not verify_totp(current_user.totp_secret, data.totp_code):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid TOTP code",
+        )
+    service = UserService(db)
+    await service.enable_totp(current_user)
+    return {"message": "TOTP enabled successfully"}
+
+
+@router.delete("/totp/disable")
+async def disable_totp(
+    data: TOTPVerifyRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    if not current_user.totp_enabled or not current_user.totp_secret:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="TOTP not enabled",
+        )
+    if not verify_totp(current_user.totp_secret, data.totp_code):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid TOTP code",
+        )
+    service = UserService(db)
+    await service.disable_totp(current_user)
+    return {"message": "TOTP disabled successfully"}

@@ -1,0 +1,190 @@
+export type ConfigItemType = 'priority' | 'category' | 'group'
+
+export interface ConfigItem {
+  id: string
+  type: ConfigItemType
+  name: string
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface CreateConfigItemRequest {
+  type: ConfigItemType
+  name: string
+  sort_order?: number
+}
+
+export interface UpdateConfigItemRequest {
+  name?: string
+  sort_order?: number
+  is_active?: boolean
+}
+
+export type TicketStatus = 'new' | 'working' | 'waiting' | 'resolved' | 'closed'
+
+export interface User {
+  id: string
+  email: string
+  full_name: string
+  is_active: boolean
+  is_superuser: boolean
+  groups: string[]
+  totp_enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface UserGroup {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface CreateUserGroupRequest {
+  name: string
+}
+
+export interface UpdateUserGroupRequest {
+  name: string
+}
+
+export interface UpdateUserGroupsRequest {
+  group_names: string[]
+}
+
+export interface Attachment {
+  id: string
+  ticket_id: string
+  filename: string
+  content_type: string
+  file_size: number
+  uploaded_by_id: string
+  created_at: string
+  url: string
+}
+
+export interface Comment {
+  id: string
+  ticket_id: string
+  author_id: string
+  author_name: string
+  content: string
+  created_at: string
+  updated_at: string
+}
+
+export interface StatusLog {
+  id: string
+  ticket_id: string
+  changed_by: string
+  from_status: TicketStatus | null
+  to_status: TicketStatus
+  note: string | null
+  changed_at: string
+}
+
+export interface Ticket {
+  id: string
+  title: string
+  description: string
+  status: TicketStatus
+  creator_id: string
+  assignee_id: string | null
+  assignee_name: string | null
+  priority_id: string | null
+  priority_name: string | null
+  category_id: string | null
+  category_name: string | null
+  affected_group_id: string | null
+  affected_group_name: string | null
+  waiting_for: string | null
+  created_at: string
+  updated_at: string
+  attachments: Attachment[]
+  comments: Comment[]
+  status_logs: StatusLog[]
+}
+
+export interface TicketSummary {
+  id: string
+  title: string
+  status: TicketStatus
+  creator_id: string
+  creator_name: string
+  assignee_id: string | null
+  assignee_name: string | null
+  priority_id: string | null
+  priority_name: string | null
+  category_id: string | null
+  category_name: string | null
+  affected_group_id: string | null
+  affected_group_name: string | null
+  waiting_for: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface KanbanBoard {
+  new: TicketSummary[]
+  working: TicketSummary[]
+  waiting: TicketSummary[]
+  resolved: TicketSummary[]
+  closed: TicketSummary[]
+}
+
+export interface AuthTokens {
+  access_token: string
+  refresh_token: string
+  token_type: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+  totp_code?: string
+}
+
+export interface RegisterRequest {
+  email: string
+  password: string
+  full_name: string
+}
+
+export interface AssignableUser {
+  id: string
+  full_name: string
+}
+
+export interface CreateTicketRequest {
+  title: string
+  description: string
+  assignee_id?: string
+  priority_id?: string
+  category_id?: string
+  affected_group_id?: string
+}
+
+export interface UpdateTicketRequest {
+  title?: string
+  description?: string
+  assignee_id?: string | null
+  priority_id?: string | null
+  category_id?: string | null
+  affected_group_id?: string | null
+}
+
+export interface UpdateTicketStatusRequest {
+  status: TicketStatus
+  note?: string
+}
+
+export interface CreateCommentRequest {
+  content: string
+}
+
+export interface TOTPSetupResponse {
+  secret: string
+  qr_code_url: string
+  provisioning_uri: string
+}

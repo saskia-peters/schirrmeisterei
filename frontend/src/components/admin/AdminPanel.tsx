@@ -1,0 +1,387 @@
+import { useState } from 'react'
+import toast from 'react-hot-toast'
+import {
+  useUsers,
+  useConfigItems,
+  useCreateConfigItem,
+  useUpdateConfigItem,
+  useDeleteConfigItem,
+  useUserGroups,
+  useCreateUserGroup,
+  useUpdateUserGroup,
+  useDeleteUserGroup,
+  useSetUserGroups,
+} from '@/hooks/useApi'
+import { useAuthStore } from '@/store/authStore'
+import type { ConfigItem, ConfigItemType, User, UserGroup } from '@/types'
+
+type AdminTab = ConfigItemType | 'user-roles'
+
+const TABS: { type: AdminTab; label: string }[] = [
+  { type: 'priority', label: 'Priorities' },
+  { type: 'category', label: 'Categories' },
+  { type: 'group', label: 'Affected Groups' },
+  { type: 'user-roles', label: 'User Roles' },
+]
+
+interface AdminPanelProps {
+  onClose: () => void
+}
+
+export function AdminPanel({ onClose }: AdminPanelProps) {
+  const { user } = useAuthStore()
+  const [activeTab, setActiveTab] = useState<AdminTab>('priority')
+  const isSuperuser = user?.is_superuser ?? false
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal admin-panel" role="dialog" aria-modal aria-label="Admin Panel">
+        <div className="modal-header">
+          <h2>Administration</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+
+        <div className="admin-tabs">
+          {TABS.map((tab) => (
+            <button
+              key={tab.type}
+              className={`admin-tab ${activeTab === tab.type ? 'admin-tab--active' : ''}`}
+              onClick={() => setActiveTab(tab.type)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="admin-tab-content">
+          {activeTab === 'user-roles'
+            ? <UserRoleAdmin isSuperuser={isSuperuser} />
+            : <ConfigItemList type={activeTab} isSuperuser={isSuperuser} />}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConfigItemList({ type, isSuperuser }: { type: ConfigItemType; isSuperuser: boolean }) {
+  const { data: items = [], isLoading } = useConfigItems(type, true)
+  const createItem = useCreateConfigItem()
+  const updateItem = useUpdateConfigItem()
+  const deleteItem = useDeleteConfigItem()
+
+  const [newName, setNewName] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+
+  const handleCreate = async () => {
+    const name = newName.trim()
+    if (!name) return
+    try {
+      await createItem.mutateAsync({ type, name, sort_order: items.length })
+      setNewName('')
+      toast.success('Item created')
+    } catch {
+      toast.error('Failed to create item')
+    }
+  }
+
+  const handleStartEdit = (item: ConfigItem) => {
+    setEditingId(item.id)
+    setEditName(item.name)
+  }
+
+  const handleSaveEdit = async (id: string) => {
+    const name = editName.trim()
+    if (!name) return
+    try {
+      await updateItem.mutateAsync({ id, data: { name } })
+      setEditingId(null)
+      toast.success('Item updated')
+    } catch {
+      toast.error('Failed to update item')
+    }
+  }
+
+  const handleToggleActive = async (item: ConfigItem) => {
+    try {
+      await updateItem.mutateAsync({ id: item.id, data: { is_active: !item.is_active } })
+      toast.success(item.is_active ? 'Item deactivated' : 'Item activated')
+    } catch {
+      toast.error('Failed to update item')
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Delete this item? Existing tickets using it will keep the reference.')) return
+    try {
+      await deleteItem.mutateAsync(id)
+      toast.success('Item deleted')
+    } catch {
+      toast.error('Failed to delete item')
+    }
+  }
+
+  if (isLoading) return <p className="admin-loading">Loading…</p>
+
+  return (
+    <div className="config-item-list">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Order</th>
+            <th>Active</th>
+            {isSuperuser && <th>Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id} className={item.is_active ? '' : 'row-inactive'}>
+              <td>
+                {editingId === item.id ? (
+                  <input
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSaveEdit(item.id)}
+                    autoFocus
+                    className="admin-inline-input"
+                  />
+                ) : (
+                  item.name
+                )}
+              </td>
+              <td>{item.sort_order}</td>
+              <td>
+                {isSuperuser ? (
+                  <button
+                    className={`btn btn-sm ${item.is_active ? 'btn-ghost' : 'btn-secondary'}`}
+                    onClick={() => handleToggleActive(item)}
+                    title={item.is_active ? 'Deactivate' : 'Activate'}
+                  >
+                    {item.is_active ? '✓ Active' : '✗ Inactive'}
+                  </button>
+                ) : (
+                  item.is_active ? '✓' : '✗'
+                )}
+              </td>
+              {isSuperuser && (
+                <td className="admin-actions">
+                  {editingId === item.id ? (
+                    <>
+                      <button className="btn btn-sm btn-primary" onClick={() => handleSaveEdit(item.id)}>Save</button>
+                      <button className="btn btn-sm btn-ghost" onClick={() => setEditingId(null)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <button className="btn btn-sm btn-secondary" onClick={() => handleStartEdit(item)}>Rename</button>
+                      <button className="btn btn-sm btn-danger" onClick={() => handleDelete(item.id)}>Delete</button>
+                    </>
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+          {items.length === 0 && (
+            <tr><td colSpan={isSuperuser ? 4 : 3} className="admin-empty">No items yet.</td></tr>
+          )}
+        </tbody>
+      </table>
+
+      {isSuperuser && (
+        <div className="admin-add-row">
+          <input
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            placeholder="New item name…"
+            className="admin-inline-input"
+          />
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={handleCreate}
+            disabled={!newName.trim() || createItem.isPending}
+          >
+            + Add
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UserRoleAdmin({ isSuperuser }: { isSuperuser: boolean }) {
+  const { data: users = [] } = useUsers(isSuperuser)
+  const { data: groups = [] } = useUserGroups(isSuperuser)
+
+  const createGroup = useCreateUserGroup()
+  const updateGroup = useUpdateUserGroup()
+  const deleteGroup = useDeleteUserGroup()
+  const setUserGroups = useSetUserGroups()
+
+  const [newGroupName, setNewGroupName] = useState('')
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
+  const [editingGroupName, setEditingGroupName] = useState('')
+
+  if (!isSuperuser) {
+    return <p className="admin-loading">Only admins can manage user roles.</p>
+  }
+
+  const coreGroups = new Set(['helfende', 'schirrmeister', 'admin'])
+  const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name))
+
+  const handleCreateGroup = async () => {
+    const name = newGroupName.trim().toLowerCase()
+    if (!name) return
+    try {
+      await createGroup.mutateAsync({ name })
+      setNewGroupName('')
+      toast.success('Role group created')
+    } catch {
+      toast.error('Failed to create role group')
+    }
+  }
+
+  const handleRenameGroup = async (groupId: string) => {
+    const name = editingGroupName.trim().toLowerCase()
+    if (!name) return
+    try {
+      await updateGroup.mutateAsync({ id: groupId, data: { name } })
+      setEditingGroupId(null)
+      setEditingGroupName('')
+      toast.success('Role group renamed')
+    } catch {
+      toast.error('Failed to rename role group')
+    }
+  }
+
+  const handleDeleteGroup = async (group: UserGroup) => {
+    if (!window.confirm(`Delete role group "${group.name}"?`)) return
+    try {
+      await deleteGroup.mutateAsync(group.id)
+      toast.success('Role group deleted')
+    } catch {
+      toast.error('Failed to delete role group')
+    }
+  }
+
+  const handleToggleUserGroup = async (user: User, groupName: string, checked: boolean) => {
+    const next = new Set(user.groups)
+    if (checked) {
+      next.add(groupName)
+    } else {
+      next.delete(groupName)
+    }
+    next.add('helfende')
+    try {
+      await setUserGroups.mutateAsync({ userId: user.id, data: { group_names: [...next] } })
+      toast.success(`Updated roles for ${user.full_name}`)
+    } catch {
+      toast.error('Failed to update user roles')
+    }
+  }
+
+  return (
+    <div className="user-role-admin">
+      <h3>Role Groups</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Group</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {sortedGroups.map((group) => (
+            <tr key={group.id}>
+              <td>
+                {editingGroupId === group.id ? (
+                  <input
+                    className="admin-inline-input"
+                    value={editingGroupName}
+                    onChange={(e) => setEditingGroupName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleRenameGroup(group.id)}
+                    autoFocus
+                  />
+                ) : (
+                  group.name
+                )}
+              </td>
+              <td className="admin-actions">
+                {editingGroupId === group.id ? (
+                  <>
+                    <button className="btn btn-sm btn-primary" onClick={() => handleRenameGroup(group.id)}>Save</button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => setEditingGroupId(null)}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => {
+                        setEditingGroupId(group.id)
+                        setEditingGroupName(group.name)
+                      }}
+                      disabled={group.name === 'helfende'}
+                    >
+                      Rename
+                    </button>
+                    <button
+                      className="btn btn-sm btn-danger"
+                      onClick={() => handleDeleteGroup(group)}
+                      disabled={coreGroups.has(group.name)}
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="admin-add-row">
+        <input
+          className="admin-inline-input"
+          placeholder="New role group..."
+          value={newGroupName}
+          onChange={(e) => setNewGroupName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleCreateGroup()}
+        />
+        <button className="btn btn-sm btn-primary" onClick={handleCreateGroup}>+ Add Group</button>
+      </div>
+
+      <h3 className="admin-subtitle">User Assignments</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            {sortedGroups.map((group) => (
+              <th key={group.id}>{group.name}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {users.map((u) => (
+            <tr key={u.id}>
+              <td>{u.full_name}</td>
+              {sortedGroups.map((group) => {
+                const checked = u.groups.includes(group.name)
+                const isHelfende = group.name === 'helfende'
+                return (
+                  <td key={`${u.id}-${group.id}`}>
+                    <input
+                      type="checkbox"
+                      checked={checked || isHelfende}
+                      disabled={isHelfende}
+                      onChange={(e) => handleToggleUserGroup(u, group.name, e.target.checked)}
+                    />
+                  </td>
+                )
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
