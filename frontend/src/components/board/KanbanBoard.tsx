@@ -9,7 +9,7 @@ import {
   closestCorners,
 } from '@dnd-kit/core'
 import { useState } from 'react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { useKanbanBoard, useUpdateTicketStatus, useAssignableUsers, useConfigItems } from '@/hooks/useApi'
 import type { TicketStatus, TicketSummary } from '@/types'
 import { KanbanColumn } from './KanbanColumn'

@@ -11,8 +11,8 @@ vi.mock('@/api', () => ({
   },
 }))
 
-vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
 const mockSetTokens = vi.fn()

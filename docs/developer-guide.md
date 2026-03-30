@@ -6,13 +6,14 @@
 
 | Tool | Version | Install |
 |---|---|---|
-| [Python](https://www.python.org/) | ≥ 3.11 | `apt install python3.11` / [python.org](https://www.python.org/downloads/) |
-| [Poetry](https://python-poetry.org/) | ≥ 1.8 | `pip install poetry` |
+| [Python](https://www.python.org/) | 3.13 | `apt install python3.13` / [python.org](https://www.python.org/downloads/) |
+| [uv](https://docs.astral.sh/uv/) | ≥ 0.4 | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
 | [Node.js](https://nodejs.org/) | ≥ 20 LTS | [nodejs.org](https://nodejs.org/) |
 | [npm](https://www.npmjs.com/) | ≥ 10 | Bundled with Node.js |
 | [Docker](https://www.docker.com/) or [Podman](https://podman.io/) | ≥ 24 / ≥ 4 | [docs.docker.com](https://docs.docker.com/engine/install/) |
 | [docker-compose](https://docs.docker.com/compose/) or [podman-compose](https://github.com/containers/podman-compose) | ≥ 2.x | Bundled with Docker Desktop |
 | [just](https://github.com/casey/just) | ≥ 1.27 | `cargo install just` / `brew install just` / [see releases](https://github.com/casey/just/releases) |
+| [prek](https://github.com/walterbm/prek) | ≥ 0.3 | `cargo install prek` |
 
 ### Optional (mobile development)
 
@@ -38,6 +39,39 @@ ticketsystem/
 
 ---
 
+## Tech Stack
+
+### Backend (Python 3.13)
+
+| Library | Purpose |
+|---|---|
+| [FastAPI](https://fastapi.tiangolo.com/) | ASGI web framework |
+| [SQLAlchemy 2 + aiosqlite](https://docs.sqlalchemy.org/) | Async ORM / SQLite driver |
+| [Alembic](https://alembic.sqlalchemy.org/) | Database migrations |
+| [Pydantic v2](https://docs.pydantic.dev/) | Request / response validation |
+| [PyJWT](https://pyjwt.readthedocs.io/) | JWT token creation and verification |
+| [bcrypt](https://github.com/pyca/bcrypt/) | Password hashing |
+| [pyotp](https://pyauth.github.io/pyotp/) | TOTP two-factor authentication |
+| [uv](https://docs.astral.sh/uv/) | Package management & virtual environments |
+
+### Frontend (TypeScript)
+
+| Library | Purpose |
+|---|---|
+| [React 18](https://react.dev/) | UI framework |
+| [Vite 5](https://vitejs.dev/) | Build tool / dev server |
+| [TanStack Query v5](https://tanstack.com/query) | Server-state management |
+| [Zustand](https://zustand-demo.pmnd.rs/) | Client-state management (auth) |
+| [React Router v6](https://reactrouter.com/) | Client-side routing |
+| [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/) | Form validation |
+| [@dnd-kit](https://dndkit.com/) | Drag-and-drop for the Kanban board |
+| [Sonner](https://sonner.emilkowal.ski/) | Toast notifications |
+| [Axios](https://axios-http.com/) | HTTP client |
+| [ESLint 9](https://eslint.org/) + [typescript-eslint v8](https://typescript-eslint.io/) | Linting (flat config) |
+| [Vitest v2](https://vitest.dev/) | Unit / component tests |
+
+---
+
 ## Getting Started
 
 ### 1. Clone the repository
@@ -53,7 +87,7 @@ cd ticketsystem
 just install
 ```
 
-This installs both the Python backend dependencies (via Poetry) and the Node.js frontend dependencies (via npm).
+This installs both the Python backend dependencies (via **uv**) and the Node.js frontend dependencies (via npm).
 
 To install only one side:
 
@@ -87,7 +121,13 @@ Key variables in `backend/.env`:
 just hooks-install
 ```
 
-This installs ruff, mypy, and ESLint as Git pre-commit checks.
+This installs [prek](https://github.com/walterbm/prek) Git hooks that run the following checks before each commit (configured in `.pre-commit-config.yaml`):
+
+- Trailing whitespace / end-of-file fixer / line-ending normalisation
+- YAML, TOML, JSON validation
+- Merge conflict detection
+- Private key detection
+- Large file guard (> 1 MB)
 
 ---
 

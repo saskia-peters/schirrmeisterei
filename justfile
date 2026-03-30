@@ -137,16 +137,16 @@ test: backend-test frontend-test
 check: backend-check frontend-check
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Pre-commit
+# Pre-commit (prek)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Install pre-commit hooks
+# Install prek git hooks
 hooks-install:
-    cd backend && UV_PYTHON=3.13 uv run pre-commit install
+    prek install
 
-# Run pre-commit on all files
+# Run prek on all files
 hooks-run:
-    cd backend && UV_PYTHON=3.13 uv run pre-commit run --all-files
+    prek -a
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Docker / Podman

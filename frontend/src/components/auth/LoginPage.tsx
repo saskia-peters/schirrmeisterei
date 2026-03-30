@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 import { authApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 
@@ -41,7 +41,7 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
       const error = err as { response?: { data?: { detail?: string }; status?: number } }
       if (error.response?.data?.detail === 'TOTP code required') {
         setRequireTotp(true)
-        toast('Please enter your authenticator code', { icon: '🔐' })
+        toast.info('🔐 Please enter your authenticator code')
       } else {
         toast.error(error.response?.data?.detail ?? 'Login failed')
       }
