@@ -1,5 +1,7 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
+
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -29,6 +31,16 @@ class Settings(BaseSettings):
 
     # 2FA
     TOTP_ISSUER: str = "TicketSystem"
+
+    @model_validator(mode="after")
+    def validate_secret_key(self) -> "Settings":
+        _default = "change-me-in-production-use-long-random-string"
+        if self.SECRET_KEY == _default and self.ENVIRONMENT != "development":
+            raise ValueError(
+                "SECRET_KEY must be changed from the default value "
+                "in non-development environments"
+            )
+        return self
 
 
 settings = Settings()

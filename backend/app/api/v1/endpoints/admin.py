@@ -2,16 +2,19 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_superuser, get_current_user
+from app.core.deps import get_admin_group_user, get_current_superuser, get_current_user
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
 from app.db.session import get_db
-from app.models.models import ConfigItem, ConfigItemType, User
+from app.models.models import AppSetting, ConfigItem, ConfigItemType, User
 from app.schemas.config import ConfigItemCreate, ConfigItemResponse, ConfigItemUpdate
 from app.schemas.user import (
+    AppSettingResponse,
+    AppSettingUpdate,
     UserGroupAssignmentUpdate,
     UserGroupCreate,
     UserGroupResponse,
     UserGroupUpdate,
+    UserResponse,
 )
 from app.services.user_service import UserService
 
@@ -188,3 +191,80 @@ async def set_user_groups(
     except ValueError as exc:
         raise ValidationException(str(exc)) from exc
     return sorted([group.name for group in updated.groups])
+
+
+@router.get("/users", response_model=list[UserResponse])
+async def list_users_for_admin(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_group_user),
+) -> list[User]:
+    """Return all users with their group memberships.
+    Accessible to superusers and members of the 'admin' group.
+    """
+    service = UserService(db)
+    return await service.list_all()
+
+
+# ─── App Settings ──────────────────────────────────────────────────────────────
+
+AGE_THRESHOLD_KEYS = [
+    "age_green_days",
+    "age_light_green_days",
+    "age_yellow_days",
+    "age_orange_days",
+    "age_light_red_days",
+]
+
+AGE_THRESHOLD_DEFAULTS: dict[str, str] = {
+    "age_green_days": "3",
+    "age_light_green_days": "7",
+    "age_yellow_days": "14",
+    "age_orange_days": "21",
+    "age_light_red_days": "30",
+}
+
+
+async def _ensure_age_defaults(db: AsyncSession) -> None:
+    for key, default in AGE_THRESHOLD_DEFAULTS.items():
+        result = await db.execute(select(AppSetting).where(AppSetting.key == key))
+        if result.scalar_one_or_none() is None:
+            db.add(AppSetting(key=key, value=default))
+    await db.flush()
+
+
+@router.get("/app-settings", response_model=list[AppSettingResponse])
+async def list_app_settings(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> list[AppSetting]:
+    await _ensure_age_defaults(db)
+    result = await db.execute(select(AppSetting).order_by(AppSetting.key))
+    return list(result.scalars().all())
+
+
+@router.patch("/app-settings/{key}", response_model=AppSettingResponse)
+async def update_app_setting(
+    key: str,
+    data: AppSettingUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_superuser),
+) -> AppSetting:
+    await _ensure_age_defaults(db)
+    result = await db.execute(select(AppSetting).where(AppSetting.key == key))
+    setting = result.scalar_one_or_none()
+    if setting is None:
+        raise NotFoundException("AppSetting")
+    # For age threshold keys, validate that value is a positive integer
+    if key in AGE_THRESHOLD_KEYS:
+        try:
+            days = int(data.value)
+            if days < 1:
+                raise ValueError
+        except ValueError:
+            raise ValidationException(
+                "Age threshold must be a positive integer (number of days)"
+            ) from None
+    setting.value = data.value
+    await db.flush()
+    await db.refresh(setting)
+    return setting

@@ -29,9 +29,9 @@ def create_refresh_token(subject: str | Any) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
-def decode_token(token: str) -> dict[str, Any]:
+def decode_token(token: str) -> dict[str, Any] | None:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         return payload  # type: ignore[no-any-return]
     except jwt.PyJWTError:
-        return {}
+        return None

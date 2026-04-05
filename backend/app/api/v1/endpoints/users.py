@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_superuser, get_current_user
+from app.core.deps import get_current_superuser, get_current_user, get_unrestricted_user
 from app.core.exceptions import ConflictException, NotFoundException
 from app.db.session import get_db
 from app.models.models import User
@@ -60,7 +60,7 @@ async def update_user(
     user_id: str,
     data: UserUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_unrestricted_user),
 ) -> User:
     if user_id != current_user.id and not current_user.is_superuser:
         from app.core.exceptions import ForbiddenException

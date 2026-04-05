@@ -21,7 +21,7 @@ interface LoginPageProps {
 export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
   const [requireTotp, setRequireTotp] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const { setTokens, setUser } = useAuthStore()
+  const { setAccessToken, login } = useAuthStore()
 
   const {
     register,
@@ -33,9 +33,13 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
     setIsLoading(true)
     try {
       const tokens = await authApi.login(data)
-      setTokens(tokens.access_token, tokens.refresh_token)
+      // Store the access token so the interceptor can use it for /me,
+      // but do NOT set isAuthenticated yet (avoids flicker of BoardPage
+      // before we know whether a password change is required).
+      setAccessToken(tokens.access_token)
       const user = await authApi.me()
-      setUser(user)
+      // Atomic update: single re-render with both tokens and user ready.
+      login(tokens.access_token, tokens.refresh_token, user)
       toast.success('Logged in successfully')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string }; status?: number } }

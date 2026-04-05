@@ -1,4 +1,5 @@
-import { formatDistanceToNow } from 'date-fns'
+import { differenceInDays, formatDistanceToNow } from 'date-fns'
+import { useAppSettings } from '@/hooks/useApi'
 import type { TicketSummary } from '@/types'
 
 const PRIORITY_CLASS: Record<string, string> = {
@@ -8,6 +9,32 @@ const PRIORITY_CLASS: Record<string, string> = {
   Gering: 'priority-low',
 }
 
+const AGE_COLORS = [
+  { cssVar: 'var(--age-dark-green)', label: 'dark-green' },
+  { cssVar: 'var(--age-light-green)', label: 'light-green' },
+  { cssVar: 'var(--age-yellow)', label: 'yellow' },
+  { cssVar: 'var(--age-orange)', label: 'orange' },
+  { cssVar: 'var(--age-light-red)', label: 'light-red' },
+  { cssVar: 'var(--age-dark-red)', label: 'dark-red' },
+]
+
+function useAgeColor(daysOpen: number) {
+  const { data: settings = [] } = useAppSettings()
+  const get = (key: string, fallback: number) => {
+    const s = settings.find((s) => s.key === key)
+    return s ? parseInt(s.value, 10) || fallback : fallback
+  }
+  const thresholds = [
+    get('age_green_days', 3),
+    get('age_light_green_days', 7),
+    get('age_yellow_days', 14),
+    get('age_orange_days', 21),
+    get('age_light_red_days', 30),
+  ]
+  const idx = thresholds.findIndex((t) => daysOpen <= t)
+  return AGE_COLORS[idx === -1 ? 5 : idx].cssVar
+}
+
 interface TicketCardProps {
   ticket: TicketSummary
   onClick: () => void
@@ -15,6 +42,9 @@ interface TicketCardProps {
 }
 
 export function TicketCard({ ticket, onClick, isDragging = false }: TicketCardProps) {
+  const daysOpen = differenceInDays(new Date(), new Date(ticket.created_at))
+  const ageColor = useAgeColor(daysOpen)
+
   return (
     <div
       className={`ticket-card ${isDragging ? 'ticket-card--dragging' : ''}`}
@@ -49,6 +79,12 @@ export function TicketCard({ ticket, onClick, isDragging = false }: TicketCardPr
           ? <span className="ticket-card-assigned" title={`Assigned to ${ticket.assignee_name}`}>👤 {ticket.assignee_name}</span>
           : null}
       </div>
+      <div
+        className="ticket-age-bar"
+        style={{ backgroundColor: ageColor }}
+        title={`Open for ${daysOpen} day${daysOpen === 1 ? '' : 's'}`}
+        aria-label={`Ticket age: ${daysOpen} days`}
+      />
     </div>
   )
 }

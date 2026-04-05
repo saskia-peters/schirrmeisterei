@@ -11,6 +11,7 @@ import type {
   UpdateTicketStatusRequest,
   UpdateUserGroupsRequest,
   UpdateUserGroupRequest,
+  UpdateWaitingForRequest,
 } from '@/types'
 
 // ─── Auth Hooks ───────────────────────────────────────────────────────────────
@@ -109,6 +110,17 @@ export const useDeleteAttachment = (ticketId: string) => {
   })
 }
 
+export const useUpdateWaitingFor = (ticketId: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: UpdateWaitingForRequest) => ticketsApi.updateWaitingFor(ticketId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['ticket', ticketId] })
+      qc.invalidateQueries({ queryKey: ['kanban'] })
+    },
+  })
+}
+
 // ─── User Hooks ───────────────────────────────────────────────────────────────
 
 export const useUsers = (enabled = true) =>
@@ -203,3 +215,27 @@ export const useSetUserGroups = () => {
     },
   })
 }
+
+export const useAppSettings = () =>
+  useQuery({
+    queryKey: ['app-settings'],
+    queryFn: adminApi.getAppSettings,
+    staleTime: 5 * 60_000,
+  })
+
+export const useUpdateAppSetting = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ key, value }: { key: string; value: string }) =>
+      adminApi.updateAppSetting(key, { value }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['app-settings'] }),
+  })
+}
+
+export const useAdminUsers = (enabled = true) =>
+  useQuery({
+    queryKey: ['admin-users'],
+    queryFn: adminApi.listUsers,
+    enabled,
+    staleTime: 30_000,
+  })

@@ -60,6 +60,7 @@ describe('LoginPage', () => {
       full_name: 'Test',
       is_active: true,
       is_superuser: false,
+      force_password_change: false,
       groups: ['helfende'],
       totp_enabled: false,
       created_at: '',

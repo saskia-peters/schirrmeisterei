@@ -1,5 +1,6 @@
 import { apiClient } from './client'
 import type {
+  AppSetting,
   AssignableUser,
   AuthTokens,
   ConfigItem,
@@ -15,6 +16,7 @@ import type {
   TOTPSetupResponse,
   UpdateUserGroupsRequest,
   UpdateUserGroupRequest,
+  UpdateWaitingForRequest,
   UserGroup,
   CreateUserGroupRequest,
   UpdateConfigItemRequest,
@@ -85,6 +87,9 @@ export const ticketsApi = {
 
   deleteComment: (ticketId: string, commentId: string) =>
     apiClient.delete(`/tickets/${ticketId}/comments/${commentId}`).then((r) => r.data),
+
+  updateWaitingFor: (ticketId: string, data: UpdateWaitingForRequest) =>
+    apiClient.patch<Ticket>(`/tickets/${ticketId}/waiting-for`, data).then((r) => r.data),
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -93,6 +98,8 @@ export const usersApi = {
   list: () => apiClient.get<User[]>('/users/').then((r) => r.data),
   get: (id: string) => apiClient.get<User>(`/users/${id}`).then((r) => r.data),
   assignable: () => apiClient.get<AssignableUser[]>('/users/assignable').then((r) => r.data),
+  update: (id: string, data: { password?: string; full_name?: string }) =>
+    apiClient.patch<User>(`/users/${id}`, data).then((r) => r.data),
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -131,4 +138,13 @@ export const adminApi = {
 
   setUserGroups: (userId: string, data: UpdateUserGroupsRequest) =>
     apiClient.put<string[]>(`/admin/users/${userId}/groups`, data).then((r) => r.data),
+
+  getAppSettings: () =>
+    apiClient.get<AppSetting[]>('/admin/app-settings').then((r) => r.data),
+
+  updateAppSetting: (key: string, data: { value: string }) =>
+    apiClient.patch<AppSetting>(`/admin/app-settings/${key}`, data).then((r) => r.data),
+
+  listUsers: () =>
+    apiClient.get<User[]>('/admin/users').then((r) => r.data),
 }

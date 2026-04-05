@@ -25,6 +25,7 @@ class UserResponse(UserBase):
     id: str
     is_active: bool
     is_superuser: bool
+    force_password_change: bool
     groups: list[str] = []
     totp_enabled: bool
     created_at: datetime
@@ -43,6 +44,7 @@ class UserResponse(UserBase):
             "full_name": data.full_name,
             "is_active": data.is_active,
             "is_superuser": data.is_superuser,
+            "force_password_change": data.force_password_change,
             "groups": sorted([group.name for group in data.groups]) if data.groups else [],
             "totp_enabled": data.totp_enabled,
             "created_at": data.created_at,
@@ -75,6 +77,17 @@ class AssignableUserResponse(BaseModel):
     full_name: str
 
     model_config = {"from_attributes": True}
+
+
+class AppSettingResponse(BaseModel):
+    key: str
+    value: str
+
+    model_config = {"from_attributes": True}
+
+
+class AppSettingUpdate(BaseModel):
+    value: str = Field(..., min_length=1, max_length=255)
 
 
 # ─── Auth Schemas ─────────────────────────────────────────────────────────────

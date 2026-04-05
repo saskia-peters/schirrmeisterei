@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.models import Attachment, Comment, StatusLog, Ticket, TicketStatus, User
-from app.schemas.ticket import CommentCreate, CommentUpdate, TicketCreate, TicketStatusUpdate, TicketUpdate
+from app.schemas.ticket import CommentCreate, CommentUpdate, TicketCreate, TicketStatusUpdate, TicketUpdate, WaitingForUpdate
 from app.services.totp_service import get_safe_upload_path
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
@@ -148,7 +148,23 @@ class TicketService:
         self, ticket: Ticket, data: TicketStatusUpdate, user_id: str
     ) -> Ticket:
         old_status = ticket.status
+        old_waiting_for = ticket.waiting_for
         ticket.status = data.status
+
+        # When moving TO waiting, store reason directly on ticket
+        if data.status == TicketStatus.WAITING and data.note:
+            ticket.waiting_for = data.note.strip() or None
+
+        # When moving AWAY from waiting, auto-comment with the reason and clear the field
+        if old_status == TicketStatus.WAITING and data.status != TicketStatus.WAITING:
+            if old_waiting_for:
+                auto_comment = Comment(
+                    ticket_id=ticket.id,
+                    author_id=user_id,
+                    content=f"Has been waiting for: {old_waiting_for}",
+                )
+                self.db.add(auto_comment)
+            ticket.waiting_for = None
 
         log = StatusLog(
             ticket_id=ticket.id,
@@ -158,6 +174,14 @@ class TicketService:
             note=data.note,
         )
         self.db.add(log)
+        await self.db.flush()
+        return await self.get_by_id_or_raise(ticket.id)
+
+    async def update_waiting_for(
+        self, ticket: Ticket, data: WaitingForUpdate
+    ) -> Ticket:
+        """Edit the waiting-for reason while a ticket remains in waiting status."""
+        ticket.waiting_for = data.waiting_for.strip() if data.waiting_for else None
         await self.db.flush()
         return await self.get_by_id_or_raise(ticket.id)
 

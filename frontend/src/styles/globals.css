@@ -286,3 +286,84 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
 
 /* ── Waiting Reason Modal ── */
 .waiting-note-modal { max-width: 560px; }
+
+/* ── Ticket Age Bar ── */
+:root {
+  --age-dark-green: #15803d;
+  --age-light-green: #4ade80;
+  --age-yellow: #facc15;
+  --age-orange: #f97316;
+  --age-light-red: #f87171;
+  --age-dark-red: #991b1b;
+}
+.ticket-age-bar {
+  height: 4px;
+  border-radius: 0 0 calc(var(--radius) - 1px) calc(var(--radius) - 1px);
+  margin: 0.5rem -0.75rem -0.75rem;
+  transition: background-color 0.4s;
+}
+
+/* ── Waiting For inline edit ── */
+.waiting-for-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.625rem;
+  font-size: 0.875rem;
+}
+.waiting-for-text {
+  padding: 0.25rem 0.5rem;
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  border-radius: var(--radius);
+  flex: 1;
+  color: var(--color-text);
+}
+.waiting-for-input {
+  flex: 1;
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+}
+.btn-sm { padding: 0.25rem 0.625rem; font-size: 0.75rem; }
+.btn-icon {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.125rem 0.25rem;
+  color: var(--color-text-muted);
+  border-radius: var(--radius);
+}
+.btn-icon:hover { background: var(--color-secondary-bg); color: var(--color-text); }
+
+/* ── Force Password Change Modal ── */
+.force-pw-overlay { z-index: 300; }
+.force-pw-modal {
+  max-width: 420px;
+  padding: 1.5rem;
+}
+.force-pw-modal .modal-header {
+  padding: 0 0 1rem;
+  border-bottom: none;
+  position: static;
+}
+.force-pw-modal .modal-header h2 { color: var(--color-danger); }
+.force-pw-notice {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+/* ── Age Thresholds Admin ── */
+.age-thresholds-admin { display: flex; flex-direction: column; gap: 1rem; }
+.age-thresholds-desc { font-size: 0.875rem; color: var(--color-text-muted); line-height: 1.5; }
+.age-swatch-preview { display: flex; gap: 0.25rem; height: 16px; }
+.age-swatch { flex: 1; border-radius: 4px; }
+.age-threshold-input { width: 80px !important; text-align: center; }
+.admin-subtitle { margin-top: 1.5rem; font-size: 0.875rem; font-weight: 600; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }

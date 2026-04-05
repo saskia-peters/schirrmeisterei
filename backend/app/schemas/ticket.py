@@ -102,6 +102,10 @@ class TicketStatusUpdate(BaseModel):
     note: str | None = Field(None, max_length=1000)
 
 
+class WaitingForUpdate(BaseModel):
+    waiting_for: str | None = Field(None, max_length=1000)
+
+
 class TicketResponse(BaseModel):
     id: str
     title: str
@@ -130,13 +134,6 @@ class TicketResponse(BaseModel):
     def populate_assignee(cls, data: Any) -> Any:
         if not hasattr(data, "owner_id"):
             return data
-        waiting_logs = [
-            log
-            for log in list(data.status_logs)
-            if getattr(log, "to_status", None) == TicketStatus.WAITING and (log.note or "").strip()
-        ]
-        waiting_logs.sort(key=lambda log: log.changed_at, reverse=True)
-        waiting_for = waiting_logs[0].note if waiting_logs else None
         return {
             "id": data.id,
             "title": data.title,
@@ -151,7 +148,7 @@ class TicketResponse(BaseModel):
             "category_name": data.category.name if data.category is not None else None,
             "affected_group_id": data.affected_group_id,
             "affected_group_name": data.affected_group.name if data.affected_group is not None else None,
-            "waiting_for": waiting_for,
+            "waiting_for": data.waiting_for,
             "created_at": data.created_at,
             "updated_at": data.updated_at,
             "attachments": list(data.attachments),
@@ -185,13 +182,6 @@ class TicketSummary(BaseModel):
     def populate_names(cls, data: Any) -> Any:
         if not hasattr(data, "creator_id"):
             return data
-        waiting_logs = [
-            log
-            for log in list(data.status_logs)
-            if getattr(log, "to_status", None) == TicketStatus.WAITING and (log.note or "").strip()
-        ]
-        waiting_logs.sort(key=lambda log: log.changed_at, reverse=True)
-        waiting_for = waiting_logs[0].note if waiting_logs else None
         return {
             "id": data.id,
             "title": data.title,
@@ -206,7 +196,7 @@ class TicketSummary(BaseModel):
             "category_name": data.category.name if data.category is not None else None,
             "affected_group_id": data.affected_group_id,
             "affected_group_name": data.affected_group.name if data.affected_group is not None else None,
-            "waiting_for": waiting_for,
+            "waiting_for": data.waiting_for,
             "created_at": data.created_at,
             "updated_at": data.updated_at,
         }

@@ -94,31 +94,31 @@ backend-check: backend-lint backend-typecheck backend-test
 
 # Install frontend dependencies
 frontend-install:
-    cd frontend && npm install
+    cd frontend && pnpm install
 
 # Run frontend dev server locally
 frontend-run:
-    cd frontend && npm run dev
+    cd frontend && pnpm run dev
 
 # Build frontend for production
 frontend-build:
-    cd frontend && npm run build
+    cd frontend && pnpm run build
 
 # Run frontend tests
 frontend-test:
-    cd frontend && npm test
+    cd frontend && pnpm test
 
 # Run frontend tests with coverage
 frontend-test-cov:
-    cd frontend && npm run test:coverage
+    cd frontend && pnpm run test:coverage
 
 # Run frontend linter
 frontend-lint:
-    cd frontend && npm run lint
+    cd frontend && pnpm run lint
 
 # Type check frontend
 frontend-typecheck:
-    cd frontend && npm run typecheck
+    cd frontend && pnpm run typecheck
 
 # Run all frontend quality checks
 frontend-check: frontend-lint frontend-typecheck frontend-test

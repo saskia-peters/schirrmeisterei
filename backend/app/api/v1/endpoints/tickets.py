@@ -17,6 +17,7 @@ from app.schemas.ticket import (
     TicketStatusUpdate,
     TicketSummary,
     TicketUpdate,
+    WaitingForUpdate,
 )
 from app.services.ticket_service import TicketService
 from app.services.user_service import UserService
@@ -111,6 +112,21 @@ async def update_ticket_status(
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     return await service.update_status(ticket, data, current_user.id)
+
+
+@router.patch("/{ticket_id}/waiting-for", response_model=TicketResponse)
+async def update_waiting_for(
+    ticket_id: str,
+    data: WaitingForUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> Ticket:
+    """Edit the 'waiting for' reason while the ticket is in waiting status."""
+    service = TicketService(db)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    if ticket.status != TicketStatus.WAITING:
+        raise ValidationException("Ticket is not in waiting status")
+    return await service.update_waiting_for(ticket, data)
 
 
 @router.delete("/{ticket_id}", status_code=204)

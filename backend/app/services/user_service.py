@@ -104,6 +104,7 @@ class UserService:
             user.full_name = data.full_name
         if data.password is not None:
             user.hashed_password = get_password_hash(data.password)
+            user.force_password_change = False
         await self.db.flush()
         refreshed = await self.get_by_id(user.id)
         assert refreshed is not None

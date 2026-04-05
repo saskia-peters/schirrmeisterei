@@ -15,6 +15,7 @@ import {
   useDeleteAttachment,
   useAssignableUsers,
   useConfigItems,
+  useUpdateWaitingFor,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/authStore'
 import type { TicketStatus } from '@/types'
@@ -46,9 +47,12 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
   const [statusNote, setStatusNote] = useState('')
+  const [isEditingWaitingFor, setIsEditingWaitingFor] = useState(false)
+  const [waitingForInput, setWaitingForInput] = useState('')
 
   const updateTicket = useUpdateTicket(ticketId)
   const updateStatus = useUpdateTicketStatus()
+  const updateWaitingFor = useUpdateWaitingFor(ticketId)
   const deleteTicket = useDeleteTicket()
   const addComment = useAddComment(ticketId)
   const deleteComment = useDeleteComment(ticketId)
@@ -59,11 +63,6 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
 
   if (isLoading) return <div className="modal-overlay"><div className="modal">Loading…</div></div>
   if (!ticket) return null
-
-  const latestWaitingReason = [...ticket.status_logs]
-    .sort((a, b) => new Date(b.changed_at).getTime() - new Date(a.changed_at).getTime())
-    .find((log) => log.to_status === 'waiting' && !!log.note?.trim())
-    ?.note
 
   const canCloseTicket =
     user?.is_superuser ||
@@ -143,6 +142,21 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
     }
   }
 
+  const handleSaveWaitingFor = async () => {
+    try {
+      await updateWaitingFor.mutateAsync({ waiting_for: waitingForInput.trim() || null })
+      setIsEditingWaitingFor(false)
+      toast.success('Updated')
+    } catch {
+      toast.error('Failed to update waiting reason')
+    }
+  }
+
+  const handleStartEditWaitingFor = () => {
+    setWaitingForInput(ticket.waiting_for ?? '')
+    setIsEditingWaitingFor(true)
+  }
+
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal ticket-detail" role="dialog" aria-modal aria-label={ticket.title}>
@@ -188,8 +202,40 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           {!canCloseTicket && (
             <p className="admin-loading">Only schirrmeister and admin can move tickets to closed.</p>
           )}
-          {ticket.status === 'waiting' && latestWaitingReason && (
-            <p className="waiting-for-display"><strong>Waiting for:</strong> {latestWaitingReason}</p>
+          {ticket.status === 'waiting' && (
+            <div className="waiting-for-row">
+              <strong>Waiting for:</strong>
+              {isEditingWaitingFor ? (
+                <>
+                  <input
+                    type="text"
+                    value={waitingForInput}
+                    onChange={(e) => setWaitingForInput(e.target.value)}
+                    className="waiting-for-input"
+                    placeholder="Reason for waiting…"
+                    autoFocus
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleSaveWaitingFor()
+                      if (e.key === 'Escape') setIsEditingWaitingFor(false)
+                    }}
+                  />
+                  <button className="btn btn-primary btn-sm" onClick={handleSaveWaitingFor}>Save</button>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingWaitingFor(false)}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <span className="waiting-for-text">
+                    {ticket.waiting_for ?? <em>Not specified</em>}
+                  </span>
+                  <button
+                    className="btn-icon"
+                    onClick={handleStartEditWaitingFor}
+                    aria-label="Edit waiting reason"
+                    title="Edit"
+                  >✏️</button>
+                </>
+              )}
+            </div>
           )}
         </div>
 

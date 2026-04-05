@@ -29,10 +29,24 @@ export interface User {
   full_name: string
   is_active: boolean
   is_superuser: boolean
+  force_password_change: boolean
   groups: string[]
   totp_enabled: boolean
   created_at: string
   updated_at: string
+}
+
+export interface AppSetting {
+  key: string
+  value: string
+}
+
+export type AgeThresholds = {
+  age_green_days: number
+  age_light_green_days: number
+  age_yellow_days: number
+  age_orange_days: number
+  age_light_red_days: number
 }
 
 export interface UserGroup {
@@ -181,6 +195,10 @@ export interface UpdateTicketStatusRequest {
 
 export interface CreateCommentRequest {
   content: string
+}
+
+export interface UpdateWaitingForRequest {
+  waiting_for: string | null
 }
 
 export interface TOTPSetupResponse {
