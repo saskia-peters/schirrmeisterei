@@ -1,6 +1,7 @@
 import asyncio
 from logging.config import fileConfig
 
+import sqlalchemy as sa
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
@@ -32,7 +33,11 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        version_table_schema="ticketsystem",
+    )
     with context.begin_transaction():
         context.run_migrations()
 
@@ -42,7 +47,12 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"server_settings": {"search_path": "ticketsystem"}},
     )
+    # Create schema outside a transaction (DDL on schema objects requires autocommit)
+    async with connectable.execution_options(isolation_level="AUTOCOMMIT").connect() as conn:
+        await conn.execute(sa.text("CREATE SCHEMA IF NOT EXISTS ticketsystem"))
+    # Run migrations — search_path is already ticketsystem via connect_args
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()

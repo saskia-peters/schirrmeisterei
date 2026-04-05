@@ -36,7 +36,11 @@ class ConfigItem(Base):
     __tablename__ = "config_items"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    type: Mapped[ConfigItemType] = mapped_column(Enum(ConfigItemType), nullable=False, index=True)
+    type: Mapped[ConfigItemType] = mapped_column(
+        Enum(ConfigItemType, values_callable=lambda e: [x.value for x in e], create_constraint=False),
+        nullable=False,
+        index=True,
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -127,7 +131,10 @@ class Ticket(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[TicketStatus] = mapped_column(
-        Enum(TicketStatus), default=TicketStatus.NEW, nullable=False, index=True
+        Enum(TicketStatus, values_callable=lambda e: [x.value for x in e], create_constraint=False),
+        default=TicketStatus.NEW,
+        nullable=False,
+        index=True
     )
     creator_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False, index=True
@@ -226,8 +233,14 @@ class StatusLog(Base):
     changed_by: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=False
     )
-    from_status: Mapped[TicketStatus | None] = mapped_column(Enum(TicketStatus), nullable=True)
-    to_status: Mapped[TicketStatus] = mapped_column(Enum(TicketStatus), nullable=False)
+    from_status: Mapped[TicketStatus | None] = mapped_column(
+        Enum(TicketStatus, values_callable=lambda e: [x.value for x in e], create_constraint=False),
+        nullable=True,
+    )
+    to_status: Mapped[TicketStatus] = mapped_column(
+        Enum(TicketStatus, values_callable=lambda e: [x.value for x in e], create_constraint=False),
+        nullable=False,
+    )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./ticketsystem.db"
+    DATABASE_URL: str = "postgresql+asyncpg://ticketsystem:ticketsystem@localhost:5432/ticketsystem"
 
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]

@@ -164,11 +164,11 @@ def upgrade() -> None:
     config_items_table = sa.table(
         "config_items",
         sa.column("id", sa.String),
-        sa.column("type", sa.String),
+        sa.column("type", sa.Enum("priority", "category", "group", name="configitemtype")),
         sa.column("name", sa.String),
         sa.column("sort_order", sa.Integer),
         sa.column("is_active", sa.Boolean),
-        sa.column("created_at", sa.DateTime),
+        sa.column("created_at", sa.DateTime(timezone=True)),
     )
     op.bulk_insert(
         config_items_table,
@@ -217,7 +217,7 @@ def upgrade() -> None:
         "user_groups",
         sa.column("id", sa.String),
         sa.column("name", sa.String),
-        sa.column("created_at", sa.DateTime),
+        sa.column("created_at", sa.DateTime(timezone=True)),
     )
     op.bulk_insert(
         user_groups_table,
@@ -243,8 +243,8 @@ def upgrade() -> None:
         sa.column("force_password_change", sa.Boolean),
         sa.column("totp_secret", sa.String),
         sa.column("totp_enabled", sa.Boolean),
-        sa.column("created_at", sa.DateTime),
-        sa.column("updated_at", sa.DateTime),
+        sa.column("created_at", sa.DateTime(timezone=True)),
+        sa.column("updated_at", sa.DateTime(timezone=True)),
     )
     op.bulk_insert(
         users_table,
@@ -269,7 +269,7 @@ def upgrade() -> None:
         "user_group_memberships",
         sa.column("user_id", sa.String),
         sa.column("group_id", sa.String),
-        sa.column("created_at", sa.DateTime),
+        sa.column("created_at", sa.DateTime(timezone=True)),
     )
     op.bulk_insert(
         memberships_table,
@@ -284,7 +284,7 @@ def upgrade() -> None:
         "app_settings",
         sa.column("key", sa.String),
         sa.column("value", sa.String),
-        sa.column("updated_at", sa.DateTime),
+        sa.column("updated_at", sa.DateTime(timezone=True)),
     )
     op.bulk_insert(
         app_settings_table,

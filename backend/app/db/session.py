@@ -9,6 +9,7 @@ engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
+    connect_args={"server_settings": {"search_path": "ticketsystem"}},
 )
 
 AsyncSessionLocal = async_sessionmaker(

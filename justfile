@@ -38,6 +38,39 @@ logs service="":
     fi
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Database (PostgreSQL)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Start only the PostgreSQL container (for local backend dev without full stack)
+db-start:
+    #!/usr/bin/env bash
+    if podman container exists ticketsystem-postgres-dev; then
+        podman start ticketsystem-postgres-dev
+    else
+        podman compose -f docker-compose.dev.yml up -d postgres
+    fi
+
+# Stop and remove the PostgreSQL container
+db-stop:
+    podman compose -f docker-compose.dev.yml stop postgres
+
+# Open a psql shell in the running dev postgres container
+db-shell:
+    podman exec -it ticketsystem-postgres-dev psql -U ticketsystem -d ticketsystem
+
+# Reset the database: drop and recreate schema, then re-run migrations
+db-reset: db-start
+    #!/usr/bin/env bash
+    echo "Waiting for postgres to be ready..."
+    until podman exec ticketsystem-postgres-dev pg_isready -U ticketsystem -d ticketsystem; do
+        sleep 1
+    done
+    podman exec ticketsystem-postgres-dev psql -U ticketsystem -d ticketsystem \
+        -c "DROP SCHEMA IF EXISTS ticketsystem CASCADE; CREATE SCHEMA ticketsystem;"
+    cd backend && UV_PYTHON=3.13 uv run alembic upgrade head
+    echo "Database reset complete."
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Backend
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -154,15 +187,15 @@ hooks-run:
 
 # Build all Docker images
 build:
-    docker compose build
+    podman compose build
 
 # Build with no cache
 build-fresh:
-    docker compose build --no-cache
+    podman compose build --no-cache
 
 # Remove all containers and volumes (DESTRUCTIVE)
 clean:
-    docker compose down -v --remove-orphans
+    podman compose down -v --remove-orphans
 
 # Push images to registry (set REGISTRY env var)
 push registry="":
@@ -172,10 +205,10 @@ push registry="":
         echo "Usage: just push <registry>"
         exit 1
     fi
-    docker tag ticketsystem-backend "$REG/ticketsystem-backend:latest"
-    docker tag ticketsystem-frontend "$REG/ticketsystem-frontend:latest"
-    docker push "$REG/ticketsystem-backend:latest"
-    docker push "$REG/ticketsystem-frontend:latest"
+    podman tag ticketsystem-backend "$REG/ticketsystem-backend:latest"
+    podman tag ticketsystem-frontend "$REG/ticketsystem-frontend:latest"
+    podman push "$REG/ticketsystem-backend:latest"
+    podman push "$REG/ticketsystem-frontend:latest"
 
 # Run with podman-compose (alternative to docker compose)
 podman-up:
