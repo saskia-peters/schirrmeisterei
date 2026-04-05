@@ -85,6 +85,19 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
     }
   }
 
+  const handleSaveAndClose = async () => {
+    if (isEditing) {
+      try {
+        await updateTicket.mutateAsync({ title: editTitle, description: editDescription })
+        toast.success('Ticket updated')
+      } catch {
+        toast.error('Failed to update ticket')
+        return
+      }
+    }
+    onClose()
+  }
+
   const handleStatusChange = async (newStatus: TicketStatus) => {
     if (newStatus === 'waiting' && !statusNote.trim()) {
       toast.error('"Waiting for" note is required when status is Waiting')
@@ -170,7 +183,16 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           ) : (
             <h2>{ticket.title}</h2>
           )}
-          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+          <div className="modal-header-actions">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleSaveAndClose}
+              disabled={updateTicket.isPending}
+            >
+              {updateTicket.isPending ? 'Saving…' : 'Save'}
+            </button>
+            <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+          </div>
         </div>
 
         <div className="ticket-meta">
