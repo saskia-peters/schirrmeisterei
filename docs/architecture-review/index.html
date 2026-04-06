@@ -1,0 +1,2848 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the TicketSystem — a multi-tenant support-ticket platform">
+      
+      
+      
+        <link rel="canonical" href="https://github.com/ticketsystem/architecture-review/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Architecture Review - TicketSystem Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture-review" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="TicketSystem Documentation" class="md-header__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            TicketSystem Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture Review
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture Review
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deployment
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../development/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Development Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../user-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User Guide
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="TicketSystem Documentation" class="md-nav__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    TicketSystem Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Review
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#review-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review History
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technology-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technology Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architecture Diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-organisation-hierarchy-multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Organisation Hierarchy &amp; Multi-Tenancy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Organisation Hierarchy &amp; Multi-Tenancy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#entity-relationship-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Relationship Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-authentication-authorisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Authentication &amp; Authorisation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Authentication &amp; Authorisation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#totp-2fa-setup-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOTP / 2FA Setup Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authorisation-rbac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorisation (RBAC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-api-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. API Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. API Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-frontend-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Frontend Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Frontend Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-mobile-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Mobile App
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Mobile App">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current State
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-cicd-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. CI/CD Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. CI/CD Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Deployment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#production-stack-podman-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Stack (Podman Compose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables (critical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-security-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Security Assessment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Security Assessment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#strengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strengths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#weaknesses-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weaknesses / Gaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-technical-debt-known-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Technical Debt &amp; Known Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="13. Technical Debt &amp; Known Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-devops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure / DevOps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-progress-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Progress Tracker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Progress Tracker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-04-06-baseline-v01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-04-06 — Baseline (v0.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Recommendations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Recommendations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#near-term-next-13-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Near-term (next 1–3 features)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#review-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review History
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. System Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technology-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technology Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architecture Diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-organisation-hierarchy-multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Organisation Hierarchy &amp; Multi-Tenancy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Organisation Hierarchy &amp; Multi-Tenancy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-data-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Data Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Data Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#entity-relationship-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Relationship Overview
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-authentication-authorisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Authentication &amp; Authorisation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Authentication &amp; Authorisation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#totp-2fa-setup-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TOTP / 2FA Setup Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authorisation-rbac" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorisation (RBAC)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-api-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. API Design
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. API Design">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#design-observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-frontend-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Frontend Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Frontend Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#state-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        State Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#routing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Routing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#key-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-mobile-app" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Mobile App
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Mobile App">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#current-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current State
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-testing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Testing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Testing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-cicd-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. CI/CD Pipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. CI/CD Pipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#observations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-deployment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Deployment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Deployment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#production-stack-podman-compose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Stack (Podman Compose)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#environment-variables-critical" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environment Variables (critical)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-security-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Security Assessment
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Security Assessment">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#strengths" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Strengths
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#weaknesses-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Weaknesses / Gaps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-technical-debt-known-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Technical Debt &amp; Known Gaps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="13. Technical Debt &amp; Known Gaps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#infrastructure-devops" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Infrastructure / DevOps
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-progress-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Progress Tracker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Progress Tracker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-04-06-baseline-v01" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-04-06 — Baseline (v0.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Recommendations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Recommendations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#near-term-next-13-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Near-term (next 1–3 features)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="architecture-review">Architecture Review<a class="headerlink" href="#architecture-review" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Living Document</p>
+<p>This document is updated periodically as the system evolves. Each review is stamped with a date and a status tier. Use the <a href="#progress-tracker">Progress Tracker</a> section to follow how architectural gaps are being resolved over time.</p>
+</div>
+<hr />
+<h2 id="review-history">Review History<a class="headerlink" href="#review-history" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Reviewer</th>
+<th>Status</th>
+<th>Summary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04-06</td>
+<td>Initial review</td>
+<td>🟡 Maturing</td>
+<td>First full architecture review; baseline established</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-system-overview">1. System Overview<a class="headerlink" href="#1-system-overview" title="Permanent link">&para;</a></h2>
+<p>TicketSystem is a <strong>multi-tenant support-ticket platform</strong> built for hierarchical German emergency/volunteer organisations (DRK structure: Ortsverband → Regionalstelle → Landesverband → Leitung).</p>
+<h3 id="technology-stack">Technology Stack<a class="headerlink" href="#technology-stack" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+<th>Version</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Frontend</td>
+<td>React + Vite + TypeScript</td>
+<td>React 18.3, TS 5.5</td>
+<td>SPA, REST-only</td>
+</tr>
+<tr>
+<td>Mobile</td>
+<td>Expo / React Native</td>
+<td>Expo 51, RN 0.74</td>
+<td>Early scaffold</td>
+</tr>
+<tr>
+<td>Backend</td>
+<td>FastAPI + uvicorn</td>
+<td>Python 3.13</td>
+<td>Async throughout</td>
+</tr>
+<tr>
+<td>ORM</td>
+<td>SQLAlchemy (async)</td>
+<td>≥2.0</td>
+<td>Alembic migrations</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL</td>
+<td>18</td>
+<td>Schema: <code>ticketsystem</code></td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>JWT HS256 + bcrypt + TOTP</td>
+<td>PyJWT ≥2.8, pyotp</td>
+<td>Dual-token</td>
+</tr>
+<tr>
+<td>Container</td>
+<td>Podman Compose</td>
+<td>—</td>
+<td>Dev + prod profiles</td>
+</tr>
+<tr>
+<td>CI/CD</td>
+<td>GitHub Actions</td>
+<td>—</td>
+<td>Test + build + docs</td>
+</tr>
+<tr>
+<td>Docs</td>
+<td>MkDocs Material</td>
+<td>mkdocs 1.6</td>
+<td>Published to <code>docs/</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-architecture-diagram">2. Architecture Diagram<a class="headerlink" href="#2-architecture-diagram" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌──────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│  Clients                                                         │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│                                                                  │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  ┌──────────────────────┐   ┌────────────────────────────────┐  │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│  │  React SPA           │   │  Expo / React Native           │  │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│  │  Vite · TypeScript   │   │  (mobile scaffold)             │  │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│  │  React Query         │   │  SecureStore token storage     │  │
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│  │  Zustand (auth)      │   │                                │  │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│  │  dnd-kit (Kanban)    │   │                                │  │
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│  └──────────┬───────────┘   └───────────────┬────────────────┘  │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>└─────────────┼───────────────────────────────┼────────────────────┘
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>              │ HTTPS / REST (JSON)            │ HTTPS / REST
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>              ▼                               ▼
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>┌──────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│  FastAPI Backend  (Python 3.13 · uvicorn ASGI)                   │
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│                                                                  │
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌───────────────┐   │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│  │  /auth   │  │ /tickets │  │  /users  │  │    /admin     │   │
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>│  │          │  │          │  │          │  │               │   │
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│  │ JWT auth │  │ CRUD     │  │ profile  │  │ config items  │   │
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│  │ TOTP 2FA │  │ status   │  │ avatar   │  │ org hierarchy │   │
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│  │ refresh  │  │ Kanban   │  │ groups   │  │ bulk upload   │   │
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│  │ pwd reset│  │ attach.  │  │          │  │ permissions   │   │
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>│  └──────────┘  └──────────┘  └──────────┘  └───────────────┘   │
+<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>│                                                                  │
+<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│  ┌──────────────────────────────────────────────────────────┐   │
+<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>│  │  Services layer                                          │   │
+<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>│  │  UserService · TicketService · OrganizationService       │   │
+<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>│  │  TotpService                                             │   │
+<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>│  └──────────────────────┬───────────────────────────────────┘   │
+<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>│                         │ asyncpg                               │
+<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>└─────────────────────────┼──────────────────────────────────────-┘
+<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>                          ▼
+<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>┌──────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>│  PostgreSQL 18   (schema: ticketsystem)                          │
+<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>│                                                                  │
+<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>│  organisations · users · tickets · attachments · comments        │
+<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>│  status_logs · user_groups · permissions · role_permissions      │
+<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>│  config_items · app_settings · email_configs                     │
+<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>└──────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>                          │
+<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>                    named volume
+<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>                    (uploads directory for
+<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>                     attachments + avatars)
+</code></pre></div>
+<hr />
+<h2 id="3-organisation-hierarchy-multi-tenancy">3. Organisation Hierarchy &amp; Multi-Tenancy<a class="headerlink" href="#3-organisation-hierarchy-multi-tenancy" title="Permanent link">&para;</a></h2>
+<h3 id="hierarchy">Hierarchy<a class="headerlink" href="#hierarchy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Leitung (LTG)
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  └── Landesverband (LV)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        └── Regionalstelle (Rst)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>              └── Ortsverband (OV)
+</code></pre></div>
+<p>Every user belongs to exactly one organisation node. Visibility is enforced server-side by <code>OrganizationService.get_visible_org_ids()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Org Level</th>
+<th>Visible Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Leitung</td>
+<td>Entire system (all tickets)</td>
+</tr>
+<tr>
+<td>Landesverband</td>
+<td>Own LV subtree</td>
+</tr>
+<tr>
+<td>Regionalstelle</td>
+<td>Own Rst subtree</td>
+</tr>
+<tr>
+<td>Ortsverband</td>
+<td>Own OV only</td>
+</tr>
+</tbody>
+</table>
+<h3 id="implementation-notes">Implementation Notes<a class="headerlink" href="#implementation-notes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Subtree traversal uses BFS (<code>get_descendants</code>).</li>
+<li>Superusers bypass all org-scoping (returns <code>None</code> → no filter applied).</li>
+<li>Org hierarchy can be seeded in bulk via <code>POST /admin/hierarchy/upload</code> (XLSX).</li>
+</ul>
+<hr />
+<h2 id="4-data-model">4. Data Model<a class="headerlink" href="#4-data-model" title="Permanent link">&para;</a></h2>
+<h3 id="entity-relationship-overview">Entity Relationship Overview<a class="headerlink" href="#entity-relationship-overview" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>organizations ─────────────────────────────────────────────────┐
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  id, name, level, parent_id (self-ref)                        │
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>       │                                                        │
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>       ├──► users                                              │
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>       │      id, email, hashed_password, full_name            │
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>       │      is_superuser, force_password_change               │
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>       │      totp_enabled, totp_secret, avatar_url            │
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>       │      organization_id ──────────────────────────────────┘
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>       │         │
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>       │         ├──► user_group_memberships ──► user_groups
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>       │         │                                  id, name
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>       │         │                                  └──► role_permissions ──► permissions
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>       │         │
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>       │         ├──► tickets (as creator / owner)
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>       │         │      id, title, description, status
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>       │         │      creator_id, owner_id, organization_id
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>       │         │      priority_id, category_id, affected_group_id (→ config_items)
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>       │         │      waiting_for
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>       │         │        ├──► attachments
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>       │         │        ├──► comments (with author_id)
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>       │         │        └──► status_logs (change history)
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>       │         │
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>       │         └──► comments, status_logs
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>       │
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>       └──► email_configs (one per org)
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>config_items: { priority | category | group } — soft-deleted via is_active
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>app_settings: key→value store for age thresholds and other tunables
+</code></pre></div>
+<h3 id="key-design-decisions">Key Design Decisions<a class="headerlink" href="#key-design-decisions" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All PKs are UUID strings (not auto-increment integers) — good for distributed import/merge.</li>
+<li>Timestamps are timezone-aware (<code>DateTime(timezone=True)</code>) throughout.</li>
+<li>Cascade deletes on <code>attachments</code>, <code>comments</code>, <code>status_logs</code> from <code>tickets</code>.</li>
+<li><code>UserGroupMembership.helfende</code> is always enforced — users always have at least the <code>helfende</code> role.</li>
+<li>Soft deletion not used for tickets or users — hard delete with FK constraints enforced by Postgres.</li>
+</ul>
+<hr />
+<h2 id="5-authentication-authorisation">5. Authentication &amp; Authorisation<a class="headerlink" href="#5-authentication-authorisation" title="Permanent link">&para;</a></h2>
+<h3 id="authentication-flow">Authentication Flow<a class="headerlink" href="#authentication-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Client                          Backend
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  │                               │
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├─ POST /auth/login ────────────►│  validate email + bcrypt password
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  │  { email, password, [totp] }  │  [if totp_enabled] verify TOTP code
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  │                               │
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  │◄─ { access_token (30m),       │  sign JWT HS256 with sub=user_id
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  │      refresh_token (7d) } ────┤  type=&quot;access&quot; / type=&quot;refresh&quot;
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  │                               │
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  ├─ API calls with Bearer ───────►│  decode JWT → load user → check active
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>  │                               │
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>  ├─ POST /auth/refresh ──────────►│  validate refresh token, issue new pair
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>  │◄─ { new access_token } ───────┤
+</code></pre></div>
+<p>Frontend handles token refresh transparently via Axios interceptor (retry on 401).</p>
+<h3 id="totp-2fa-setup-flow">TOTP / 2FA Setup Flow<a class="headerlink" href="#totp-2fa-setup-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>1. POST /auth/totp/setup   → returns { secret, qr_code_base64 }
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>2. User scans QR in authenticator app
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>3. POST /auth/totp/verify  → { code } — enables TOTP on success
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>4. DELETE /auth/totp/disable → { code } — disables TOTP
+</code></pre></div>
+<h3 id="authorisation-rbac">Authorisation (RBAC)<a class="headerlink" href="#authorisation-rbac" title="Permanent link">&para;</a></h3>
+<p>Three built-in roles with permission sets:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Key Permissions</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>helfende</code></td>
+<td><code>view_ticket</code>, <code>create_ticket</code>, <code>comment_ticket</code></td>
+</tr>
+<tr>
+<td><code>schirrmeister</code></td>
+<td>+ <code>assign_ticket</code>, <code>close_ticket</code>, <code>edit_ticket</code>, <code>manage_ticket</code></td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>All of the above + <code>manage_users</code>, <code>manage_config</code>, …</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Permissions are stored in the <code>permissions</code> table and linked to <code>user_groups</code> via <code>role_permissions</code>.</li>
+<li><code>UserService.user_has_permission(user, codename)</code> checks group membership → permission.</li>
+<li>The <code>force_password_change</code> flag gates all non-profile endpoints until the password is changed.</li>
+</ul>
+<hr />
+<h2 id="6-api-design">6. API Design<a class="headerlink" href="#6-api-design" title="Permanent link">&para;</a></h2>
+<h3 id="structure">Structure<a class="headerlink" href="#structure" title="Permanent link">&para;</a></h3>
+<p>All endpoints live under <code>/api/v1/</code>. There are five routers:</p>
+<table>
+<thead>
+<tr>
+<th>Router</th>
+<th>Prefix</th>
+<th>Auth Level</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth</code></td>
+<td><code>/auth</code></td>
+<td>Mixed (public + Bearer)</td>
+</tr>
+<tr>
+<td><code>tickets</code></td>
+<td><code>/tickets</code></td>
+<td>Bearer</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td><code>/users</code></td>
+<td>Bearer (mixed superuser)</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td><code>/admin</code></td>
+<td>Bearer (admin group / superuser)</td>
+</tr>
+<tr>
+<td><code>organizations</code></td>
+<td><code>/organizations</code></td>
+<td>Public</td>
+</tr>
+</tbody>
+</table>
+<h3 id="design-observations">Design Observations<a class="headerlink" href="#design-observations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Consistent use of Pydantic v2 schemas for request/response validation.</li>
+<li>HTTP method semantics: <code>PATCH</code> for partial updates, <code>PUT</code> for full replacement (group permissions).</li>
+<li>Custom exception classes map cleanly to HTTP status codes.</li>
+<li>File uploads use <code>multipart/form-data</code>; files stored on disk under <code>UPLOAD_DIR</code> with UUID names to prevent path traversal.</li>
+<li>No API versioning beyond the <code>/v1</code> prefix — no <code>v2</code> yet.</li>
+<li><code>GET /health</code> endpoint available for load-balancer probes.</li>
+<li>OpenAPI docs available at <code>/api/docs</code> (Swagger) and <code>/api/redoc</code>.</li>
+</ul>
+<hr />
+<h2 id="7-frontend-architecture">7. Frontend Architecture<a class="headerlink" href="#7-frontend-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="state-management">State Management<a class="headerlink" href="#state-management" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Tool</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auth state (tokens, user)</td>
+<td>Zustand (persisted)</td>
+<td><code>localStorage</code>; re-hydrated on page load</td>
+</tr>
+<tr>
+<td>Server state (tickets, board, users)</td>
+<td>TanStack Query v5</td>
+<td>Caching, background refresh (30 s for board)</td>
+</tr>
+<tr>
+<td>Form state</td>
+<td>react-hook-form + zod</td>
+<td>Schema-validated forms</td>
+</tr>
+<tr>
+<td>UI interaction (drag-drop)</td>
+<td>@dnd-kit</td>
+<td>Kanban board column transitions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="routing">Routing<a class="headerlink" href="#routing" title="Permanent link">&para;</a></h3>
+<p>React Router v6 with three tiers:
+1. <strong>Unauthenticated</strong>: Login / Register (state-switched, no URL)
+2. <strong>Force password change</strong>: Blocking modal covers all routes
+3. <strong>Authenticated</strong>: <code>/</code> (Board), <code>/admin</code> (Admin Panel), <code>/profile</code> (Profile)</p>
+<h3 id="key-patterns">Key Patterns<a class="headerlink" href="#key-patterns" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All API calls are centralised in <code>api/index.ts</code>; TanStack Query hooks wrap them in <code>hooks/useApi.ts</code>.</li>
+<li>The Axios client auto-attaches <code>Authorization: Bearer</code> header from the Zustand store.</li>
+<li>The frontend is a pure SPA — no SSR; nginx serves it in production.</li>
+<li>The Navbar background colour reflects the user's organisation level (visual context indicator).</li>
+</ul>
+<hr />
+<h2 id="8-mobile-app">8. Mobile App<a class="headerlink" href="#8-mobile-app" title="Permanent link">&para;</a></h2>
+<p>The mobile app (<code>mobile/</code>) is a <strong>scaffold</strong> built on Expo 51 / React Native 0.74.</p>
+<h3 id="current-state">Current State<a class="headerlink" href="#current-state" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Auth (login + JWT)</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td><code>GET /auth/me</code></td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>Ticket list (board view)</td>
+<td>✅ Implemented</td>
+</tr>
+<tr>
+<td>Token storage</td>
+<td>✅ SecureStore</td>
+</tr>
+<tr>
+<td>Navigation</td>
+<td>⬜ Empty scaffold</td>
+</tr>
+<tr>
+<td>Ticket detail</td>
+<td>⬜ Not started</td>
+</tr>
+<tr>
+<td>Create/edit ticket</td>
+<td>⬜ Not started</td>
+</tr>
+<tr>
+<td>TOTP support</td>
+<td>⬜ Not started</td>
+</tr>
+<tr>
+<td>Push notifications</td>
+<td>⬜ Not started</td>
+</tr>
+<tr>
+<td>Offline support</td>
+<td>⬜ Not started</td>
+</tr>
+</tbody>
+</table>
+<p>The mobile app shares the same REST API — no separate mobile-specific endpoints exist.</p>
+<hr />
+<h2 id="9-testing">9. Testing<a class="headerlink" href="#9-testing" title="Permanent link">&para;</a></h2>
+<h3 id="backend">Backend<a class="headerlink" href="#backend" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Runner</th>
+<th>Count (approx.)</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Unit</td>
+<td>pytest</td>
+<td>~30 tests</td>
+<td>Security, TOTP, UserService, OrganizationService</td>
+</tr>
+<tr>
+<td>Integration</td>
+<td>pytest + httpx</td>
+<td>~36 tests</td>
+<td>Auth flows, ticket CRUD, status transitions</td>
+</tr>
+<tr>
+<td>Total</td>
+<td>—</td>
+<td>~66 tests</td>
+<td>HTML coverage report in <code>htmlcov/</code></td>
+</tr>
+</tbody>
+</table>
+<p>Test database: in-memory SQLite with <code>aiosqlite</code> — no Postgres required for tests.
+Key fixture: <code>conftest.py</code> seeds <code>helfende</code>/<code>schirrmeister</code>/<code>admin</code> groups and core permissions.</p>
+<h3 id="frontend">Frontend<a class="headerlink" href="#frontend" title="Permanent link">&para;</a></h3>
+<p>Component tests with Vitest + Testing Library in <code>components/**/__tests__/</code>.</p>
+<h3 id="gaps">Gaps<a class="headerlink" href="#gaps" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No end-to-end (E2E) tests (Playwright / Cypress).</li>
+<li>No load / performance tests.</li>
+<li>Frontend test coverage is not measured or enforced.</li>
+<li>Mobile has no tests at all.</li>
+</ul>
+<hr />
+<h2 id="10-cicd-pipeline">10. CI/CD Pipeline<a class="headerlink" href="#10-cicd-pipeline" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>push to master
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>       │
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>       ├─► backend-test job
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>       │     ruff lint → ruff format check → mypy → pytest --cov
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>       │
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>       ├─► frontend-test job
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>       │     eslint → tsc --noEmit → vitest --coverage
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>       │
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>       └─► docker-build job  (needs both test jobs)
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>             docker build backend
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>             docker build frontend
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>push to master/main
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>       └─► docs.yml job
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>             mkdocs build → git commit docs/ → push [skip ci]
+</code></pre></div>
+<h3 id="observations">Observations<a class="headerlink" href="#observations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>No deploy step — build artefacts are not pushed to a registry or deployed automatically.</li>
+<li>Docker images are only built, not tagged or published.</li>
+<li><code>docs/</code> is auto-committed by the workflow — this creates mixed commits in <code>master</code>.</li>
+<li>Coverage reports are uploaded to Codecov.</li>
+</ul>
+<hr />
+<h2 id="11-deployment">11. Deployment<a class="headerlink" href="#11-deployment" title="Permanent link">&para;</a></h2>
+<h3 id="production-stack-podman-compose">Production Stack (Podman Compose)<a class="headerlink" href="#production-stack-podman-compose" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Image</th>
+<th>Port</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>postgres</code></td>
+<td><code>postgres:18</code></td>
+<td>internal</td>
+<td>named volume <code>postgres-data</code></td>
+</tr>
+<tr>
+<td><code>backend</code></td>
+<td>local build</td>
+<td><code>8000</code></td>
+<td>named volume <code>backend-uploads</code></td>
+</tr>
+<tr>
+<td><code>frontend</code></td>
+<td>local build (nginx)</td>
+<td><code>8080:80</code></td>
+<td>static SPA</td>
+</tr>
+</tbody>
+</table>
+<p>No TLS termination is configured in the compose stack — expected to be behind a reverse proxy (nginx / Caddy / Traefik) in production.</p>
+<h3 id="environment-variables-critical">Environment Variables (critical)<a class="headerlink" href="#environment-variables-critical" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Required</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SECRET_KEY</code></td>
+<td>Yes</td>
+<td>Validated non-default in non-dev environments</td>
+</tr>
+<tr>
+<td><code>DATABASE_URL</code></td>
+<td>Yes</td>
+<td>Async postgres DSN</td>
+</tr>
+<tr>
+<td><code>ALLOWED_ORIGINS</code></td>
+<td>Yes</td>
+<td>CORS whitelist</td>
+</tr>
+<tr>
+<td><code>UPLOAD_DIR</code></td>
+<td>Yes</td>
+<td>Filesystem path for attachments</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="12-security-assessment">12. Security Assessment<a class="headerlink" href="#12-security-assessment" title="Permanent link">&para;</a></h2>
+<h3 id="strengths">Strengths<a class="headerlink" href="#strengths" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Passwords</strong>: bcrypt with salt, never stored or logged in plain.</li>
+<li><strong>JWT</strong>: Short-lived access tokens (30 min); refresh token rotation possible.</li>
+<li><strong>Path traversal prevention</strong>: Attachments and avatars stored under UUID filenames via <code>get_safe_upload_path</code>.</li>
+<li><strong>MIME validation</strong>: Attachment uploads validate content type.</li>
+<li><strong>TOTP 2FA</strong>: Optional per-user, QR code provisioned securely.</li>
+<li><strong>Org scoping</strong>: Server-side enforcement; clients cannot escalate visibility.</li>
+<li><strong>Permission checks</strong>: Centralised in <code>UserService.user_has_permission</code>.</li>
+<li><strong>Force password change</strong>: Blocks all endpoints until resolved.</li>
+<li><strong>Schema isolation</strong>: All tables in <code>ticketsystem</code> Postgres schema.</li>
+</ul>
+<h3 id="weaknesses-gaps">Weaknesses / Gaps<a class="headerlink" href="#weaknesses-gaps" title="Permanent link">&para;</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Open Security Items</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Issue</th>
+<th>Severity</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S-1</td>
+<td>Refresh tokens are not revocable (no token blacklist / rotation)</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+</tr>
+<tr>
+<td>S-2</td>
+<td>No rate limiting on login / password reset endpoints</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+</tr>
+<tr>
+<td>S-3</td>
+<td><code>SECRET_KEY</code> placeholder check only warns; no hard fail at startup in production</td>
+<td>Low</td>
+<td>🟡 Open</td>
+</tr>
+<tr>
+<td>S-4</td>
+<td>SMTP passwords stored in plain text in <code>email_configs</code> table</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+</tr>
+<tr>
+<td>S-5</td>
+<td>No HTTPS enforcement or HSTS header in compose stack (relies on upstream proxy)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+</tr>
+<tr>
+<td>S-6</td>
+<td>File size limits enforced in code but not at the nginx/proxy layer</td>
+<td>Low</td>
+<td>🟡 Open</td>
+</tr>
+<tr>
+<td>S-7</td>
+<td>Admin bulk upload XLSX: no row-count cap (DoS potential for very large files)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr />
+<h2 id="13-technical-debt-known-gaps">13. Technical Debt &amp; Known Gaps<a class="headerlink" href="#13-technical-debt-known-gaps" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Tracking</p>
+<p>Items below are tracked as architectural gaps. Mark them resolved when addressed and record the date.</p>
+</div>
+<h3 id="backend_1">Backend<a class="headerlink" href="#backend_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Priority</th>
+<th>Status</th>
+<th>Resolved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>B-1</td>
+<td>No background task queue (Celery / ARQ) — email sending would block the request</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-2</td>
+<td>Email notifications not implemented (SMTP config exists but emails are never sent)</td>
+<td>High</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-3</td>
+<td>No soft-delete for tickets or users</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-4</td>
+<td><code>organization_service.py</code> not in services layer (only added in migration; isolated)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-5</td>
+<td>Single Alembic migration chain — merge conflicts painful for parallel branches</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-6</td>
+<td><code>app_settings</code> only seeded via <code>GET /admin/app-settings</code> side-effect — fragile init path</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-7</td>
+<td><code>helfende</code> group always added on <code>assign_groups</code> call — undocumented business rule</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>B-8</td>
+<td>Avatar file orphan risk: deleting user does not delete avatar file from disk</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="frontend_1">Frontend<a class="headerlink" href="#frontend_1" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Priority</th>
+<th>Status</th>
+<th>Resolved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>F-1</td>
+<td>No error boundary — unhandled React errors crash the full page</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-2</td>
+<td>Auth state in <code>localStorage</code> — vulnerable to XSS if tokens stored as plain strings</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-3</td>
+<td>Board auto-refresh is polling (30 s) — no WebSocket / SSE for real-time updates</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-4</td>
+<td>No pagination on ticket list / board — performance degrades with large ticket counts</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-5</td>
+<td>React Router uses state-switch for login/register (no browser back-button support)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-6</td>
+<td>No toast/feedback for all async operations (some errors silently fail)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>F-7</td>
+<td><code>frontend-test</code> target not in justfile (only indirectly via CI)</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mobile">Mobile<a class="headerlink" href="#mobile" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Priority</th>
+<th>Status</th>
+<th>Resolved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>M-1</td>
+<td>App is a scaffold — navigation, detail views, create/edit not implemented</td>
+<td>High</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>M-2</td>
+<td>No tests</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>M-3</td>
+<td>No TOTP support in login screen</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>M-4</td>
+<td>No push notifications</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>M-5</td>
+<td><code>docker-compose.dev.yml</code> does not include mobile/Expo service</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure-devops">Infrastructure / DevOps<a class="headerlink" href="#infrastructure-devops" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Item</th>
+<th>Priority</th>
+<th>Status</th>
+<th>Resolved</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I-1</td>
+<td>No container registry push in CI — images built but not published</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>I-2</td>
+<td>No automatic deploy step in CI/CD</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>I-3</td>
+<td><code>docs/</code> committed to master — pollutes git history</td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>I-4</td>
+<td>No staging environment</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>I-5</td>
+<td>No database backup/restore strategy documented</td>
+<td>Medium</td>
+<td>🔴 Open</td>
+<td>—</td>
+</tr>
+<tr>
+<td>I-6</td>
+<td><code>docker-compose.dev.yml</code> frontend service uses <code>npm</code> not <code>pnpm</code></td>
+<td>Low</td>
+<td>🟡 Open</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14-progress-tracker">14. Progress Tracker<a class="headerlink" href="#14-progress-tracker" title="Permanent link">&para;</a></h2>
+<p>This section is updated with each review to record what has been resolved since the last entry.</p>
+<h3 id="2026-04-06-baseline-v01">2026-04-06 — Baseline (v0.1)<a class="headerlink" href="#2026-04-06-baseline-v01" title="Permanent link">&para;</a></h3>
+<p><strong>Completed features at this point:</strong></p>
+<ul>
+<li>✅ Full RBAC permission system (helfende / schirrmeister / admin)</li>
+<li>✅ Multi-tenant org hierarchy (4-level, XLSX import)</li>
+<li>✅ Kanban board with drag-and-drop</li>
+<li>✅ Ticket lifecycle (create → working → waiting → resolved → closed)</li>
+<li>✅ Status log history</li>
+<li>✅ Attachments (image upload, per-ticket)</li>
+<li>✅ Comments (threaded, author-editable)</li>
+<li>✅ TOTP 2FA (setup, enable, disable)</li>
+<li>✅ Avatar upload and management</li>
+<li>✅ Bulk user import (XLSX)</li>
+<li>✅ Per-org SMTP email config (stored, UI present — sending not yet implemented)</li>
+<li>✅ Age threshold colouring (green → dark red, configurable)</li>
+<li>✅ Force password change flow</li>
+<li>✅ Admin panel (config items, groups, permissions, settings, email, bulk ops)</li>
+<li>✅ CI pipeline (lint + typecheck + test + docker build)</li>
+<li>✅ MkDocs documentation site</li>
+<li>✅ 66 backend tests passing</li>
+</ul>
+<p><strong>Open work at this point:</strong></p>
+<ul>
+<li>⏳ Email sending (SMTP wired, not triggered — B-2)</li>
+<li>⏳ Mobile app (scaffold only — M-1)</li>
+<li>⏳ E2E tests</li>
+<li>⏳ Container registry + deploy step (I-1, I-2)</li>
+</ul>
+<hr />
+<h2 id="15-recommendations">15. Recommendations<a class="headerlink" href="#15-recommendations" title="Permanent link">&para;</a></h2>
+<h3 id="near-term-next-13-features">Near-term (next 1–3 features)<a class="headerlink" href="#near-term-next-13-features" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Implement email notifications</strong> — The SMTP infrastructure is in place (<code>email_configs</code> model, per-org config UI). The next step is a background task that sends mail on ticket creation, assignment, and status change. Use <code>asyncio.create_task</code> for a simple start before introducing a full queue.</p>
+</li>
+<li>
+<p><strong>Add rate limiting to auth endpoints</strong> — Use <code>slowapi</code> (Starlette/FastAPI compatible) on <code>POST /auth/login</code> and <code>POST /auth/password-reset/request</code>. A simple in-memory store is sufficient for single-instance deployments.</p>
+</li>
+<li>
+<p><strong>Refresh token revocation</strong> — Store issued refresh tokens (or a per-user <code>token_family</code> nonce) in the DB; invalidate on logout. This closes the main auth security gap (S-1).</p>
+</li>
+</ol>
+<h3 id="medium-term">Medium-term<a class="headerlink" href="#medium-term" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Pagination on ticket endpoints</strong> — <code>GET /tickets/</code> and <code>GET /tickets/board</code> will become slow with large datasets. Add <code>limit</code>/<code>offset</code> or cursor-based pagination to the board endpoint and a summary-only board view for high-cardinality columns.</p>
+</li>
+<li>
+<p><strong>Error boundaries in React</strong> — Wrap page-level routes in <code>&lt;ErrorBoundary&gt;</code> to prevent full-app crashes on component errors.</p>
+</li>
+<li>
+<p><strong>Mobile app completion</strong> — Implement navigation stack, ticket detail screen, and create-ticket form as the minimum viable mobile feature set.</p>
+</li>
+</ol>
+<h3 id="long-term">Long-term<a class="headerlink" href="#long-term" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Real-time updates</strong> — Replace the 30-second polling with <code>WebSocket</code> or <code>Server-Sent Events</code> for the Kanban board. FastAPI supports both natively.</p>
+</li>
+<li>
+<p><strong>Encrypted SMTP credentials</strong> — Encrypt SMTP passwords at rest using a derived key from <code>SECRET_KEY</code> before storing in the DB (addresses S-4).</p>
+</li>
+<li>
+<p><strong>Deploy pipeline</strong> — Add a <code>docker push</code> + <code>docker compose pull &amp;&amp; up</code> step to <code>ci.yml</code> targeting a staging environment on every <code>master</code> push.</p>
+</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
