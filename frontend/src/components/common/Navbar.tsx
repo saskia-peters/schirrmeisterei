@@ -16,7 +16,7 @@ export function Navbar() {
 
   return (
     <nav className="navbar" style={navbarBg ? { backgroundColor: navbarBg } : undefined}>
-      <div className="navbar-brand">
+      <div className="navbar-brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
         <span className="navbar-logo">🎫</span>
         <span className="navbar-title">TicketSystem</span>
       </div>
@@ -24,13 +24,23 @@ export function Navbar() {
         {user?.organization_name && <span className="navbar-org-name">{user.organization_name}</span>}
       </div>
       <div className="navbar-user">
-        <span>
-          {user?.full_name}
-          {user?.organization_name && <span className="org-badge"> ({user.organization_name})</span>}
-        </span>
+        {user?.avatar_url ? (
+          <img
+            src={user.avatar_url}
+            alt="Avatar"
+            className="navbar-avatar"
+            onClick={() => navigate('/profile')}
+            title="My Profile"
+          />
+        ) : (
+          <span style={{ cursor: 'pointer', fontSize: '0.875rem' }} onClick={() => navigate('/profile')}>
+            {user?.full_name}
+          </span>
+        )}
         {isAdmin && (
           <button onClick={() => navigate('/admin')} className="btn btn-secondary btn-sm">⚙ Admin</button>
         )}
+        <button onClick={() => navigate('/profile')} className="btn btn-ghost btn-sm">Profile</button>
         <button onClick={logout} className="btn btn-ghost btn-sm">Sign Out</button>
       </div>
     </nav>

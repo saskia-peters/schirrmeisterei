@@ -140,6 +140,16 @@ export const usersApi = {
   assignable: () => apiClient.get<AssignableUser[]>('/users/assignable').then((r) => r.data),
   update: (id: string, data: { password?: string; full_name?: string }) =>
     apiClient.patch<User>(`/users/${id}`, data).then((r) => r.data),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient
+      .post<User>('/users/me/avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
+  deleteAvatar: () => apiClient.delete<User>('/users/me/avatar').then((r) => r.data),
 }
 
 // ─── Admin ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ const baseUser: User = {
   force_password_change: false,
   groups: ['helfende'],
   totp_enabled: false,
+  avatar_url: null,
   organization_id: 'org-1',
   organization_name: 'OV München',
   organization_level: 'ortsverband',

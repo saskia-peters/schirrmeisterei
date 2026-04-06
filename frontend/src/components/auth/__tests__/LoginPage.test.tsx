@@ -63,6 +63,7 @@ describe('LoginPage', () => {
       force_password_change: false,
       groups: ['helfende'],
       totp_enabled: false,
+      avatar_url: null,
       organization_id: null,
       organization_name: null,
       organization_level: null,

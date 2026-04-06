@@ -265,9 +265,9 @@ tree:
            -not -path '*/__pycache__/*' -not -path '*/.venv/*' \
            -not -path '*/dist/*' -not -path '*/htmlcov/*' | sort
 
-# Create superuser (interactive)
-create-superuser: backend-migrate
-    cd backend && UV_PYTHON=3.13 uv run python scripts/create_superuser.py
+# Initialise the database: generate data files, run migrations, create superuser
+init-db: db-start
+    cd backend && UV_PYTHON=3.13 uv run python scripts/init_db.py
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Documentation (MkDocs)

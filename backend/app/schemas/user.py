@@ -50,6 +50,7 @@ class UserResponse(UserBase):
     force_password_change: bool
     groups: list[str] = []
     totp_enabled: bool
+    avatar_url: str | None = None
     organization_id: str | None = None
     organization_name: str | None = None
     organization_level: str | None = None
@@ -75,6 +76,7 @@ class UserResponse(UserBase):
             "force_password_change": data.force_password_change,
             "groups": sorted([group.name for group in data.groups]) if data.groups else [],
             "totp_enabled": data.totp_enabled,
+            "avatar_url": data.avatar_url,
             "organization_id": data.organization_id,
             "organization_name": org.name if org else None,
             "organization_level": org_level,

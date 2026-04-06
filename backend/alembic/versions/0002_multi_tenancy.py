@@ -40,7 +40,7 @@ PERMISSIONS = [
 
 ROLE_PERMISSIONS: dict[str, list[str]] = {
     "helfende": [
-        "create_ticket", "view_ticket", "add_comment", "upload_attachment",
+        "create_ticket", "view_ticket", "edit_ticket", "add_comment", "upload_attachment",
     ],
     "schirrmeister": [
         "create_ticket", "view_ticket", "edit_ticket", "close_ticket",

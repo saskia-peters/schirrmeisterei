@@ -49,6 +49,7 @@ export interface User {
   force_password_change: boolean
   groups: string[]
   totp_enabled: boolean
+  avatar_url: string | null
   organization_id: string | null
   organization_name: string | null
   organization_level: OrganizationLevel | null

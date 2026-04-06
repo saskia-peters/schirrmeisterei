@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Depends
+import os
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.deps import get_current_superuser, get_current_user, get_unrestricted_user
 from app.core.exceptions import ConflictException, NotFoundException
 from app.db.session import get_db
@@ -75,3 +78,66 @@ async def update_user(
     if not user:
         raise NotFoundException("User")
     return await service.update(user, data)
+
+
+_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+_MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2 MB
+
+
+@router.post("/me/avatar", response_model=UserResponse)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_unrestricted_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Upload a new avatar image for the currently authenticated user.
+
+    Accepts JPEG, PNG, WebP or GIF images up to 2 MB.  The stored file is
+    served at ``/uploads/avatars/<user_id>.<ext>`` and the URL is written to
+    ``user.avatar_url``.
+    """
+    if file.content_type not in _ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only JPEG, PNG, WebP or GIF images are allowed",
+        )
+    content = await file.read()
+    if len(content) > _MAX_AVATAR_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image must be under 2 MB",
+        )
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    avatar_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
+    os.makedirs(avatar_dir, exist_ok=True)
+    filename = f"{current_user.id}{ext}"
+    filepath = os.path.join(avatar_dir, filename)
+    with open(filepath, "wb") as fh:
+        fh.write(content)
+    current_user.avatar_url = f"/uploads/avatars/{filename}"
+    await db.flush()
+    service = UserService(db)
+    refreshed = await service.get_by_id(current_user.id)
+    assert refreshed is not None
+    return refreshed
+
+
+@router.delete("/me/avatar", response_model=UserResponse)
+async def delete_avatar(
+    current_user: User = Depends(get_unrestricted_user),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Remove the current user's avatar image."""
+    if current_user.avatar_url:
+        # Try to remove the file from disk; ignore if already gone
+        rel_path = current_user.avatar_url.lstrip("/")
+        try:
+            os.remove(rel_path)
+        except FileNotFoundError:
+            pass
+    current_user.avatar_url = None
+    await db.flush()
+    service = UserService(db)
+    refreshed = await service.get_by_id(current_user.id)
+    assert refreshed is not None
+    return refreshed

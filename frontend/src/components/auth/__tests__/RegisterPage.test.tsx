@@ -27,9 +27,9 @@ vi.mock('@/store/authStore', () => ({
   })),
 }))
 
-const mockLV: Organization = { id: 'lv-1', name: 'LV Bayern', level: 'landesverband', parent_id: null }
-const mockRst: Organization = { id: 'rst-1', name: 'Rst München', level: 'regionalstelle', parent_id: 'lv-1' }
-const mockOV: Organization = { id: 'ov-1', name: 'OV Schwabing', level: 'ortsverband', parent_id: 'rst-1' }
+const mockLV: Organization = { id: 'lv-1', name: 'LV Bayern', level: 'landesverband', parent_id: null, created_at: '' }
+const mockRst: Organization = { id: 'rst-1', name: 'Rst München', level: 'regionalstelle', parent_id: 'lv-1', created_at: '' }
+const mockOV: Organization = { id: 'ov-1', name: 'OV Schwabing', level: 'ortsverband', parent_id: 'rst-1', created_at: '' }
 
 vi.mock('@/hooks/useApi', () => ({
   useLandesverbaende: vi.fn(() => ({ data: [mockLV] })),
@@ -85,6 +85,7 @@ describe('RegisterPage', () => {
       force_password_change: false,
       groups: [],
       totp_enabled: false,
+      avatar_url: null,
       organization_id: 'lv-1',
       organization_name: 'LV Bayern',
       organization_level: 'landesverband',

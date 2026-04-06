@@ -7,6 +7,7 @@ import { authApi } from '@/api'
 import { LoginPage } from '@/components/auth/LoginPage'
 import { RegisterPage } from '@/components/auth/RegisterPage'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
+import { ProfilePage } from '@/components/auth/ProfilePage'
 import { BoardPage } from '@/components/board/BoardPage'
 import { AdminPanel } from '@/components/admin/AdminPanel'
 import '@/styles/globals.css'
@@ -49,6 +50,7 @@ function AppInner() {
     return (
       <Routes>
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/" element={<BoardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
