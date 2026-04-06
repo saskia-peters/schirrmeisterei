@@ -43,6 +43,7 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Architecture Review: architecture-review.md
+  - Code Review: code-review.md
   - API Reference: api.md
   - Deployment: deployment.md
   - Development Guide: development.md
