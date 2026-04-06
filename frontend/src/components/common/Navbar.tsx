@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '@/store/authStore'
 
@@ -11,7 +12,13 @@ const ORG_LEVEL_COLORS: Record<string, string> = {
 export function Navbar() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const isAdmin = user?.is_superuser || user?.groups?.includes('admin')
+
+  const handleLogout = () => {
+    logout()
+    queryClient.clear()
+  }
   const navbarBg = user?.organization_level ? ORG_LEVEL_COLORS[user.organization_level] : undefined
 
   return (
@@ -41,7 +48,7 @@ export function Navbar() {
           <button onClick={() => navigate('/admin')} className="btn btn-secondary btn-sm">⚙ Admin</button>
         )}
         <button onClick={() => navigate('/profile')} className="btn btn-ghost btn-sm">Profile</button>
-        <button onClick={logout} className="btn btn-ghost btn-sm">Sign Out</button>
+        <button onClick={handleLogout} className="btn btn-ghost btn-sm">Sign Out</button>
       </div>
     </nav>
   )
