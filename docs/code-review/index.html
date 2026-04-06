@@ -1,0 +1,2803 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for the TicketSystem — a multi-tenant support-ticket platform">
+      
+      
+      
+        <link rel="canonical" href="https://github.com/ticketsystem/code-review/">
+      
+      
+        <link rel="prev" href="../architecture-review/">
+      
+      
+        <link rel="next" href="../api/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Code Review - TicketSystem Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#code-review" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="TicketSystem Documentation" class="md-header__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            TicketSystem Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Code Review
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture-review/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture Review
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Code Review
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Deployment
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../development/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Development Guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../user-guide/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User Guide
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="TicketSystem Documentation" class="md-nav__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    TicketSystem Documentation
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture-review/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Review
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code Review
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#review-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review History
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-module-size-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Module Size Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Module Size Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-functions-methods-over-50-lines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Functions / Methods Over 50 Lines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-security-correctness-bugs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Security &amp; Correctness Bugs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Security &amp; Correctness Bugs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-s1-synchronous-file-write-blocks-the-async-event-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S1 — Synchronous file write blocks the async event loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s2-avatar-delete-path-not-validated-against-upload_dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S2 — Avatar delete path not validated against UPLOAD_DIR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s3-smtp-password-stored-in-plain-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S3 — SMTP password stored in plain text
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s4-password-reset-token-returned-in-api-response-body" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S4 — Password reset token returned in API response body
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s5-no-rate-limiting-on-authentication-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S5 — No rate limiting on authentication endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s6-dbcommit-called-inside-endpoint-bypassing-the-get_db-rollback-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S6 — db.commit() called inside endpoint, bypassing the get_db rollback guarantee
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s7-concurrent-401-refresh-race-condition-in-the-axios-interceptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S7 — Concurrent 401 refresh race condition in the Axios interceptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s8-jwt-tokens-stored-in-localstorage-xss-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S8 — JWT tokens stored in localStorage (XSS-accessible)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-duplicated-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Duplicated Logic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Duplicated Logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-d1-selectinload-option-chain-repeated-3-in-ticketservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D1 — selectinload option chain repeated 3× in TicketService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d2-org_level_abbrev-defined-in-three-places" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D2 — ORG_LEVEL_ABBREV defined in three places
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d3-sqlalchemy-enum-boilerplate-repeated-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D3 — SQLAlchemy Enum boilerplate repeated 7×
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d4-status_colors-status_labels-duplicated-across-web-and-mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D4 — STATUS_COLORS / STATUS_LABELS duplicated across web and mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d5-two-separate-list-all-users-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D5 — Two separate "list all users" endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d6-cancloseticket-checked-by-name-in-frontend-by-permission-in-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D6 — canCloseTicket checked by name in frontend, by permission in backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-missing-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Missing Error Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Missing Error Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-e1-no-react-error-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E1 — No React Error Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e2-add_comment-returns-a-comment-without-the-author-relation-loaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E2 — add_comment returns a comment without the author relation loaded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e3-assert-used-as-runtime-guard-in-production-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E3 — assert used as runtime guard in production code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e4-organization_id-fk-not-validated-at-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E4 — organization_id FK not validated at service layer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e5-mobile-silent-logout-after-token-refresh-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E5 — Mobile silent logout after token refresh failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-large-module-detail-split-candidates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Large Module Detail: Split Candidates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Large Module Detail: Split Candidates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adminpaneltsx-1-029-lines-split-urgently" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AdminPanel.tsx (1 029 lines) — 🔴 Split urgently
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ticketdetailtsx-507-lines-split-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TicketDetail.tsx (507 lines) — ⚠ Split candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adminpy-641-lines-backend-split-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        admin.py (641 lines) — ⚠ Backend split candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-inconsistent-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Inconsistent Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Inconsistent Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-p1-stray-mid-file-import-in-schemasticketpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P1 — Stray mid-file import in schemas/ticket.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p2-get_unrestricted_user-alias-for-a-private-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P2 — get_unrestricted_user alias for a private function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p3-bfs-uses-listpop0-instead-of-dequepopleft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P3 — BFS uses list.pop(0) instead of deque.popleft()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p4-_ensure_age_defaults-issues-n-individual-select-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P4 — _ensure_age_defaults issues N individual SELECT queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p5-kanban-board-filters-by-user-name-string-instead-of-user-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P5 — Kanban board filters by user name string instead of user ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p6-priority-css-class-mapping-hardcodes-german-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P6 — Priority CSS class mapping hardcodes German names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p7-destructive-actions-use-windowconfirm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P7 — Destructive actions use window.confirm()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p8-mobile-ticketsummary-type-uses-owner_id-instead-of-assignee_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P8 — Mobile TicketSummary type uses owner_id instead of assignee_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p9-mobileappjson-contains-placeholder-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P9 — mobile/app.json contains placeholder values
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-issue-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Issue Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Issue Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#by-severity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        By Severity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Counts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-progress-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Progress Tracker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Progress Tracker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-04-06-baseline-all-30-issues-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-04-06 — Baseline (all 30 issues open)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Recommendations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Recommendations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immediate-fix-before-next-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate (fix before next release)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#short-term-next-sprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short-term (next sprint)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#review-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review History
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-module-size-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Module Size Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Module Size Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#frontend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Frontend
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-functions-methods-over-50-lines" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Functions / Methods Over 50 Lines
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-security-correctness-bugs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Security &amp; Correctness Bugs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Security &amp; Correctness Bugs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-s1-synchronous-file-write-blocks-the-async-event-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S1 — Synchronous file write blocks the async event loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s2-avatar-delete-path-not-validated-against-upload_dir" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S2 — Avatar delete path not validated against UPLOAD_DIR
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s3-smtp-password-stored-in-plain-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S3 — SMTP password stored in plain text
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s4-password-reset-token-returned-in-api-response-body" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S4 — Password reset token returned in API response body
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s5-no-rate-limiting-on-authentication-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S5 — No rate limiting on authentication endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s6-dbcommit-called-inside-endpoint-bypassing-the-get_db-rollback-guarantee" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S6 — db.commit() called inside endpoint, bypassing the get_db rollback guarantee
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s7-concurrent-401-refresh-race-condition-in-the-axios-interceptor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S7 — Concurrent 401 refresh race condition in the Axios interceptor
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-s8-jwt-tokens-stored-in-localstorage-xss-accessible" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-S8 — JWT tokens stored in localStorage (XSS-accessible)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-duplicated-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Duplicated Logic
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Duplicated Logic">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-d1-selectinload-option-chain-repeated-3-in-ticketservice" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D1 — selectinload option chain repeated 3× in TicketService
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d2-org_level_abbrev-defined-in-three-places" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D2 — ORG_LEVEL_ABBREV defined in three places
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d3-sqlalchemy-enum-boilerplate-repeated-7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D3 — SQLAlchemy Enum boilerplate repeated 7×
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d4-status_colors-status_labels-duplicated-across-web-and-mobile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D4 — STATUS_COLORS / STATUS_LABELS duplicated across web and mobile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d5-two-separate-list-all-users-endpoints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D5 — Two separate "list all users" endpoints
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-d6-cancloseticket-checked-by-name-in-frontend-by-permission-in-backend" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-D6 — canCloseTicket checked by name in frontend, by permission in backend
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-missing-error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Missing Error Handling
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Missing Error Handling">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-e1-no-react-error-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E1 — No React Error Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e2-add_comment-returns-a-comment-without-the-author-relation-loaded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E2 — add_comment returns a comment without the author relation loaded
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e3-assert-used-as-runtime-guard-in-production-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E3 — assert used as runtime guard in production code
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e4-organization_id-fk-not-validated-at-service-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E4 — organization_id FK not validated at service layer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-e5-mobile-silent-logout-after-token-refresh-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-E5 — Mobile silent logout after token refresh failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-large-module-detail-split-candidates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Large Module Detail: Split Candidates
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Large Module Detail: Split Candidates">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#adminpaneltsx-1-029-lines-split-urgently" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AdminPanel.tsx (1 029 lines) — 🔴 Split urgently
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ticketdetailtsx-507-lines-split-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TicketDetail.tsx (507 lines) — ⚠ Split candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#adminpy-641-lines-backend-split-candidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        admin.py (641 lines) — ⚠ Backend split candidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-inconsistent-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Inconsistent Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Inconsistent Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cr-p1-stray-mid-file-import-in-schemasticketpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P1 — Stray mid-file import in schemas/ticket.py
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p2-get_unrestricted_user-alias-for-a-private-function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P2 — get_unrestricted_user alias for a private function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p3-bfs-uses-listpop0-instead-of-dequepopleft" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P3 — BFS uses list.pop(0) instead of deque.popleft()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p4-_ensure_age_defaults-issues-n-individual-select-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P4 — _ensure_age_defaults issues N individual SELECT queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p5-kanban-board-filters-by-user-name-string-instead-of-user-id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P5 — Kanban board filters by user name string instead of user ID
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p6-priority-css-class-mapping-hardcodes-german-names" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P6 — Priority CSS class mapping hardcodes German names
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p7-destructive-actions-use-windowconfirm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P7 — Destructive actions use window.confirm()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p8-mobile-ticketsummary-type-uses-owner_id-instead-of-assignee_id" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P8 — Mobile TicketSummary type uses owner_id instead of assignee_id
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cr-p9-mobileappjson-contains-placeholder-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CR-P9 — mobile/app.json contains placeholder values
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-issue-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Issue Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Issue Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#by-severity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        By Severity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#counts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Counts
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-progress-tracker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Progress Tracker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Progress Tracker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#2026-04-06-baseline-all-30-issues-open" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2026-04-06 — Baseline (all 30 issues open)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-recommendations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Recommendations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Recommendations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#immediate-fix-before-next-release" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate (fix before next release)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#short-term-next-sprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Short-term (next sprint)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#medium-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Medium-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#long-term" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Long-term
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="code-review">Code Review<a class="headerlink" href="#code-review" title="Permanent link">&para;</a></h1>
+<div class="admonition info">
+<p class="admonition-title">Living Document</p>
+<p>This document is updated with each significant review pass. Add a row to the <a href="#review-history">Review History</a> table and a dated section to the <a href="#progress-tracker">Progress Tracker</a> as issues are resolved.</p>
+</div>
+<hr />
+<h2 id="review-history">Review History<a class="headerlink" href="#review-history" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Reviewer</th>
+<th>Files Read</th>
+<th>Issues Found</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04-06</td>
+<td>Initial full review</td>
+<td>55 files, ~9 100 lines</td>
+<td>29</td>
+<td>🔴 Open</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="1-module-size-inventory">1. Module Size Inventory<a class="headerlink" href="#1-module-size-inventory" title="Permanent link">&para;</a></h2>
+<p>All source files were read and line-counted. Files exceeding 300 lines are flagged as candidates for splitting.</p>
+<h3 id="backend">Backend<a class="headerlink" href="#backend" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Lines</th>
+<th>Flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>backend/app/api/v1/endpoints/admin.py</code></td>
+<td><strong>641</strong></td>
+<td>⚠ Split candidate</td>
+</tr>
+<tr>
+<td><code>backend/app/models/models.py</code></td>
+<td><strong>362</strong></td>
+<td>⚠ Large (acceptable for now)</td>
+</tr>
+<tr>
+<td><code>backend/app/api/v1/endpoints/auth.py</code></td>
+<td>226</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/api/v1/endpoints/tickets.py</code></td>
+<td>246</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/schemas/user.py</code></td>
+<td>276</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/schemas/ticket.py</code></td>
+<td>231</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/services/ticket_service.py</code></td>
+<td><strong>302</strong></td>
+<td>⚠ At limit</td>
+</tr>
+<tr>
+<td><code>backend/app/services/user_service.py</code></td>
+<td>176</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/services/organization_service.py</code></td>
+<td>114</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/tests/integration/test_tickets.py</code></td>
+<td>266</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>backend/app/tests/conftest.py</code></td>
+<td>157</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>alembic/versions/0001_initial.py</code></td>
+<td><strong>320</strong></td>
+<td>⚠ Expected for squashed migration</td>
+</tr>
+<tr>
+<td><code>alembic/versions/0002_multi_tenancy.py</code></td>
+<td><strong>300</strong></td>
+<td>⚠ Expected for squashed migration</td>
+</tr>
+<tr>
+<td><code>alembic/versions/0003_user_avatar.py</code></td>
+<td>24</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Everything else</td>
+<td>&lt;200</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="frontend">Frontend<a class="headerlink" href="#frontend" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Lines</th>
+<th>Flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>frontend/src/components/admin/AdminPanel.tsx</code></td>
+<td><strong>1 029</strong></td>
+<td>🔴 Split urgently</td>
+</tr>
+<tr>
+<td><code>frontend/src/components/tickets/TicketDetail.tsx</code></td>
+<td><strong>507</strong></td>
+<td>⚠ Split candidate</td>
+</tr>
+<tr>
+<td><code>frontend/src/components/auth/ProfilePage.tsx</code></td>
+<td><strong>364</strong></td>
+<td>⚠ Borderline</td>
+</tr>
+<tr>
+<td><code>frontend/src/hooks/useApi.ts</code></td>
+<td><strong>358</strong></td>
+<td>⚠ Acceptable (logical organisation)</td>
+</tr>
+<tr>
+<td><code>frontend/src/types/index.ts</code></td>
+<td><strong>302</strong></td>
+<td>⚠ Acceptable (single type source)</td>
+</tr>
+<tr>
+<td><code>frontend/src/components/board/KanbanBoard.tsx</code></td>
+<td>282</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>frontend/src/api/index.ts</code></td>
+<td>241</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Everything else</td>
+<td>&lt;200</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mobile">Mobile<a class="headerlink" href="#mobile" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Lines</th>
+<th>Flag</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mobile/src/screens/TicketListScreen.tsx</code></td>
+<td>91</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>mobile/src/api/index.ts</code></td>
+<td>67</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>mobile/src/types/index.ts</code></td>
+<td>55</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-functions-methods-over-50-lines">2. Functions / Methods Over 50 Lines<a class="headerlink" href="#2-functions-methods-over-50-lines" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Location</th>
+<th>~Lines</th>
+<th>Issue</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin.py</code> — <code>upload_hierarchy()</code></td>
+<td>~80</td>
+<td>DB writes and XLSX parsing inline in handler</td>
+</tr>
+<tr>
+<td><code>admin.py</code> — <code>bulk_upload_users()</code></td>
+<td>~75</td>
+<td>Same — business logic belongs in a service</td>
+</tr>
+<tr>
+<td><code>AdminPanel.tsx</code> — <code>EmailConfigAdmin()</code></td>
+<td>~160</td>
+<td>Inline table + create/edit form — should be its own component</td>
+</tr>
+<tr>
+<td><code>AdminPanel.tsx</code> — <code>UserRoleAdmin()</code></td>
+<td>~130</td>
+<td>User–group assignment matrix inlined — should be its own component</td>
+</tr>
+<tr>
+<td><code>TicketDetail.tsx</code> — <code>TicketDetail()</code></td>
+<td>~350</td>
+<td>Monolithic — see §6</td>
+</tr>
+<tr>
+<td><code>ProfilePage.tsx</code> — <code>TwoFactorSection()</code></td>
+<td>~100</td>
+<td>Manageable but would benefit from extraction</td>
+</tr>
+<tr>
+<td><code>alembic/0002_multi_tenancy.py</code> — <code>upgrade()</code></td>
+<td>~120</td>
+<td>Expected; seed data in a single migration function</td>
+</tr>
+<tr>
+<td><code>ticket_service.py</code> — <code>update()</code></td>
+<td>~55</td>
+<td>Long due to assignee change logging</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="3-security-correctness-bugs">3. Security &amp; Correctness Bugs<a class="headerlink" href="#3-security-correctness-bugs" title="Permanent link">&para;</a></h2>
+<div class="admonition danger">
+<p class="admonition-title">These items should be fixed before any production deployment.</p>
+</div>
+<h3 id="cr-s1-synchronous-file-write-blocks-the-async-event-loop">CR-S1 — Synchronous file write blocks the async event loop<a class="headerlink" href="#cr-s1-synchronous-file-write-blocks-the-async-event-loop" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/users.py"><code>backend/app/api/v1/endpoints/users.py</code></a> ~line 118</p>
+<p>The avatar upload handler uses a blocking <code>open()</code> call inside an <code>async def</code> endpoint:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># ❌ Blocks the entire event loop under concurrent load</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+</code></pre></div>
+<p>The attachment upload in <code>ticket_service.py</code> correctly uses <code>aiofiles</code>. The avatar endpoint must be updated to match:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># ✅</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">aiofiles</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">async</span> <span class="k">with</span> <span class="n">aiofiles</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="s2">&quot;wb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">await</span> <span class="n">fh</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Severity:</strong> Medium — no data loss, but degrades throughput under concurrent requests.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s2-avatar-delete-path-not-validated-against-upload_dir">CR-S2 — Avatar delete path not validated against UPLOAD_DIR<a class="headerlink" href="#cr-s2-avatar-delete-path-not-validated-against-upload_dir" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/users.py"><code>backend/app/api/v1/endpoints/users.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># ❌ No path-containment check before os.remove()</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">rel_path</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">avatar_url</span><span class="o">.</span><span class="n">lstrip</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">rel_path</span><span class="p">)</span>
+</code></pre></div>
+<p>The value comes from the database (server-controlled), so the current risk is low. But writing the value via a direct <code>lstrip("/")</code> → <code>os.remove()</code> pattern is unsafe — defence in depth should verify the resolved path is inside <code>UPLOAD_DIR</code> before deletion:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># ✅</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">resolved</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">UPLOAD_DIR</span><span class="p">,</span> <span class="n">rel_path</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">assert</span> <span class="n">resolved</span><span class="o">.</span><span class="n">is_relative_to</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">UPLOAD_DIR</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">())</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">os</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Severity:</strong> Low (server-controlled input), pattern is unsafe.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s3-smtp-password-stored-in-plain-text">CR-S3 — SMTP password stored in plain text<a class="headerlink" href="#cr-s3-smtp-password-stored-in-plain-text" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/models/models.py"><code>backend/app/models/models.py</code></a> — <code>EmailConfig.smtp_password</code></p>
+<p><code>smtp_password</code> is a plain <code>String(255)</code> column. Any person with <code>SELECT</code> access on the database retrieves all SMTP credentials in cleartext. Encrypt at rest using a key derived from <code>SECRET_KEY</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Suggested: use cryptography.fernet, store as bytes or base64 string</span>
+</code></pre></div>
+<p><strong>Severity:</strong> Medium — credential exposure risk.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s4-password-reset-token-returned-in-api-response-body">CR-S4 — Password reset token returned in API response body<a class="headerlink" href="#cr-s4-password-reset-token-returned-in-api-response-body" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/auth.py"><code>backend/app/api/v1/endpoints/auth.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">if</span> <span class="n">settings</span><span class="o">.</span><span class="n">ENVIRONMENT</span> <span class="o">==</span> <span class="s2">&quot;development&quot;</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">,</span> <span class="s2">&quot;reset_token&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
+</code></pre></div>
+<p><code>ENVIRONMENT</code> defaults to <code>"development"</code> in <code>config.py</code>. If the env var is not set in staging or production, a valid password-reset token is exposed in the response body. The guard works only if the caller correctly sets <code>ENVIRONMENT</code>. Consider a strict allowlist (<code>!= "production"</code> only) or remove the debug response entirely.</p>
+<p><strong>Severity:</strong> Medium — potential token leak in mis-configured deployments.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s5-no-rate-limiting-on-authentication-endpoints">CR-S5 — No rate limiting on authentication endpoints<a class="headerlink" href="#cr-s5-no-rate-limiting-on-authentication-endpoints" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/auth.py"><code>backend/app/api/v1/endpoints/auth.py</code></a></p>
+<p><code>POST /auth/login</code>, <code>POST /auth/register</code>, and <code>POST /auth/password-reset/request</code> have no rate limiting. Brute-force and credential stuffing are unmitigated. Add <code>slowapi</code> middleware with a per-IP limiter.</p>
+<p><strong>Severity:</strong> Medium — active attack surface.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s6-dbcommit-called-inside-endpoint-bypassing-the-get_db-rollback-guarantee">CR-S6 — <code>db.commit()</code> called inside endpoint, bypassing the <code>get_db</code> rollback guarantee<a class="headerlink" href="#cr-s6-dbcommit-called-inside-endpoint-bypassing-the-get_db-rollback-guarantee" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/admin.py"><code>backend/app/api/v1/endpoints/admin.py</code></a> — <code>upload_hierarchy()</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>          <span class="c1"># explicit commit inside handler</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="k">return</span> <span class="n">HierarchyUploadResult</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+</code></pre></div>
+<p>The <code>get_db</code> dependency commits on clean exit and rolls back on exception. Calling <code>db.commit()</code> directly in the handler means any exception raised <em>after</em> this commit but <em>before</em> <code>get_db</code> exits leaves the DB in a partially-committed state without a rollback. Remove the explicit commit and rely on the dependency.</p>
+<p><strong>Severity:</strong> Medium — data integrity risk under error conditions.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s7-concurrent-401-refresh-race-condition-in-the-axios-interceptor">CR-S7 — Concurrent 401 refresh race condition in the Axios interceptor<a class="headerlink" href="#cr-s7-concurrent-401-refresh-race-condition-in-the-axios-interceptor" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/api/client.ts"><code>frontend/src/api/client.ts</code></a></p>
+<p>If two requests return 401 simultaneously, both interceptors fire independently and two refresh requests are issued. The second may fail (if backend enforces single-use or issues new tokens that invalidate the first), causing an unexpected logout. A standard fix is to queue pending requests behind a single in-flight refresh promise:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kd">let</span><span class="w"> </span><span class="nx">refreshPromise</span><span class="o">:</span><span class="w"> </span><span class="kt">Promise</span><span class="o">&lt;</span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="kc">null</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kc">null</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1">// Interceptor: if refreshPromise exists, await it; else create and assign it</span>
+</code></pre></div>
+<p><strong>Severity:</strong> Medium — intermittent unexpected logouts.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-s8-jwt-tokens-stored-in-localstorage-xss-accessible">CR-S8 — JWT tokens stored in <code>localStorage</code> (XSS-accessible)<a class="headerlink" href="#cr-s8-jwt-tokens-stored-in-localstorage-xss-accessible" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/store/authStore.ts"><code>frontend/src/store/authStore.ts</code></a></p>
+<p>Zustand <code>persist</code> writes <code>accessToken</code> and <code>refreshToken</code> to <code>localStorage</code> under key <code>auth-storage</code>. <code>localStorage</code> is readable by any JavaScript executing on the page, making tokens vulnerable to XSS. The refresh token in particular should be stored in an <code>HttpOnly</code> cookie (requires backend support) or at minimum in <code>sessionStorage</code> (cleared on tab close).</p>
+<p><strong>Severity:</strong> Medium — token exfiltration risk via XSS.
+<strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h2 id="4-duplicated-logic">4. Duplicated Logic<a class="headerlink" href="#4-duplicated-logic" title="Permanent link">&para;</a></h2>
+<h3 id="cr-d1-selectinload-option-chain-repeated-3-in-ticketservice">CR-D1 — <code>selectinload</code> option chain repeated 3× in <code>TicketService</code><a class="headerlink" href="#cr-d1-selectinload-option-chain-repeated-3-in-ticketservice" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/services/ticket_service.py"><code>backend/app/services/ticket_service.py</code></a></p>
+<p>The identical 9-item eager-load chain appears verbatim in <code>get_by_id()</code>, <code>list_all()</code>, and <code>list_by_status()</code>. <code>UserService</code> correctly uses a <code>_user_options()</code> class method for the same pattern. Extract an equivalent <code>_ticket_options()</code> method:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@staticmethod</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_ticket_options</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="k">return</span> <span class="p">[</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">organization</span><span class="p">),</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">creator</span><span class="p">)</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">organization</span><span class="p">),</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">owner</span><span class="p">)</span><span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">organization</span><span class="p">),</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">priority</span><span class="p">),</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">category</span><span class="p">),</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">affected_group</span><span class="p">),</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">attachments</span><span class="p">),</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">comments</span><span class="p">)</span>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>            <span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Comment</span><span class="o">.</span><span class="n">author</span><span class="p">)</span>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>            <span class="o">.</span><span class="n">selectinload</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">organization</span><span class="p">),</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>        <span class="n">selectinload</span><span class="p">(</span><span class="n">Ticket</span><span class="o">.</span><span class="n">status_logs</span><span class="p">),</span>
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="p">]</span>
+</code></pre></div>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="cr-d2-org_level_abbrev-defined-in-three-places">CR-D2 — <code>ORG_LEVEL_ABBREV</code> defined in three places<a class="headerlink" href="#cr-d2-org_level_abbrev-defined-in-three-places" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <a href="../backend/app/models/models.py"><code>backend/app/models/models.py</code></a> — Python dict
+- <a href="../frontend/src/types/index.ts"><code>frontend/src/types/index.ts</code></a> — TS const
+- <a href="../mobile/src/types/index.ts"><code>mobile/src/types/index.ts</code></a> — TS const (no mapping present but levels duplicated)</p>
+<p>These must be kept in sync manually. Consider deriving the mapping from a <code>/organizations/levels</code> API endpoint, or at minimum adding a comment cross-referencing the other definitions.</p>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="cr-d3-sqlalchemy-enum-boilerplate-repeated-7">CR-D3 — SQLAlchemy <code>Enum</code> boilerplate repeated 7×<a class="headerlink" href="#cr-d3-sqlalchemy-enum-boilerplate-repeated-7" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/models/models.py"><code>backend/app/models/models.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Appears 7 times:</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">Enum</span><span class="p">(</span><span class="n">SomeEnum</span><span class="p">,</span> <span class="n">values_callable</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">],</span> <span class="n">create_constraint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<p>Extract a helper:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">pg_enum</span><span class="p">(</span><span class="n">enum_cls</span><span class="p">:</span> <span class="nb">type</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Enum</span><span class="p">:</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="k">return</span> <span class="n">Enum</span><span class="p">(</span><span class="n">enum_cls</span><span class="p">,</span> <span class="n">values_callable</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">e</span><span class="p">],</span> <span class="n">create_constraint</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="cr-d4-status_colors-status_labels-duplicated-across-web-and-mobile">CR-D4 — <code>STATUS_COLORS</code> / <code>STATUS_LABELS</code> duplicated across web and mobile<a class="headerlink" href="#cr-d4-status_colors-status_labels-duplicated-across-web-and-mobile" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <a href="../frontend/src/components/board/KanbanBoard.tsx"><code>frontend/src/components/board/KanbanBoard.tsx</code></a>
+- <a href="../mobile/src/screens/TicketListScreen.tsx"><code>mobile/src/screens/TicketListScreen.tsx</code></a></p>
+<p>Same constant defined independently in both clients. If a new status is added, it must be updated in both.</p>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="cr-d5-two-separate-list-all-users-endpoints">CR-D5 — Two separate "list all users" endpoints<a class="headerlink" href="#cr-d5-two-separate-list-all-users-endpoints" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <code>GET /users/</code> in <a href="../backend/app/api/v1/endpoints/users.py"><code>backend/app/api/v1/endpoints/users.py</code></a> — superuser only
+- <code>GET /admin/users</code> in <a href="../backend/app/api/v1/endpoints/admin.py"><code>backend/app/api/v1/endpoints/admin.py</code></a> — admin group</p>
+<p>Both call <code>service.list_all()</code> and return <code>list[UserResponse]</code>. The only difference is the auth guard. Unify into one endpoint with a shared auth guard that accepts both <code>admin</code> group and superuser.</p>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="cr-d6-cancloseticket-checked-by-name-in-frontend-by-permission-in-backend">CR-D6 — <code>canCloseTicket</code> checked by name in frontend, by permission in backend<a class="headerlink" href="#cr-d6-cancloseticket-checked-by-name-in-frontend-by-permission-in-backend" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong>
+- <a href="../frontend/src/components/tickets/TicketDetail.tsx"><code>frontend/src/components/tickets/TicketDetail.tsx</code></a> — <code>user?.groups?.includes('schirrmeister')</code>
+- <a href="../backend/app/api/v1/endpoints/tickets.py"><code>backend/app/api/v1/endpoints/tickets.py</code></a> — <code>user_has_permission(..., "close_ticket")</code></p>
+<p>Currently these are equivalent because <code>schirrmeister</code> holds <code>close_ticket</code>. However, if that permission is reassigned via the admin panel, the frontend check becomes stale. The frontend should query user permissions from the <code>GET /auth/me</code> response rather than hard-coding group names.</p>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h2 id="5-missing-error-handling">5. Missing Error Handling<a class="headerlink" href="#5-missing-error-handling" title="Permanent link">&para;</a></h2>
+<h3 id="cr-e1-no-react-error-boundary">CR-E1 — No React Error Boundary<a class="headerlink" href="#cr-e1-no-react-error-boundary" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/App.tsx"><code>frontend/src/App.tsx</code></a></p>
+<p>An unhandled render-time error in any component shows a blank white screen with no explanation. Wrap the app root in an <code>&lt;ErrorBoundary&gt;</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">&lt;</span><span class="nt">ErrorBoundary</span><span class="w"> </span><span class="na">fallback</span><span class="o">=</span><span class="p">{&lt;</span><span class="nt">p</span><span class="p">&gt;</span><span class="nx">Something</span><span class="w"> </span><span class="nx">went</span><span class="w"> </span><span class="nx">wrong</span><span class="p">.</span><span class="w"> </span><span class="nx">Please</span><span class="w"> </span><span class="nx">reload</span><span class="p">.&lt;/</span><span class="nt">p</span><span class="p">&gt;}&gt;</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="p">&lt;</span><span class="nt">AppInner</span><span class="w"> </span><span class="p">/&gt;</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="p">&lt;/</span><span class="nt">ErrorBoundary</span><span class="p">&gt;</span>
+</code></pre></div>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-e2-add_comment-returns-a-comment-without-the-author-relation-loaded">CR-E2 — <code>add_comment</code> returns a comment without the <code>author</code> relation loaded<a class="headerlink" href="#cr-e2-add_comment-returns-a-comment-without-the-author-relation-loaded" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/services/ticket_service.py"><code>backend/app/services/ticket_service.py</code></a> — <code>add_comment()</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">comment</span><span class="p">)</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">return</span> <span class="n">comment</span>   <span class="c1"># comment.author is not eagerly loaded</span>
+</code></pre></div>
+<p><code>CommentResponse</code> accesses <code>comment.author</code>. In <code>asyncpg</code> async context, accessing a lazy-loaded relation raises <code>sqlalchemy.exc.MissingGreenlet</code>. The fix is to re-query the comment with the author eagerly loaded after the insert.</p>
+<p><strong>Status:</strong> 🔴 Open (may be causing silent serialisation errors)</p>
+<hr />
+<h3 id="cr-e3-assert-used-as-runtime-guard-in-production-code">CR-E3 — <code>assert</code> used as runtime guard in production code<a class="headerlink" href="#cr-e3-assert-used-as-runtime-guard-in-production-code" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/services/user_service.py"><code>backend/app/services/user_service.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">assert</span> <span class="n">refreshed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</code></pre></div>
+<p>Running Python with <code>-O</code> (optimize flag) strips <code>assert</code> statements. Replace with explicit raises:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">if</span> <span class="n">refreshed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;User </span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="si">}</span><span class="s2"> disappeared after creation&quot;</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-e4-organization_id-fk-not-validated-at-service-layer">CR-E4 — <code>organization_id</code> FK not validated at service layer<a class="headerlink" href="#cr-e4-organization_id-fk-not-validated-at-service-layer" title="Permanent link">&para;</a></h3>
+<p><strong>Files:</strong> <a href="../backend/app/services/user_service.py"><code>backend/app/services/user_service.py</code></a>, <a href="../backend/app/api/v1/endpoints/auth.py"><code>backend/app/api/v1/endpoints/auth.py</code></a></p>
+<p>Passing a non-existent <code>organization_id</code> results in a Postgres <code>IntegrityError</code> that surfaces as an unhandled 500. The service should query the org first and raise <code>NotFoundException</code> / <code>ValidationException</code> with a descriptive message.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-e5-mobile-silent-logout-after-token-refresh-failure">CR-E5 — Mobile silent logout after token refresh failure<a class="headerlink" href="#cr-e5-mobile-silent-logout-after-token-refresh-failure" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../mobile/src/api/index.ts"><code>mobile/src/api/index.ts</code></a></p>
+<p>After deleting SecureStore tokens on refresh failure, no state update or screen navigation occurs. The user stays on the current screen with stale UI until the next API call error. The fix requires either a simple event bus or a Zustand store to trigger a navigation-to-login.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h2 id="6-large-module-detail-split-candidates">6. Large Module Detail: Split Candidates<a class="headerlink" href="#6-large-module-detail-split-candidates" title="Permanent link">&para;</a></h2>
+<h3 id="adminpaneltsx-1-029-lines-split-urgently">AdminPanel.tsx (1 029 lines) — 🔴 Split urgently<a class="headerlink" href="#adminpaneltsx-1-029-lines-split-urgently" title="Permanent link">&para;</a></h3>
+<p><code>AdminPanel.tsx</code> contains 9 independently functional sub-components inlined inside a single file. Each sub-component owns its own state, API calls, and JSX (100–160 lines each). None of them share state with each other — they are only co-located by tab index.</p>
+<p><strong>Recommended split:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>frontend/src/components/admin/
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  AdminPanel.tsx          ← tabs shell only (~60 lines)
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>  PrioritiesAdmin.tsx     ← replaces inline PrioritiesCategoriesAdmin (for priorities)
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>  CategoriesAdmin.tsx     ← replaces inline PrioritiesCategoriesAdmin (for categories)
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>  GroupsAdmin.tsx         ← replaces inline GroupsAdmin
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>  UserRoleAdmin.tsx       ← replaces inline UserRoleAdmin
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>  RolePermissionsAdmin.tsx← replaces inline RolePermissionsAdmin
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>  AgeThresholdsAdmin.tsx  ← replaces inline AgeThresholdsAdmin
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>  UsersAdmin.tsx          ← replaces inline UsersAdmin
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>  EmailConfigAdmin.tsx    ← replaces inline EmailConfigAdmin
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>  BulkUploadAdmin.tsx     ← replaces inline BulkUploadAdmin + HierarchyUploadAdmin
+</code></pre></div>
+<p><strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="ticketdetailtsx-507-lines-split-candidate">TicketDetail.tsx (507 lines) — ⚠ Split candidate<a class="headerlink" href="#ticketdetailtsx-507-lines-split-candidate" title="Permanent link">&para;</a></h3>
+<p><code>TicketDetail</code> handles ticket field editing, status transitions, waiting-for notes, assignee/priority/category selectors, comment thread (add/edit/delete), attachment gallery (upload/delete), and status history in one component function. It has a single 350-line <code>return</code> JSX block.</p>
+<p><strong>Recommended split:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>frontend/src/components/tickets/
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>  TicketDetail.tsx            ← orchestrator, state &amp; callbacks (~100 lines)
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>  TicketMetaPanel.tsx         ← assignee, priority, category, group selectors
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>  TicketComments.tsx          ← comment list + add form
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>  TicketAttachments.tsx       ← attachment gallery + upload
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>  TicketStatusHistory.tsx     ← status log timeline
+</code></pre></div>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h3 id="adminpy-641-lines-backend-split-candidate">admin.py (641 lines) — ⚠ Backend split candidate<a class="headerlink" href="#adminpy-641-lines-backend-split-candidate" title="Permanent link">&para;</a></h3>
+<p><code>admin.py</code> conflates three distinct access levels and mixes business logic into endpoint handlers. The XLSX parsing and DB writes in <code>bulk_upload_users()</code> and <code>upload_hierarchy()</code> (each ~75–80 lines) should be extracted to <code>BulkUploadService</code> / <code>HierarchyService</code>.</p>
+<p><strong>Recommended split:</strong></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>backend/app/api/v1/endpoints/
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>  admin_config.py      ← config items, app settings
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>  admin_groups.py      ← user groups, permissions, role-permissions
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>  admin_users.py       ← admin user list, bulk upload
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>  admin_email.py       ← email configs
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  admin_hierarchy.py   ← hierarchy import
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>backend/app/services/
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>  bulk_service.py      ← bulk_upload_users(), import_hierarchy() logic
+</code></pre></div>
+<p><strong>Status:</strong> 🟠 Open</p>
+<hr />
+<h2 id="7-inconsistent-patterns">7. Inconsistent Patterns<a class="headerlink" href="#7-inconsistent-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="cr-p1-stray-mid-file-import-in-schemasticketpy">CR-P1 — Stray mid-file import in <code>schemas/ticket.py</code><a class="headerlink" href="#cr-p1-stray-mid-file-import-in-schemasticketpy" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/schemas/ticket.py"><code>backend/app/schemas/ticket.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># ❌ Mid-file import (PEP 8 violation)</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">app.models.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">TicketStatus</span>
+</code></pre></div>
+<p>All imports must be at the top of the file.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p2-get_unrestricted_user-alias-for-a-private-function">CR-P2 — <code>get_unrestricted_user</code> alias for a private function<a class="headerlink" href="#cr-p2-get_unrestricted_user-alias-for-a-private-function" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/core/deps.py"><code>backend/app/core/deps.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">get_unrestricted_user</span> <span class="o">=</span> <span class="n">_get_user_base</span>
+</code></pre></div>
+<p><code>_get_user_base</code> has a leading underscore (private by convention) but is exported via a public alias. Rename <code>_get_user_base</code> to <code>get_unrestricted_user</code> directly.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p3-bfs-uses-listpop0-instead-of-dequepopleft">CR-P3 — BFS uses <code>list.pop(0)</code> instead of <code>deque.popleft()</code><a class="headerlink" href="#cr-p3-bfs-uses-listpop0-instead-of-dequepopleft" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/services/organization_service.py"><code>backend/app/services/organization_service.py</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">org_id</span><span class="p">]</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="n">current</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># O(n) — use deque.popleft() instead</span>
+</code></pre></div>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p4-_ensure_age_defaults-issues-n-individual-select-queries">CR-P4 — <code>_ensure_age_defaults</code> issues N individual SELECT queries<a class="headerlink" href="#cr-p4-_ensure_age_defaults-issues-n-individual-select-queries" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../backend/app/api/v1/endpoints/admin.py"><code>backend/app/api/v1/endpoints/admin.py</code></a></p>
+<p>One <code>SELECT</code> per threshold key (currently 5) on every call to <code>GET /admin/app-settings</code>. Replace with a single <code>WHERE key IN (...)</code> query.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p5-kanban-board-filters-by-user-name-string-instead-of-user-id">CR-P5 — Kanban board filters by user name string instead of user ID<a class="headerlink" href="#cr-p5-kanban-board-filters-by-user-name-string-instead-of-user-id" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/components/board/KanbanBoard.tsx"><code>frontend/src/components/board/KanbanBoard.tsx</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">creatorOk</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="nx">filterCreator</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nx">t</span><span class="p">.</span><span class="nx">creator_name</span><span class="w"> </span><span class="o">===</span><span class="w"> </span><span class="nx">filterCreator</span>
+</code></pre></div>
+<p>Name-based filtering breaks when two users share a name, or when a user's name is changed. Filter by <code>creator_id</code> / <code>assignee_id</code> (UUIDs) instead.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p6-priority-css-class-mapping-hardcodes-german-names">CR-P6 — Priority CSS class mapping hardcodes German names<a class="headerlink" href="#cr-p6-priority-css-class-mapping-hardcodes-german-names" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/components/board/TicketCard.tsx"><code>frontend/src/components/board/TicketCard.tsx</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="kd">const</span><span class="w"> </span><span class="nx">PRIORITY_CLASS</span><span class="o">:</span><span class="w"> </span><span class="kt">Record</span><span class="o">&lt;</span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="kt">string</span><span class="o">&gt;</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="w">  </span><span class="nx">Kritisch</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;priority-critical&#39;</span><span class="p">,</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span><span class="nx">Hoch</span><span class="o">:</span><span class="w"> </span><span class="s1">&#39;priority-high&#39;</span><span class="p">,</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="w">  </span><span class="p">...</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="p">}</span>
+</code></pre></div>
+<p>Priorities are user-configurable <code>ConfigItem</code> values in the database. If an admin renames "Kritisch" to "Critical", the colour coding silently breaks. Decouple the visual class from the name — use a <code>sort_order</code> or a dedicated <code>severity</code> attribute instead.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p7-destructive-actions-use-windowconfirm">CR-P7 — Destructive actions use <code>window.confirm()</code><a class="headerlink" href="#cr-p7-destructive-actions-use-windowconfirm" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../frontend/src/components/tickets/TicketDetail.tsx"><code>frontend/src/components/tickets/TicketDetail.tsx</code></a></p>
+<p>Native <code>window.confirm()</code> is non-styleable, blocked in some browser sandboxes, and poor UX. Replace with an inline confirmation button / modal.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h3 id="cr-p8-mobile-ticketsummary-type-uses-owner_id-instead-of-assignee_id">CR-P8 — Mobile <code>TicketSummary</code> type uses <code>owner_id</code> instead of <code>assignee_id</code><a class="headerlink" href="#cr-p8-mobile-ticketsummary-type-uses-owner_id-instead-of-assignee_id" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../mobile/src/types/index.ts"><code>mobile/src/types/index.ts</code></a></p>
+<p>The backend <code>TicketSummary</code> schema renames <code>owner_id</code> → <code>assignee_id</code> via <code>populate_names</code>. The mobile type still declares <code>owner_id</code>, so <code>ticket.assignee_id</code> is always <code>undefined</code> in mobile code — this is a silent data bug.</p>
+<p><strong>Status:</strong> 🔴 Open</p>
+<hr />
+<h3 id="cr-p9-mobileappjson-contains-placeholder-values">CR-P9 — <code>mobile/app.json</code> contains placeholder values<a class="headerlink" href="#cr-p9-mobileappjson-contains-placeholder-values" title="Permanent link">&para;</a></h3>
+<p><strong>File:</strong> <a href="../mobile/app.json"><code>mobile/app.json</code></a></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="nt">&quot;bundleIdentifier&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;com.yourcompany.ticketsystem&quot;</span><span class="p">,</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nt">&quot;projectId&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;your-eas-project-id&quot;</span>
+</code></pre></div>
+<p>These must be replaced before any Expo/EAS build. No tooling or CI check prevents shipping placeholder values.</p>
+<p><strong>Status:</strong> 🟡 Open</p>
+<hr />
+<h2 id="8-issue-summary">8. Issue Summary<a class="headerlink" href="#8-issue-summary" title="Permanent link">&para;</a></h2>
+<h3 id="by-severity">By Severity<a class="headerlink" href="#by-severity" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Severity</th>
+<th>ID</th>
+<th>Title</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S1</td>
+<td>Synchronous file write in async endpoint</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S2</td>
+<td>Avatar delete path not validated</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S3</td>
+<td>SMTP password stored plain text</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S4</td>
+<td>Reset token returned in response body</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S5</td>
+<td>No rate limiting on auth endpoints</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S6</td>
+<td><code>db.commit()</code> inside endpoint bypasses rollback</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S7</td>
+<td>Concurrent 401 refresh race condition</td>
+</tr>
+<tr>
+<td>🔴 Critical / Security</td>
+<td>CR-S8</td>
+<td>JWT tokens in <code>localStorage</code></td>
+</tr>
+<tr>
+<td>🔴 Bug</td>
+<td>CR-E2</td>
+<td><code>add_comment</code> missing <code>author</code> eager load</td>
+</tr>
+<tr>
+<td>🔴 Bug</td>
+<td>CR-P8</td>
+<td>Mobile <code>TicketSummary</code> uses <code>owner_id</code> not <code>assignee_id</code></td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D1</td>
+<td><code>selectinload</code> chain repeated 3×</td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D2</td>
+<td><code>ORG_LEVEL_ABBREV</code> in 3 places</td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D3</td>
+<td>SQLAlchemy <code>Enum</code> boilerplate repeated 7×</td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D4</td>
+<td><code>STATUS_COLORS</code>/<code>STATUS_LABELS</code> in web + mobile</td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D5</td>
+<td>Two separate "list all users" endpoints</td>
+</tr>
+<tr>
+<td>🟠 Duplication</td>
+<td>CR-D6</td>
+<td><code>canCloseTicket</code> checked by name vs. permission</td>
+</tr>
+<tr>
+<td>🟠 Size</td>
+<td>Large-1</td>
+<td><code>AdminPanel.tsx</code> 1 029 lines — split urgently</td>
+</tr>
+<tr>
+<td>🟠 Size</td>
+<td>Large-2</td>
+<td><code>TicketDetail.tsx</code> 507 lines — split candidate</td>
+</tr>
+<tr>
+<td>🟠 Size</td>
+<td>Large-3</td>
+<td><code>admin.py</code> 641 lines — split candidate</td>
+</tr>
+<tr>
+<td>🟡 Error handling</td>
+<td>CR-E1</td>
+<td>No React Error Boundary</td>
+</tr>
+<tr>
+<td>🟡 Error handling</td>
+<td>CR-E3</td>
+<td><code>assert</code> used as runtime guard</td>
+</tr>
+<tr>
+<td>🟡 Error handling</td>
+<td>CR-E4</td>
+<td><code>organization_id</code> FK not validated at service layer</td>
+</tr>
+<tr>
+<td>🟡 Error handling</td>
+<td>CR-E5</td>
+<td>Mobile silent logout after refresh failure</td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P1</td>
+<td>Stray mid-file import in <code>schemas/ticket.py</code></td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P2</td>
+<td><code>get_unrestricted_user</code> alias for private function</td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P3</td>
+<td>BFS uses <code>list.pop(0)</code> not <code>deque</code></td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P4</td>
+<td>N individual queries in <code>_ensure_age_defaults</code></td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P5</td>
+<td>Filter by user name string, not ID</td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P6</td>
+<td>Priority CSS class hardcodes German names</td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P7</td>
+<td><code>window.confirm()</code> for destructive actions</td>
+</tr>
+<tr>
+<td>🟡 Inconsistency</td>
+<td>CR-P9</td>
+<td><code>app.json</code> placeholder values</td>
+</tr>
+</tbody>
+</table>
+<h3 id="counts">Counts<a class="headerlink" href="#counts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>🔴 Security / correctness bugs</td>
+<td>10</td>
+</tr>
+<tr>
+<td>🟠 Duplication + large modules</td>
+<td>9</td>
+</tr>
+<tr>
+<td>🟡 Error handling + inconsistency</td>
+<td>11</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>30</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="9-progress-tracker">9. Progress Tracker<a class="headerlink" href="#9-progress-tracker" title="Permanent link">&para;</a></h2>
+<h3 id="2026-04-06-baseline-all-30-issues-open">2026-04-06 — Baseline (all 30 issues open)<a class="headerlink" href="#2026-04-06-baseline-all-30-issues-open" title="Permanent link">&para;</a></h3>
+<p>No issues resolved yet. This is the initial review establishing the baseline.</p>
+<p><strong>Highest-priority work:</strong></p>
+<ol>
+<li>Fix CR-E2 (<code>add_comment</code> missing eager load) — likely causing live bugs</li>
+<li>Fix CR-P8 (mobile <code>owner_id</code>/<code>assignee_id</code> mismatch) — data always wrong</li>
+<li>Fix CR-S1 (sync I/O in async context) — event-loop blocking</li>
+<li>Split <code>AdminPanel.tsx</code> (Large-1) — developer experience severely degraded</li>
+<li>Add rate limiting CR-S5 before any public deployment</li>
+</ol>
+<hr />
+<h2 id="10-recommendations">10. Recommendations<a class="headerlink" href="#10-recommendations" title="Permanent link">&para;</a></h2>
+<h3 id="immediate-fix-before-next-release">Immediate (fix before next release)<a class="headerlink" href="#immediate-fix-before-next-release" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>CR-E2</strong> — Re-query the comment with <code>author</code> join after insert in <code>add_comment()</code>.</li>
+<li><strong>CR-P8</strong> — Fix mobile <code>TicketSummary</code> type: rename <code>owner_id</code> → <code>assignee_id</code>.</li>
+<li><strong>CR-S1</strong> — Replace <code>open()</code> with <code>aiofiles.open()</code> in avatar upload handler.</li>
+<li><strong>CR-S6</strong> — Remove explicit <code>await db.commit()</code> from <code>upload_hierarchy()</code>; rely on <code>get_db</code>.</li>
+</ol>
+<h3 id="short-term-next-sprint">Short-term (next sprint)<a class="headerlink" href="#short-term-next-sprint" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>CR-S5</strong> — Add <code>slowapi</code> rate limiting to all auth endpoints.</li>
+<li><strong>Large-1</strong> — Split <code>AdminPanel.tsx</code> into ~10 focused components.</li>
+<li><strong>CR-D1</strong> — Extract <code>_ticket_options()</code> in <code>TicketService</code>.</li>
+<li><strong>CR-E1</strong> — Add a top-level React <code>&lt;ErrorBoundary&gt;</code>.</li>
+<li><strong>CR-P1</strong> — Move stray import to top of <code>schemas/ticket.py</code>.</li>
+<li><strong>CR-P2</strong> — Rename <code>_get_user_base</code> → <code>get_unrestricted_user</code> directly.</li>
+</ol>
+<h3 id="medium-term">Medium-term<a class="headerlink" href="#medium-term" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>CR-S3</strong> — Encrypt SMTP passwords at rest with Fernet.</li>
+<li><strong>CR-S4</strong> — Tighten reset token guard or remove dev-mode response.</li>
+<li><strong>Large-2</strong> — Split <code>TicketDetail.tsx</code> into ~5 sub-components.</li>
+<li><strong>Large-3</strong> — Split <code>admin.py</code> and extract <code>BulkUploadService</code>.</li>
+<li><strong>CR-D5</strong> — Unify the two "list users" endpoints.</li>
+<li><strong>CR-P6</strong> — Decouple priority colour from priority name (use <code>sort_order</code>).</li>
+</ol>
+<h3 id="long-term">Long-term<a class="headerlink" href="#long-term" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>CR-S7</strong> — Queue concurrent refresh requests behind a single promise.</li>
+<li><strong>CR-S8</strong> — Move refresh token to <code>HttpOnly</code> cookie.</li>
+<li><strong>CR-D6</strong> — Drive frontend permission checks from <code>user.permissions</code> API data.</li>
+<li><strong>CR-P3</strong> — Switch BFS queue to <code>collections.deque</code>.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
