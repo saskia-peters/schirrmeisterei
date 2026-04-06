@@ -226,10 +226,13 @@ class TicketService:
                 f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE_MB}MB"
             )
 
-        upload_dir = settings.UPLOAD_DIR
-        os.makedirs(upload_dir, exist_ok=True)
+        # Attachments live in a dedicated subdirectory, separate from avatars.
+        # get_safe_upload_path further splits into 256 shard dirs (first 2 hex
+        # chars of UUID) so no single directory accumulates thousands of files.
+        attachment_dir = os.path.join(settings.UPLOAD_DIR, "attachments")
+        os.makedirs(attachment_dir, exist_ok=True)
 
-        safe_path = get_safe_upload_path(upload_dir, file.filename or "upload")
+        safe_path = get_safe_upload_path(attachment_dir, file.filename or "upload")
         async with aiofiles.open(safe_path, "wb") as f:
             await f.write(contents)
 

@@ -1,5 +1,7 @@
 import os
+from pathlib import Path
 
+import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -108,17 +110,19 @@ async def upload_avatar(
             detail="Image must be under 2 MB",
         )
     ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
-    avatar_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
-    os.makedirs(avatar_dir, exist_ok=True)
+    avatar_dir = Path(settings.UPLOAD_DIR) / "avatars"
+    avatar_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{current_user.id}{ext}"
-    filepath = os.path.join(avatar_dir, filename)
-    with open(filepath, "wb") as fh:
-        fh.write(content)
+    filepath = avatar_dir / filename
+    # CR-S1: use aiofiles so the async event loop is never blocked
+    async with aiofiles.open(filepath, "wb") as fh:
+        await fh.write(content)
     current_user.avatar_url = f"/uploads/avatars/{filename}"
     await db.flush()
     service = UserService(db)
     refreshed = await service.get_by_id(current_user.id)
-    assert refreshed is not None
+    if refreshed is None:
+        raise RuntimeError(f"User {current_user.id} disappeared after avatar upload")
     return refreshed
 
 
@@ -129,15 +133,20 @@ async def delete_avatar(
 ) -> User:
     """Remove the current user's avatar image."""
     if current_user.avatar_url:
-        # Try to remove the file from disk; ignore if already gone
-        rel_path = current_user.avatar_url.lstrip("/")
-        try:
-            os.remove(rel_path)
-        except FileNotFoundError:
-            pass
+        # CR-S2: extract only the filename – Path.name strips any directory
+        # components, making path-traversal via a crafted avatar_url impossible.
+        safe_name = Path(current_user.avatar_url).name
+        filepath = Path(settings.UPLOAD_DIR, "avatars", safe_name).resolve()
+        upload_root = Path(settings.UPLOAD_DIR).resolve()
+        if filepath.is_relative_to(upload_root):
+            try:
+                filepath.unlink(missing_ok=True)
+            except OSError:
+                pass
     current_user.avatar_url = None
     await db.flush()
     service = UserService(db)
     refreshed = await service.get_by_id(current_user.id)
-    assert refreshed is not None
+    if refreshed is None:
+        raise RuntimeError(f"User {current_user.id} disappeared after avatar deletion")
     return refreshed

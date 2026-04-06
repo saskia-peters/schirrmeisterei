@@ -1,0 +1,29 @@
+# Seed admin users created during database initialisation.
+#
+# WARNING: Development defaults only. All users have force_password_change: true
+# so the plain-text passwords below must be changed on first login.
+#
+# Users without an "organization" field are created in migration 0001 (before
+# the organization table exists). Users with an "organization" field are created
+# in migration 0002 and assigned to the named organisation node.
+
+users:
+  - email: admin@example.com
+    full_name: Admin
+    password: admin
+    is_superuser: true
+    force_password_change: true
+    groups:
+      - helfende
+      - admin
+    # no organization — assigned by migration 0002 to leitung after orgs are created
+
+  - email: superadmin@example.com
+    full_name: Super Admin
+    password: superadmin
+    is_superuser: true
+    force_password_change: true
+    organization: THW-Leitung
+    groups:
+      - helfende
+      - admin

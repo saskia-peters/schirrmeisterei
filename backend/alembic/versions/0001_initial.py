@@ -10,15 +10,27 @@ Create Date: 2026-04-04
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timezone
+from pathlib import Path
 
 import bcrypt
 import sqlalchemy as sa
+import yaml
 from alembic import op
 
 revision: str = "0001"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
+
+# ── Seed data loader ──────────────────────────────────────────────────────────
+
+_SEED_DIR = Path(__file__).resolve().parents[2] / "data" / "seed"
+
+
+def _load_seed(name: str) -> dict:  # type: ignore[type-arg]
+    """Load a YAML seed file from backend/data/seed/."""
+    with open(_SEED_DIR / name) as f:
+        return yaml.safe_load(f)  # type: ignore[no-any-return]
 
 
 def upgrade() -> None:
@@ -160,7 +172,9 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
     )
 
-    # ── seed: default priorities ──────────────────────────────────────────────
+    # ── seed: default priorities / categories ─────────────────────────────────
+    seed_cfg = _load_seed("config_items.yaml")
+
     config_items_table = sa.table(
         "config_items",
         sa.column("id", sa.String),
@@ -170,67 +184,48 @@ def upgrade() -> None:
         sa.column("is_active", sa.Boolean),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
-        config_items_table,
-        [
-            {
-                "id": str(uuid.uuid4()),
-                "type": "priority",
-                "name": "Kritisch",
-                "sort_order": 0,
-                "is_active": True,
-                "created_at": now,
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "type": "priority",
-                "name": "Hoch",
-                "sort_order": 1,
-                "is_active": True,
-                "created_at": now,
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "type": "priority",
-                "name": "Mittel",
-                "sort_order": 2,
-                "is_active": True,
-                "created_at": now,
-            },
-            {
-                "id": str(uuid.uuid4()),
-                "type": "priority",
-                "name": "Gering",
-                "sort_order": 3,
-                "is_active": True,
-                "created_at": now,
-            },
-        ],
-    )
+    rows: list[dict] = []  # type: ignore[type-arg]
+    for item in seed_cfg.get("priorities", []):
+        rows.append({
+            "id": str(uuid.uuid4()),
+            "type": "priority",
+            "name": item["name"],
+            "sort_order": item.get("sort_order", 0),
+            "is_active": True,
+            "created_at": now,
+        })
+    for item in seed_cfg.get("categories", []):
+        rows.append({
+            "id": str(uuid.uuid4()),
+            "type": "category",
+            "name": item["name"],
+            "sort_order": item.get("sort_order", 0),
+            "is_active": True,
+            "created_at": now,
+        })
+    if rows:
+        op.bulk_insert(config_items_table, rows)
 
     # ── seed: core user groups ─────────────────────────────────────────────────
-    helfende_id = str(uuid.uuid4())
-    schirrmeister_id = str(uuid.uuid4())
-    admin_group_id = str(uuid.uuid4())
+    seed_groups = _load_seed("user_groups.yaml")
 
+    group_ids: dict[str, str] = {}
     user_groups_table = sa.table(
         "user_groups",
         sa.column("id", sa.String),
         sa.column("name", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
-        user_groups_table,
-        [
-            {"id": helfende_id, "name": "helfende", "created_at": now},
-            {"id": schirrmeister_id, "name": "schirrmeister", "created_at": now},
-            {"id": admin_group_id, "name": "admin", "created_at": now},
-        ],
-    )
+    group_rows = []
+    for group_name in seed_groups.get("groups", []):
+        gid = str(uuid.uuid4())
+        group_ids[group_name] = gid
+        group_rows.append({"id": gid, "name": group_name, "created_at": now})
+    op.bulk_insert(user_groups_table, group_rows)
 
-    # ── seed: initial admin user ──────────────────────────────────────────────
-    admin_user_id = str(uuid.uuid4())
-    hashed = bcrypt.hashpw(b"admin", bcrypt.gensalt()).decode()
+    # ── seed: initial admin user (users without organization, created pre-0002) ─
+    seed_users = _load_seed("admin_users.yaml")
+    initial_users = [u for u in seed_users.get("users", []) if not u.get("organization")]
 
     users_table = sa.table(
         "users",
@@ -246,40 +241,40 @@ def upgrade() -> None:
         sa.column("created_at", sa.DateTime(timezone=True)),
         sa.column("updated_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
-        users_table,
-        [
-            {
-                "id": admin_user_id,
-                "email": "admin@example.com",
-                "hashed_password": hashed,
-                "full_name": "Admin",
-                "is_active": True,
-                "is_superuser": True,
-                "force_password_change": True,
-                "totp_secret": None,
-                "totp_enabled": False,
-                "created_at": now,
-                "updated_at": now,
-            }
-        ],
-    )
-
     memberships_table = sa.table(
         "user_group_memberships",
         sa.column("user_id", sa.String),
         sa.column("group_id", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
-        memberships_table,
-        [
-            {"user_id": admin_user_id, "group_id": helfende_id, "created_at": now},
-            {"user_id": admin_user_id, "group_id": admin_group_id, "created_at": now},
-        ],
-    )
+
+    for user_def in initial_users:
+        uid = str(uuid.uuid4())
+        hashed = bcrypt.hashpw(user_def["password"].encode(), bcrypt.gensalt()).decode()
+        op.bulk_insert(users_table, [{
+            "id": uid,
+            "email": user_def["email"],
+            "hashed_password": hashed,
+            "full_name": user_def["full_name"],
+            "is_active": True,
+            "is_superuser": user_def.get("is_superuser", False),
+            "force_password_change": user_def.get("force_password_change", True),
+            "totp_secret": None,
+            "totp_enabled": False,
+            "created_at": now,
+            "updated_at": now,
+        }])
+        membership_rows = []
+        for grp in user_def.get("groups", []):
+            gid = group_ids.get(grp)
+            if gid:
+                membership_rows.append({"user_id": uid, "group_id": gid, "created_at": now})
+        if membership_rows:
+            op.bulk_insert(memberships_table, membership_rows)
 
     # ── seed: age threshold settings ──────────────────────────────────────────
+    seed_settings = _load_seed("app_settings.yaml")
+
     app_settings_table = sa.table(
         "app_settings",
         sa.column("key", sa.String),
@@ -289,11 +284,8 @@ def upgrade() -> None:
     op.bulk_insert(
         app_settings_table,
         [
-            {"key": "age_green_days", "value": "3", "updated_at": now},
-            {"key": "age_light_green_days", "value": "7", "updated_at": now},
-            {"key": "age_yellow_days", "value": "14", "updated_at": now},
-            {"key": "age_orange_days", "value": "21", "updated_at": now},
-            {"key": "age_light_red_days", "value": "30", "updated_at": now},
+            {"key": k, "value": v, "updated_at": now}
+            for k, v in seed_settings.get("settings", {}).items()
         ],
     )
 

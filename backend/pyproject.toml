@@ -19,6 +19,7 @@ dependencies = [
     "pyotp>=2.9.0",
     "qrcode[pil]>=7.4.2",
     "openpyxl>=3.1.5",
+    "pyyaml>=6.0",
 ]
 
 [dependency-groups]
@@ -30,6 +31,7 @@ dev = [
     "factory-boy>=3.3.0",
     "ruff>=0.4.0",
     "mypy>=1.10.0",
+    "aiosqlite>=0.22.1",
 ]
 
 [tool.ruff]

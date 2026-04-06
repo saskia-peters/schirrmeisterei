@@ -1,0 +1,9 @@
+# Core role groups
+# Loaded by migration 0001 to seed the user_groups table.
+# WARNING: The names helfende, schirrmeister, and admin are referenced by
+# application code (deps.py, user_service.py). Renaming them requires code changes.
+
+groups:
+  - helfende
+  - schirrmeister
+  - admin

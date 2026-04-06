@@ -1,0 +1,84 @@
+# Organisation hierarchy seed data.
+#
+# This file is the single source of truth for the org tree.
+# It is used by:
+#   - migration 0002 to INSERT organisations into the database
+#   - scripts/init_db.py to generate backend/data/organisation_hierarchy.xlsx
+#     (which can also be imported via the admin UI)
+#
+# level must be one of: leitung, landesverband, regionalstelle, ortsverband
+# parent must match the name of an entry that appears earlier in the list.
+# The root node (leitung) has an empty parent.
+
+hierarchy:
+  # ── Root ───────────────────────────────────────────────────────────────────
+  - level: leitung
+    name: THW-Leitung
+    parent: ""
+
+  # ── Landesverbände ─────────────────────────────────────────────────────────
+  - level: landesverband
+    name: LV Bayern
+    parent: THW-Leitung
+
+  - level: landesverband
+    name: LV Nordrhein-Westfalen
+    parent: THW-Leitung
+
+  # ── Regionalstellen — LV Bayern ────────────────────────────────────────────
+  - level: regionalstelle
+    name: Rst München
+    parent: LV Bayern
+
+  - level: regionalstelle
+    name: Rst Nürnberg
+    parent: LV Bayern
+
+  # ── Regionalstellen — LV NRW ───────────────────────────────────────────────
+  - level: regionalstelle
+    name: Rst Köln
+    parent: LV Nordrhein-Westfalen
+
+  - level: regionalstelle
+    name: Rst Düsseldorf
+    parent: LV Nordrhein-Westfalen
+
+  # ── Ortsverbände — Rst München ─────────────────────────────────────────────
+  - level: ortsverband
+    name: OV München-Ost
+    parent: Rst München
+
+  - level: ortsverband
+    name: OV München-West
+    parent: Rst München
+
+  - level: ortsverband
+    name: OV Freising
+    parent: Rst München
+
+  # ── Ortsverbände — Rst Nürnberg ────────────────────────────────────────────
+  - level: ortsverband
+    name: OV Nürnberg-Nord
+    parent: Rst Nürnberg
+
+  - level: ortsverband
+    name: OV Erlangen
+    parent: Rst Nürnberg
+
+  # ── Ortsverbände — Rst Köln ────────────────────────────────────────────────
+  - level: ortsverband
+    name: OV Köln-Mitte
+    parent: Rst Köln
+
+  - level: ortsverband
+    name: OV Bonn
+    parent: Rst Köln
+
+  # ── Ortsverbände — Rst Düsseldorf ──────────────────────────────────────────
+  - level: ortsverband
+    name: OV Düsseldorf-Nord
+    parent: Rst Düsseldorf
+
+  - level: ortsverband
+    name: OV Essen
+    parent: Rst Düsseldorf

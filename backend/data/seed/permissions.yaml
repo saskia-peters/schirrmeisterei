@@ -1,0 +1,34 @@
+# All permission codenames and their human-readable descriptions.
+# Loaded by migration 0002.
+# Adding a new permission here and running db-reset will insert it into the
+# permissions table. Assign it to roles via role_permissions.yaml.
+
+permissions:
+  - codename: create_ticket
+    description: Create new tickets
+  - codename: view_ticket
+    description: View tickets
+  - codename: edit_ticket
+    description: Edit ticket details
+  - codename: close_ticket
+    description: Close tickets
+  - codename: delete_ticket
+    description: Delete tickets
+  - codename: assign_ticket
+    description: Assign tickets to users
+  - codename: add_comment
+    description: Add comments to tickets
+  - codename: delete_comment
+    description: Delete comments from tickets
+  - codename: upload_attachment
+    description: Upload attachments to tickets
+  - codename: delete_attachment
+    description: Delete attachments from tickets
+  - codename: manage_users
+    description: Manage users in the organization
+  - codename: manage_config
+    description: Manage system configuration
+  - codename: manage_email
+    description: Manage email configuration
+  - codename: bulk_upload_users
+    description: Upload users via XLSX

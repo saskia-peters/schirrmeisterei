@@ -1,0 +1,12 @@
+# Default application settings.
+# Loaded by migration 0001. All values are stored as strings.
+# These control the age-based colour coding on the Kanban board:
+#   green → light_green → yellow → orange → light_red → dark_red
+# Values are the number of days after ticket creation at which each colour starts.
+
+settings:
+  age_green_days: "3"
+  age_light_green_days: "7"
+  age_yellow_days: "14"
+  age_orange_days: "21"
+  age_light_red_days: "30"

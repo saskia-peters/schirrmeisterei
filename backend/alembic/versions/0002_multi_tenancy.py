@@ -12,6 +12,7 @@ from pathlib import Path
 
 import bcrypt
 import sqlalchemy as sa
+import yaml
 from alembic import op
 
 revision: str = "0002"
@@ -19,60 +20,16 @@ down_revision: str | None = "0001"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
-# ── Permission definitions ────────────────────────────────────────────────────
+# ── Seed data loader ──────────────────────────────────────────────────────────
 
-PERMISSIONS = [
-    ("create_ticket", "Create new tickets"),
-    ("view_ticket", "View tickets"),
-    ("edit_ticket", "Edit ticket details"),
-    ("close_ticket", "Close tickets"),
-    ("delete_ticket", "Delete tickets"),
-    ("assign_ticket", "Assign tickets to users"),
-    ("add_comment", "Add comments to tickets"),
-    ("delete_comment", "Delete comments from tickets"),
-    ("upload_attachment", "Upload attachments to tickets"),
-    ("delete_attachment", "Delete attachments from tickets"),
-    ("manage_users", "Manage users in the organization"),
-    ("manage_config", "Manage system configuration"),
-    ("manage_email", "Manage email configuration"),
-    ("bulk_upload_users", "Upload users via XLSX"),
-]
-
-ROLE_PERMISSIONS: dict[str, list[str]] = {
-    "helfende": [
-        "create_ticket", "view_ticket", "edit_ticket", "add_comment", "upload_attachment",
-    ],
-    "schirrmeister": [
-        "create_ticket", "view_ticket", "edit_ticket", "close_ticket",
-        "assign_ticket", "add_comment", "delete_comment",
-        "upload_attachment", "delete_attachment",
-    ],
-    "admin": [
-        "create_ticket", "view_ticket", "edit_ticket", "close_ticket",
-        "assign_ticket", "add_comment", "delete_comment",
-        "upload_attachment", "delete_attachment",
-        "manage_users", "manage_config", "manage_email",
-        "delete_ticket", "bulk_upload_users",
-    ],
-}
+_SEED_DIR = Path(__file__).resolve().parents[2] / "data" / "seed"
 
 
-def _load_hierarchy() -> list[tuple[str, str, str]]:
-    """Read the XLSX hierarchy file. Returns list of (level, name, parent_name)."""
-    from openpyxl import load_workbook
+def _load_seed(name: str) -> dict:  # type: ignore[type-arg]
+    """Load a YAML seed file from backend/data/seed/."""
+    with open(_SEED_DIR / name) as f:
+        return yaml.safe_load(f)  # type: ignore[no-any-return]
 
-    xlsx = Path(__file__).resolve().parents[2] / "data" / "organisation_hierarchy.xlsx"
-    wb = load_workbook(xlsx, read_only=True)
-    ws = wb.active
-    assert ws is not None
-    rows: list[tuple[str, str, str]] = []
-    for i, row in enumerate(ws.iter_rows(values_only=True)):
-        if i == 0:
-            continue  # skip header
-        level, name, parent_name = str(row[0]), str(row[1]), str(row[2] or "")
-        rows.append((level, name, parent_name))
-    wb.close()
-    return rows
 
 
 def upgrade() -> None:
@@ -150,13 +107,13 @@ def upgrade() -> None:
     # SEED DATA
     # ══════════════════════════════════════════════════════════════════════════
 
-    # ── seed: organizations from XLSX ─────────────────────────────────────────
-    hierarchy = _load_hierarchy()
+    # ── seed: organizations from YAML ─────────────────────────────────────────
+    seed_orgs = _load_seed("organisations.yaml")
     org_ids: dict[str, str] = {}  # name -> id
 
-    for level, name, parent_name in hierarchy:
+    for entry in seed_orgs.get("hierarchy", []):
         oid = str(uuid.uuid4())
-        org_ids[name] = oid
+        org_ids[entry["name"]] = oid
         conn = op.get_bind()
         conn.execute(
             sa.text(
@@ -165,14 +122,15 @@ def upgrade() -> None:
             ),
             {
                 "id": oid,
-                "name": name,
-                "level": level,
-                "parent_id": org_ids.get(parent_name),
+                "name": entry["name"],
+                "level": entry["level"],
+                "parent_id": org_ids.get(entry.get("parent", "")) or None,
                 "created_at": now,
             },
         )
 
     # ── seed: permissions ─────────────────────────────────────────────────────
+    seed_perms = _load_seed("permissions.yaml")
     perm_ids: dict[str, str] = {}
     perms_table = sa.table(
         "permissions",
@@ -181,16 +139,18 @@ def upgrade() -> None:
         sa.column("description", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    for codename, description in PERMISSIONS:
+    for perm in seed_perms.get("permissions", []):
         pid = str(uuid.uuid4())
-        perm_ids[codename] = pid
-        op.bulk_insert(
-            perms_table,
-            [{"id": pid, "codename": codename, "description": description, "created_at": now}],
-        )
+        perm_ids[perm["codename"]] = pid
+        op.bulk_insert(perms_table, [{
+            "id": pid,
+            "codename": perm["codename"],
+            "description": perm["description"],
+            "created_at": now,
+        }])
 
     # ── seed: role_permissions ────────────────────────────────────────────────
-    # Look up existing role (user_group) IDs
+    seed_rp = _load_seed("role_permissions.yaml")
     conn = op.get_bind()
     role_rows = conn.execute(sa.text("SELECT id, name FROM user_groups")).fetchall()
     role_ids: dict[str, str] = {row[1]: row[0] for row in role_rows}
@@ -201,7 +161,7 @@ def upgrade() -> None:
         sa.column("permission_id", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    for role_name, perm_codenames in ROLE_PERMISSIONS.items():
+    for role_name, perm_codenames in seed_rp.get("role_permissions", {}).items():
         rid = role_ids.get(role_name)
         if not rid:
             continue
@@ -209,12 +169,9 @@ def upgrade() -> None:
             pid = perm_ids.get(codename)
             if not pid:
                 continue
-            op.bulk_insert(
-                rp_table,
-                [{"role_id": rid, "permission_id": pid, "created_at": now}],
-            )
+            op.bulk_insert(rp_table, [{"role_id": rid, "permission_id": pid, "created_at": now}])
 
-    # ── seed: assign existing admin user to the Leitung org ───────────────────
+    # ── seed: assign existing superusers to the Leitung org ───────────────────
     leitung_id = org_ids.get("THW-Leitung")
     if leitung_id:
         conn.execute(
@@ -222,9 +179,9 @@ def upgrade() -> None:
             {"org_id": leitung_id},
         )
 
-    # ── seed: second superadmin user ─────────────────────────────────────────
-    superadmin2_id = str(uuid.uuid4())
-    hashed2 = bcrypt.hashpw(b"superadmin", bcrypt.gensalt()).decode()
+    # ── seed: additional admin users with organization (created post-0002) ─────
+    seed_users = _load_seed("admin_users.yaml")
+    org_users = [u for u in seed_users.get("users", []) if u.get("organization")]
 
     users_t = sa.table(
         "users",
@@ -241,45 +198,46 @@ def upgrade() -> None:
         sa.column("created_at", sa.DateTime(timezone=True)),
         sa.column("updated_at", sa.DateTime(timezone=True)),
     )
-    op.bulk_insert(
-        users_t,
-        [{
-            "id": superadmin2_id,
-            "email": "superadmin@example.com",
-            "hashed_password": hashed2,
-            "full_name": "Super Admin",
-            "is_active": True,
-            "is_superuser": True,
-            "force_password_change": True,
-            "totp_secret": None,
-            "totp_enabled": False,
-            "organization_id": leitung_id,
-            "created_at": now,
-            "updated_at": now,
-        }],
-    )
-
-    # Assign second superadmin to helfende + admin groups
-    helfende_id = role_ids.get("helfende")
-    admin_gid = role_ids.get("admin")
     memberships_t = sa.table(
         "user_group_memberships",
         sa.column("user_id", sa.String),
         sa.column("group_id", sa.String),
         sa.column("created_at", sa.DateTime(timezone=True)),
     )
-    rows_to_add = []
-    if helfende_id:
-        rows_to_add.append({"user_id": superadmin2_id, "group_id": helfende_id, "created_at": now})
-    if admin_gid:
-        rows_to_add.append({"user_id": superadmin2_id, "group_id": admin_gid, "created_at": now})
-    if rows_to_add:
-        op.bulk_insert(memberships_t, rows_to_add)
 
-    # ── Make tickets.organization_id NOT NULL after back-fill ─────────────────
-    # (Any existing tickets without an org will fail.  In a fresh DB there are
-    #  none, but we set it nullable=True above for safety during migration.)
-    # We leave it nullable for now to accommodate existing data.
+    for user_def in org_users:
+        # Skip if email already exists (e.g. created by a prior migration run)
+        existing = conn.execute(
+            sa.text("SELECT id FROM users WHERE email = :email"),
+            {"email": user_def["email"]},
+        ).fetchone()
+        if existing:
+            continue
+
+        uid = str(uuid.uuid4())
+        hashed = bcrypt.hashpw(user_def["password"].encode(), bcrypt.gensalt()).decode()
+        org_id = org_ids.get(user_def.get("organization", ""))
+        op.bulk_insert(users_t, [{
+            "id": uid,
+            "email": user_def["email"],
+            "hashed_password": hashed,
+            "full_name": user_def["full_name"],
+            "is_active": True,
+            "is_superuser": user_def.get("is_superuser", False),
+            "force_password_change": user_def.get("force_password_change", True),
+            "totp_secret": None,
+            "totp_enabled": False,
+            "organization_id": org_id,
+            "created_at": now,
+            "updated_at": now,
+        }])
+        membership_rows = []
+        for grp in user_def.get("groups", []):
+            gid = role_ids.get(grp)
+            if gid:
+                membership_rows.append({"user_id": uid, "group_id": gid, "created_at": now})
+        if membership_rows:
+            op.bulk_insert(memberships_t, membership_rows)
 
 
 def downgrade() -> None:

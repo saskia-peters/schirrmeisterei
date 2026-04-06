@@ -1,7 +1,7 @@
 """One-shot database initialisation script.
 
 Run once (or after a db-reset) to:
-  1. Generate the organisation hierarchy XLSX (backend/data/organisation_hierarchy.xlsx)
+  1. Generate the organisation hierarchy XLSX from backend/data/seed/organisations.yaml
   2. Generate an example user-bulk-upload XLSX (backend/data/example_users.xlsx)
   3. Apply all Alembic migrations (alembic upgrade head)
   4. Create a superuser account interactively
@@ -16,41 +16,20 @@ import sys
 import uuid
 from pathlib import Path
 
+import yaml
 from openpyxl import Workbook
 
 # ─── Paths ────────────────────────────────────────────────────────────────────
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BACKEND_DIR / "data"
+SEED_DIR = DATA_DIR / "seed"
 
-# ─── Org hierarchy data ───────────────────────────────────────────────────────
 
-HIERARCHY_ROWS: list[tuple[str, str, str]] = [
-    # (level, name, parent_name)
-    ("leitung", "THW-Leitung", ""),
-    # Landesverbände
-    ("landesverband", "LV Bayern", "THW-Leitung"),
-    ("landesverband", "LV Nordrhein-Westfalen", "THW-Leitung"),
-    # Regionalstellen under LV Bayern
-    ("regionalstelle", "Rst München", "LV Bayern"),
-    ("regionalstelle", "Rst Nürnberg", "LV Bayern"),
-    # Regionalstellen under LV NRW
-    ("regionalstelle", "Rst Köln", "LV Nordrhein-Westfalen"),
-    ("regionalstelle", "Rst Düsseldorf", "LV Nordrhein-Westfalen"),
-    # Ortsverbände under Rst München
-    ("ortsverband", "OV München-Ost", "Rst München"),
-    ("ortsverband", "OV München-West", "Rst München"),
-    ("ortsverband", "OV Freising", "Rst München"),
-    # Ortsverbände under Rst Nürnberg
-    ("ortsverband", "OV Nürnberg-Nord", "Rst Nürnberg"),
-    ("ortsverband", "OV Erlangen", "Rst Nürnberg"),
-    # Ortsverbände under Rst Köln
-    ("ortsverband", "OV Köln-Mitte", "Rst Köln"),
-    ("ortsverband", "OV Bonn", "Rst Köln"),
-    # Ortsverbände under Rst Düsseldorf
-    ("ortsverband", "OV Düsseldorf-Nord", "Rst Düsseldorf"),
-    ("ortsverband", "OV Essen", "Rst Düsseldorf"),
-]
+def _load_seed(name: str) -> dict:  # type: ignore[type-arg]
+    """Load a YAML seed file from backend/data/seed/."""
+    with open(SEED_DIR / name) as f:
+        return yaml.safe_load(f)  # type: ignore[no-any-return]
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,16 +42,22 @@ def _autosize_columns(ws: object) -> None:
 
 
 def generate_hierarchy_xlsx() -> Path:
-    """Write organisation_hierarchy.xlsx to backend/data/ and return its path."""
+    """Write organisation_hierarchy.xlsx to backend/data/ and return its path.
+
+    Reads from backend/data/seed/organisations.yaml as the single source of
+    truth.  The generated XLSX can also be re-imported at any time via the
+    admin hierarchy-upload endpoint.
+    """
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     dest = DATA_DIR / "organisation_hierarchy.xlsx"
+    hierarchy = _load_seed("organisations.yaml").get("hierarchy", [])
     wb = Workbook()
     ws = wb.active
     assert ws is not None
     ws.title = "Hierarchy"
     ws.append(["level", "name", "parent_name"])
-    for row in HIERARCHY_ROWS:
-        ws.append(list(row))
+    for entry in hierarchy:
+        ws.append([entry["level"], entry["name"], entry.get("parent", "")])
     _autosize_columns(ws)
     wb.save(dest)
     print(f"  ✔ Created {dest.relative_to(BACKEND_DIR.parent)}")

@@ -1,0 +1,16 @@
+# Default configuration items
+# Loaded by migration 0001 to seed the config_items table.
+# Add or rename entries here and run db-reset to apply changes.
+
+priorities:
+  - name: Kritisch
+    sort_order: 0
+  - name: Hoch
+    sort_order: 1
+  - name: Mittel
+    sort_order: 2
+  - name: Gering
+    sort_order: 3
+
+# Categories can be added here; they follow the same structure as priorities.
+categories: []

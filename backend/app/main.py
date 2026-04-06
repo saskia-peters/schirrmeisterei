@@ -14,9 +14,13 @@ from app.models import models  # noqa: F401  - ensure models are imported for me
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan handler: creates upload directory on startup and disposes the DB engine on shutdown."""
-    # Create upload directory
-    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    """Application lifespan handler: creates upload directory structure on startup and disposes the DB engine on shutdown."""
+    # Create upload directory tree
+    #   uploads/
+    #     avatars/          ← one file per user, named {user_id}.{ext}
+    #     attachments/      ← sharded: attachments/{xx}/{uuid}.{ext}
+    for subdir in ("avatars", "attachments"):
+        os.makedirs(os.path.join(settings.UPLOAD_DIR, subdir), exist_ok=True)
     yield
     # Cleanup on shutdown
     await engine.dispose()

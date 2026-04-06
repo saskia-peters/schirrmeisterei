@@ -37,7 +37,16 @@ def generate_totp_qr_code_base64(provisioning_uri: str) -> str:
 
 
 def get_safe_upload_path(upload_dir: str, filename: str) -> str:
-    """Generate a safe upload path using UUID to prevent path traversal."""
+    """Generate a sharded upload path using UUID to prevent path traversal.
+
+    Files land at ``{upload_dir}/{shard}/{uid}{ext}`` where *shard* is the
+    first two hex characters of the UUID (256 possible buckets).  This keeps
+    any individual directory to a manageable size even with tens of thousands
+    of attachments.
+    """
     ext = os.path.splitext(filename)[1].lower()
-    safe_name = f"{uuid.uuid4()}{ext}"
-    return os.path.join(upload_dir, safe_name)
+    uid = uuid.uuid4().hex  # 32-char lowercase hex, no dashes
+    shard = uid[:2]
+    shard_dir = os.path.join(upload_dir, shard)
+    os.makedirs(shard_dir, exist_ok=True)
+    return os.path.join(shard_dir, f"{uid}{ext}")
