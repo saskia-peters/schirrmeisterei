@@ -7,6 +7,8 @@ from app.db.session import get_db
 from app.models.models import User
 from app.schemas.user import (
     LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
     RefreshTokenRequest,
     Token,
     TOTPSetupResponse,
@@ -27,6 +29,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(data: UserCreate, db: AsyncSession = Depends(get_db)) -> User:
+    """Register a new user account. Returns 409 if the email is already taken."""
     service = UserService(db)
     existing = await service.get_by_email(data.email)
     if existing:
@@ -39,6 +42,7 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)) -> User
 
 @router.post("/login", response_model=Token)
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
+    """Authenticate a user and return a JWT access + refresh token pair."""
     service = UserService(db)
     user = await service.authenticate(data.email, data.password)
     if not user:
@@ -72,6 +76,7 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)) -> Token:
+    """Exchange a valid refresh token for a new access + refresh token pair."""
     payload = decode_token(data.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
@@ -99,6 +104,7 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_unrestricted_user)) -> User:
+    """Return the currently authenticated user's profile."""
     return current_user
 
 
@@ -107,6 +113,7 @@ async def setup_totp(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> TOTPSetupResponse:
+    """Generate a new TOTP secret for the user and return the QR code data URL."""
     secret = generate_totp_secret()
     provisioning_uri = get_totp_provisioning_uri(secret, current_user.email)
     qr_code = generate_totp_qr_code_base64(provisioning_uri)
@@ -127,6 +134,7 @@ async def verify_totp_endpoint(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
+    """Verify a TOTP code and permanently enable two-factor authentication for the user."""
     if not current_user.totp_secret:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -148,6 +156,7 @@ async def disable_totp(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
+    """Disable TOTP for the current user after verifying their code."""
     if not current_user.totp_enabled or not current_user.totp_secret:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -161,3 +170,57 @@ async def disable_totp(
     service = UserService(db)
     await service.disable_totp(current_user)
     return {"message": "TOTP disabled successfully"}
+
+
+# ─── Password Recovery (for superadmin) ──────────────────────────────────────
+
+@router.post("/password-reset/request")
+async def request_password_reset(
+    data: PasswordResetRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Request a password reset. Only works for superuser accounts.
+    In a real system this would send an email — here we generate a token
+    that can be used with the confirm endpoint."""
+    service = UserService(db)
+    user = await service.get_by_email(data.email)
+    # Always return success to avoid user enumeration
+    if user and user.is_superuser:
+        from datetime import timedelta
+        token = create_access_token(user.id, expires_delta=timedelta(hours=1))
+        # In production, this token would be sent via email.
+        # For now, we log it (and return it in development mode).
+        from app.core.config import settings
+        if settings.ENVIRONMENT == "development":
+            return {"message": "Password reset token generated", "reset_token": token}
+    return {"message": "If the email is registered as a superadmin, a reset link has been sent"}
+
+
+@router.post("/password-reset/confirm")
+async def confirm_password_reset(
+    data: PasswordResetConfirm,
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, str]:
+    """Confirm a password reset using a token."""
+    payload = decode_token(data.token)
+    if not payload or payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or expired reset token",
+        )
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token",
+        )
+    service = UserService(db)
+    user = await service.get_by_id(user_id)
+    if not user or not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid reset token",
+        )
+    from app.schemas.user import UserUpdate
+    await service.update(user, UserUpdate(password=data.new_password))
+    return {"message": "Password has been reset successfully"}

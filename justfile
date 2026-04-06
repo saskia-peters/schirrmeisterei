@@ -98,6 +98,14 @@ backend-downgrade:
 backend-test:
     cd backend && UV_PYTHON=3.13 uv run pytest
 
+# Run only backend unit tests
+backend-test-unit:
+    cd backend && UV_PYTHON=3.13 uv run pytest app/tests/unit/ -v
+
+# Run only backend integration tests
+backend-test-integration:
+    cd backend && UV_PYTHON=3.13 uv run pytest app/tests/integration/ -v
+
 # Run backend tests with coverage
 backend-test-cov:
     cd backend && UV_PYTHON=3.13 uv run pytest --cov=app --cov-report=html --cov-report=term
@@ -141,6 +149,10 @@ frontend-build:
 frontend-test:
     cd frontend && pnpm test
 
+# Run frontend tests once (no watch mode)
+frontend-test-run:
+    cd frontend && pnpm test --run
+
 # Run frontend tests with coverage
 frontend-test-cov:
     cd frontend && pnpm run test:coverage
@@ -165,6 +177,12 @@ install: backend-install frontend-install
 
 # Run all tests (backend + frontend)
 test: backend-test frontend-test
+
+# Run all unit tests
+test-unit: backend-test-unit
+
+# Run all integration tests
+test-integration: backend-test-integration
 
 # Run all quality checks
 check: backend-check frontend-check
@@ -250,3 +268,15 @@ tree:
 # Create superuser (interactive)
 create-superuser: backend-migrate
     cd backend && UV_PYTHON=3.13 uv run python scripts/create_superuser.py
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Documentation (MkDocs)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Build MkDocs documentation (output goes to docs/)
+docs-build:
+    cd assets/mkdocs && mkdocs build
+
+# Serve MkDocs documentation locally with live-reload
+docs-serve:
+    cd assets/mkdocs && mkdocs serve --dev-addr=127.0.0.1:8001

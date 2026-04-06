@@ -9,6 +9,7 @@ from app.services.user_service import UserService
 
 
 async def main() -> None:
+    """Interactively create a superuser account and commit it to the database."""
     email = input("Email: ")
     name = input("Full name: ")
     pw = getpass.getpass("Password: ")

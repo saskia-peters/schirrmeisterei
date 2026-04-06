@@ -17,6 +17,8 @@ const mockTicket: TicketSummary = {
   creator_name: 'Alice',
   assignee_id: null,
   assignee_name: null,
+  organization_id: null,
+  organization_name: null,
   priority_id: null,
   priority_name: null,
   category_id: null,

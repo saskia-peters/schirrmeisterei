@@ -19,19 +19,30 @@ from app.schemas.ticket import (
     TicketUpdate,
     WaitingForUpdate,
 )
+from app.services.organization_service import OrganizationService
 from app.services.ticket_service import TicketService
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
 
+async def _get_visible_org_ids(user: User, db: AsyncSession) -> list[str] | None:
+    """Compute the org IDs visible to the current user."""
+    if user.is_superuser:
+        return None  # sees everything
+    org_svc = OrganizationService(db)
+    return await org_svc.get_visible_org_ids(user.organization_id)
+
+
 @router.get("/board", response_model=KanbanBoard)
 async def get_kanban_board(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> KanbanBoard:
+    """Return all tickets grouped into Kanban columns by status."""
+    org_ids = await _get_visible_org_ids(current_user, db)
     service = TicketService(db)
-    all_tickets = await service.list_all()
+    all_tickets = await service.list_all(org_ids)
 
     board: dict[str, list[Ticket]] = {status.value: [] for status in TicketStatus}
     for ticket in all_tickets:
@@ -50,12 +61,14 @@ async def get_kanban_board(
 async def list_tickets(
     status: TicketStatus | None = None,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[Ticket]:
+    """List tickets visible to the current user, optionally filtered by status."""
+    org_ids = await _get_visible_org_ids(current_user, db)
     service = TicketService(db)
     if status:
-        return await service.list_by_status(status)
-    return await service.list_all()
+        return await service.list_by_status(status, org_ids)
+    return await service.list_all(org_ids)
 
 
 @router.post("/", response_model=TicketResponse, status_code=201)
@@ -64,8 +77,9 @@ async def create_ticket(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Ticket:
+    """Create a new ticket belonging to the current user's organisation."""
     service = TicketService(db)
-    return await service.create(data, current_user.id)
+    return await service.create(data, current_user.id, current_user.organization_id)
 
 
 @router.get("/{ticket_id}", response_model=TicketResponse)
@@ -74,6 +88,7 @@ async def get_ticket(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> Ticket:
+    """Fetch a single ticket by UUID, raising 404 if not found."""
     service = TicketService(db)
     return await service.get_by_id_or_raise(ticket_id)
 
@@ -85,6 +100,7 @@ async def update_ticket(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Ticket:
+    """Partially update a ticket's fields."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     return await service.update(ticket, data, current_user.id)
@@ -97,14 +113,14 @@ async def update_ticket_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> Ticket:
+    """Transition a ticket to a new status. Closing requires the close_ticket permission."""
     if data.status == TicketStatus.WAITING and not (data.note and data.note.strip()):
         raise ValidationException('"Waiting for" note is required when status is waiting')
 
     if data.status == TicketStatus.CLOSED and not current_user.is_superuser:
         user_service = UserService(db)
-        has_close_permission = await user_service.user_has_any_group(
-            current_user.id,
-            {"schirrmeister", "admin"},
+        has_close_permission = await user_service.user_has_permission(
+            current_user.id, "close_ticket"
         )
         if not has_close_permission:
             raise ForbiddenException("Only schirrmeister or admin can close tickets")
@@ -135,6 +151,7 @@ async def delete_ticket(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
+    """Delete a ticket. Only the creator or a superuser may delete a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     if ticket.creator_id != current_user.id and not current_user.is_superuser:
@@ -151,6 +168,7 @@ async def upload_attachment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AttachmentResponse:
+    """Upload an image attachment to a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     attachment = await service.add_attachment(ticket, file, current_user.id)
@@ -164,6 +182,7 @@ async def delete_attachment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
+    """Delete an attachment from a ticket. Only the uploader or a superuser may delete it."""
     service = TicketService(db)
     await service.get_by_id_or_raise(ticket_id)
     await service.delete_attachment(attachment_id, current_user.id, current_user.is_superuser)
@@ -178,6 +197,7 @@ async def add_comment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CommentResponse:
+    """Add a comment to a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     comment = await service.add_comment(ticket, data, current_user.id)
@@ -192,6 +212,7 @@ async def update_comment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> CommentResponse:
+    """Edit a comment's content. Only the author or a superuser may edit it."""
     service = TicketService(db)
     await service.get_by_id_or_raise(ticket_id)
     comment = await service.update_comment(comment_id, data, current_user.id, current_user.is_superuser)
@@ -205,6 +226,7 @@ async def delete_comment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> None:
+    """Delete a comment from a ticket. Only the author or a superuser may delete it."""
     service = TicketService(db)
     await service.get_by_id_or_raise(ticket_id)
     await service.delete_comment(comment_id, current_user.id, current_user.is_superuser)
@@ -218,6 +240,7 @@ async def get_status_log(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[StatusLogResponse]:
+    """Return the full status-change history for a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     return [StatusLogResponse.model_validate(log) for log in ticket.status_logs]

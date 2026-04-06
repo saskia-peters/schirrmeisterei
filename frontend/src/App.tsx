@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { useAuthStore } from '@/store/authStore'
 import { authApi } from '@/api'
@@ -7,6 +8,7 @@ import { LoginPage } from '@/components/auth/LoginPage'
 import { RegisterPage } from '@/components/auth/RegisterPage'
 import { ForcePasswordChangeModal } from '@/components/auth/ForcePasswordChangeModal'
 import { BoardPage } from '@/components/board/BoardPage'
+import { AdminPanel } from '@/components/admin/AdminPanel'
 import '@/styles/globals.css'
 
 const queryClient = new QueryClient({
@@ -18,7 +20,9 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AppInner />
+      <BrowserRouter>
+        <AppInner />
+      </BrowserRouter>
       <Toaster position="top-right" richColors />
     </QueryClientProvider>
   )
@@ -42,7 +46,13 @@ function AppInner() {
     if (user?.force_password_change) {
       return <ForcePasswordChangeModal />
     }
-    return <BoardPage />
+    return (
+      <Routes>
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/" element={<BoardPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
   }
 
   if (view === 'register') {
@@ -50,4 +60,15 @@ function AppInner() {
   }
 
   return <LoginPage onSwitchToRegister={() => setView('register')} />
+}
+
+function AdminPage() {
+  const { user } = useAuthStore()
+  const isAdmin = user?.is_superuser || user?.groups?.includes('admin')
+  if (!isAdmin) return <Navigate to="/" replace />
+  return (
+    <div className="app-layout">
+      <AdminPanel />
+    </div>
+  )
 }

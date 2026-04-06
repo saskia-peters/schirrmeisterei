@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from app.core.security import get_password_hash
 from app.db.session import Base, get_db
 from app.main import app
-from app.models.models import User
+from app.models.models import Permission, RolePermission, User
 from app.services.user_service import UserService
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -125,6 +125,27 @@ async def schirrmeister_headers(client: AsyncClient, db: AsyncSession) -> dict[s
     db.add(user)
     await db.flush()
     await service.assign_groups(user, {"helfende", "schirrmeister"})
+
+    # Ensure the schirrmeister group has the close_ticket permission
+    from sqlalchemy import select
+    schirr_group = await service.get_group_by_name("schirrmeister")
+    assert schirr_group is not None
+    perm_result = await db.execute(select(Permission).where(Permission.codename == "close_ticket"))
+    perm = perm_result.scalar_one_or_none()
+    if perm is None:
+        perm = Permission(codename="close_ticket", description="Can close tickets")
+        db.add(perm)
+        await db.flush()
+    existing_rp = await db.execute(
+        select(RolePermission).where(
+            RolePermission.role_id == schirr_group.id,
+            RolePermission.permission_id == perm.id,
+        )
+    )
+    if existing_rp.scalar_one_or_none() is None:
+        db.add(RolePermission(role_id=schirr_group.id, permission_id=perm.id))
+        await db.flush()
+
     await db.commit()
 
     response = await client.post(

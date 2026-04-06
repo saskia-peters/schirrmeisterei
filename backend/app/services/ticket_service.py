@@ -17,70 +17,84 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 
 class TicketService:
     def __init__(self, db: AsyncSession) -> None:
+        """Initialise the service with a database session."""
         self.db = db
 
     async def get_by_id(self, ticket_id: str) -> Ticket | None:
+        """Fetch a Ticket by UUID with all relationships loaded, or None if not found."""
         result = await self.db.execute(
             select(Ticket)
             .execution_options(populate_existing=True)
             .where(Ticket.id == ticket_id)
             .options(
-                selectinload(Ticket.creator),
-                selectinload(Ticket.owner),
+                selectinload(Ticket.organization),
+                selectinload(Ticket.creator).selectinload(User.organization),
+                selectinload(Ticket.owner).selectinload(User.organization),
                 selectinload(Ticket.priority),
                 selectinload(Ticket.category),
                 selectinload(Ticket.affected_group),
                 selectinload(Ticket.attachments),
-                selectinload(Ticket.comments).selectinload(Comment.author),
+                selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
                 selectinload(Ticket.status_logs),
             )
         )
         return result.scalar_one_or_none()
 
     async def get_by_id_or_raise(self, ticket_id: str) -> Ticket:
+        """Fetch a Ticket by UUID, raising NotFoundException if it does not exist."""
         ticket = await self.get_by_id(ticket_id)
         if ticket is None:
             raise NotFoundException("Ticket")
         return ticket
 
-    async def list_all(self) -> list[Ticket]:
-        result = await self.db.execute(
-            select(Ticket).options(
-                selectinload(Ticket.creator),
-                selectinload(Ticket.owner),
-                selectinload(Ticket.priority),
-                selectinload(Ticket.category),
-                selectinload(Ticket.affected_group),
-                selectinload(Ticket.attachments),
-                selectinload(Ticket.comments).selectinload(Comment.author),
-                selectinload(Ticket.status_logs),
-            )
+    async def list_all(self, org_ids: list[str] | None = None) -> list[Ticket]:
+        """Return all tickets, optionally restricted to the given organisation IDs."""
+        stmt = select(Ticket).options(
+            selectinload(Ticket.organization),
+            selectinload(Ticket.creator).selectinload(User.organization),
+            selectinload(Ticket.owner).selectinload(User.organization),
+            selectinload(Ticket.priority),
+            selectinload(Ticket.category),
+            selectinload(Ticket.affected_group),
+            selectinload(Ticket.attachments),
+            selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
+            selectinload(Ticket.status_logs),
         )
+        if org_ids is not None:
+            stmt = stmt.where(Ticket.organization_id.in_(org_ids))
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def list_by_status(self, status: TicketStatus) -> list[Ticket]:
-        result = await self.db.execute(
+    async def list_by_status(self, status: TicketStatus, org_ids: list[str] | None = None) -> list[Ticket]:
+        """Return tickets with the given status, optionally restricted to the given org IDs."""
+        stmt = (
             select(Ticket)
             .where(Ticket.status == status)
             .options(
-                selectinload(Ticket.creator),
-                selectinload(Ticket.owner),
+                selectinload(Ticket.organization),
+                selectinload(Ticket.creator).selectinload(User.organization),
+                selectinload(Ticket.owner).selectinload(User.organization),
                 selectinload(Ticket.priority),
                 selectinload(Ticket.category),
                 selectinload(Ticket.affected_group),
                 selectinload(Ticket.attachments),
-                selectinload(Ticket.comments).selectinload(Comment.author),
+                selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
                 selectinload(Ticket.status_logs),
             )
         )
+        if org_ids is not None:
+            stmt = stmt.where(Ticket.organization_id.in_(org_ids))
+        result = await self.db.execute(stmt)
         return list(result.scalars().all())
 
-    async def create(self, data: TicketCreate, creator_id: str) -> Ticket:
+    async def create(self, data: TicketCreate, creator_id: str, organization_id: str | None = None) -> Ticket:
+        """Create a new ticket, log its initial status and return it with all relationships loaded."""
         ticket = Ticket(
             title=data.title,
             description=data.description,
             creator_id=creator_id,
             owner_id=data.assignee_id,
+            organization_id=organization_id or "",
             priority_id=data.priority_id,
             category_id=data.category_id,
             affected_group_id=data.affected_group_id,
@@ -104,6 +118,7 @@ class TicketService:
         return await self.get_by_id_or_raise(ticket.id)
 
     async def update(self, ticket: Ticket, data: TicketUpdate, user_id: str) -> Ticket:
+        """Apply TicketUpdate fields to the ticket, log assignee changes, and flush."""
         if data.title is not None:
             ticket.title = data.title
         if data.description is not None:
@@ -147,6 +162,7 @@ class TicketService:
     async def update_status(
         self, ticket: Ticket, data: TicketStatusUpdate, user_id: str
     ) -> Ticket:
+        """Transition the ticket to the new status, handle waiting-for notes and log the change."""
         old_status = ticket.status
         old_waiting_for = ticket.waiting_for
         ticket.status = data.status
@@ -186,6 +202,7 @@ class TicketService:
         return await self.get_by_id_or_raise(ticket.id)
 
     async def delete(self, ticket: Ticket) -> None:
+        """Delete a ticket from the database."""
         await self.db.delete(ticket)
         await self.db.flush()
 
@@ -194,6 +211,7 @@ class TicketService:
     async def add_attachment(
         self, ticket: Ticket, file: UploadFile, user_id: str
     ) -> Attachment:
+        """Validate, save and persist a file attachment for the given ticket."""
         if file.content_type not in ALLOWED_IMAGE_TYPES:
             from app.core.exceptions import ValidationException
             raise ValidationException(
@@ -229,6 +247,7 @@ class TicketService:
         return attachment
 
     async def delete_attachment(self, attachment_id: str, user_id: str, is_superuser: bool) -> None:
+        """Delete an attachment record and its corresponding file from disk."""
         result = await self.db.execute(select(Attachment).where(Attachment.id == attachment_id))
         attachment = result.scalar_one_or_none()
         if attachment is None:
@@ -245,6 +264,7 @@ class TicketService:
     # ─── Comments ─────────────────────────────────────────────────────────────
 
     async def add_comment(self, ticket: Ticket, data: CommentCreate, user_id: str) -> Comment:
+        """Append a new comment to the ticket and return the persisted Comment."""
         comment = Comment(
             ticket_id=ticket.id,
             author_id=user_id,
@@ -258,6 +278,7 @@ class TicketService:
     async def update_comment(
         self, comment_id: str, data: CommentUpdate, user_id: str, is_superuser: bool
     ) -> Comment:
+        """Update a comment's content. Raises ForbiddenException if the caller is not the author."""
         result = await self.db.execute(select(Comment).where(Comment.id == comment_id))
         comment = result.scalar_one_or_none()
         if comment is None:
@@ -270,6 +291,7 @@ class TicketService:
         return comment
 
     async def delete_comment(self, comment_id: str, user_id: str, is_superuser: bool) -> None:
+        """Delete a comment. Raises ForbiddenException if the caller is not the author."""
         result = await self.db.execute(select(Comment).where(Comment.id == comment_id))
         comment = result.scalar_one_or_none()
         if comment is None:

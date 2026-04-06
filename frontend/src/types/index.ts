@@ -23,6 +23,23 @@ export interface UpdateConfigItemRequest {
 
 export type TicketStatus = 'new' | 'working' | 'waiting' | 'resolved' | 'closed'
 
+export type OrganizationLevel = 'ortsverband' | 'regionalstelle' | 'landesverband' | 'leitung'
+
+export const ORG_LEVEL_ABBREV: Record<OrganizationLevel, string> = {
+  ortsverband: 'OV',
+  regionalstelle: 'Rst',
+  landesverband: 'LV',
+  leitung: 'LTG',
+}
+
+export interface Organization {
+  id: string
+  name: string
+  level: OrganizationLevel
+  parent_id: string | null
+  created_at: string
+}
+
 export interface User {
   id: string
   email: string
@@ -32,6 +49,10 @@ export interface User {
   force_password_change: boolean
   groups: string[]
   totp_enabled: boolean
+  organization_id: string | null
+  organization_name: string | null
+  organization_level: OrganizationLevel | null
+  org_abbrev: string | null
   created_at: string
   updated_at: string
 }
@@ -106,6 +127,7 @@ export interface Ticket {
   creator_id: string
   assignee_id: string | null
   assignee_name: string | null
+  organization_id: string | null
   priority_id: string | null
   priority_name: string | null
   category_id: string | null
@@ -128,6 +150,8 @@ export interface TicketSummary {
   creator_name: string
   assignee_id: string | null
   assignee_name: string | null
+  organization_id: string | null
+  organization_name: string | null
   priority_id: string | null
   priority_name: string | null
   category_id: string | null
@@ -163,6 +187,7 @@ export interface RegisterRequest {
   email: string
   password: string
   full_name: string
+  organization_id?: string
 }
 
 export interface AssignableUser {
@@ -205,4 +230,72 @@ export interface TOTPSetupResponse {
   secret: string
   qr_code_url: string
   provisioning_uri: string
+}
+
+export interface EmailConfig {
+  id: string
+  organization_id: string
+  organization_name: string | null
+  smtp_host: string
+  smtp_port: number
+  smtp_user: string
+  from_email: string
+  use_tls: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateEmailConfigRequest {
+  organization_id: string
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_password?: string
+  from_email?: string
+  use_tls?: boolean
+  is_active?: boolean
+}
+
+export interface UpdateEmailConfigRequest {
+  smtp_host?: string
+  smtp_port?: number
+  smtp_user?: string
+  smtp_password?: string
+  from_email?: string
+  use_tls?: boolean
+  is_active?: boolean
+}
+
+export interface BulkUserUploadResult {
+  created: number
+  errors: string[]
+}
+
+export interface HierarchyUploadResult {
+  created: number
+  skipped: number
+  errors: string[]
+}
+
+export interface PermissionInfo {
+  id: string
+  codename: string
+  description: string
+}
+
+export interface UserGroupDetail {
+  id: string
+  name: string
+  permissions: string[]
+  created_at: string
+}
+
+export interface PasswordResetRequest {
+  email: string
+}
+
+export interface PasswordResetConfirm {
+  token: string
+  new_password: string
 }

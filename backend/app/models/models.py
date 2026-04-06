@@ -32,6 +32,93 @@ class UserGroupName(str, enum.Enum):
     ADMIN = "admin"
 
 
+class OrganizationLevel(str, enum.Enum):
+    ORTSVERBAND = "ortsverband"
+    REGIONALSTELLE = "regionalstelle"
+    LANDESVERBAND = "landesverband"
+    LEITUNG = "leitung"
+
+
+ORG_LEVEL_ABBREV: dict[str, str] = {
+    "ortsverband": "OV",
+    "regionalstelle": "Rst",
+    "landesverband": "LV",
+    "leitung": "LTG",
+}
+
+
+class Organization(Base):
+    __tablename__ = "organizations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    level: Mapped[OrganizationLevel] = mapped_column(
+        Enum(OrganizationLevel, values_callable=lambda e: [x.value for x in e], create_constraint=False),
+        nullable=False,
+        index=True,
+    )
+    parent_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    parent: Mapped["Organization | None"] = relationship(
+        "Organization", remote_side="Organization.id", back_populates="children"
+    )
+    children: Mapped[list["Organization"]] = relationship(
+        "Organization", back_populates="parent"
+    )
+    users: Mapped[list["User"]] = relationship("User", back_populates="organization")
+    tickets: Mapped[list["Ticket"]] = relationship("Ticket", back_populates="organization")
+    email_config: Mapped["EmailConfig | None"] = relationship(
+        "EmailConfig", back_populates="organization", uselist=False
+    )
+
+
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    codename: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+    description: Mapped[str] = mapped_column(String(255), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    roles: Mapped[list["UserGroup"]] = relationship(
+        "UserGroup",
+        secondary="role_permissions",
+        back_populates="permissions",
+        viewonly=True,
+    )
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    role_id: Mapped[str] = mapped_column(String(36), ForeignKey("user_groups.id"), primary_key=True)
+    permission_id: Mapped[str] = mapped_column(String(36), ForeignKey("permissions.id"), primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class EmailConfig(Base):
+    __tablename__ = "email_configs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id"), unique=True, nullable=False
+    )
+    smtp_host: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    smtp_port: Mapped[int] = mapped_column(Integer, nullable=False, default=587)
+    smtp_user: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    smtp_password: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    from_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    use_tls: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="email_config")
+
+
 class ConfigItem(Base):
     __tablename__ = "config_items"
 
@@ -69,11 +156,15 @@ class User(Base):
     force_password_change: Mapped[bool] = mapped_column(Boolean, default=False)
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    organization_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
 
+    organization: Mapped["Organization | None"] = relationship("Organization", back_populates="users")
     created_tickets: Mapped[list["Ticket"]] = relationship(
         "Ticket", back_populates="creator", foreign_keys="Ticket.creator_id"
     )
@@ -111,6 +202,12 @@ class UserGroup(Base):
         back_populates="groups",
         viewonly=True,
     )
+    permissions: Mapped[list["Permission"]] = relationship(
+        "Permission",
+        secondary="role_permissions",
+        back_populates="roles",
+        viewonly=True,
+    )
 
 
 class UserGroupMembership(Base):
@@ -142,6 +239,9 @@ class Ticket(Base):
     owner_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("users.id"), nullable=True, index=True
     )
+    organization_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("organizations.id"), nullable=False, index=True
+    )
     priority_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("config_items.id"), nullable=True, index=True
     )
@@ -163,6 +263,7 @@ class Ticket(Base):
     owner: Mapped["User | None"] = relationship(
         "User", back_populates="owned_tickets", foreign_keys=[owner_id]
     )
+    organization: Mapped["Organization"] = relationship("Organization", back_populates="tickets")
     priority: Mapped["ConfigItem | None"] = relationship(
         "ConfigItem", back_populates="priority_tickets", foreign_keys=[priority_id]
     )

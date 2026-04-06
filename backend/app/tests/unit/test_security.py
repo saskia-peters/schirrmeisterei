@@ -49,7 +49,7 @@ class TestTokens:
 
     def test_decode_invalid_token(self) -> None:
         payload = decode_token("invalid.token.value")
-        assert payload == {}
+        assert payload is None
 
     def test_access_token_different_from_refresh(self) -> None:
         access = create_access_token("user-123")

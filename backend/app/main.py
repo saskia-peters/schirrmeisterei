@@ -14,6 +14,7 @@ from app.models import models  # noqa: F401  - ensure models are imported for me
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler: creates upload directory on startup and disposes the DB engine on shutdown."""
     # Create upload directory
     os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
     yield
@@ -22,6 +23,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 
 def create_app() -> FastAPI:
+    """Create and configure the FastAPI application with middleware, routes and static file serving."""
     app = FastAPI(
         title=settings.APP_NAME,
         version=settings.APP_VERSION,
@@ -47,6 +49,7 @@ def create_app() -> FastAPI:
 
     @app.get("/health")
     async def health() -> dict[str, str]:
+        """Health-check endpoint — returns the current application status and version."""
         return {"status": "ok", "version": settings.APP_VERSION}
 
     return app

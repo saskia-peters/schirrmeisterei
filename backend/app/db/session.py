@@ -24,6 +24,7 @@ class Base(DeclarativeBase):
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
+    """FastAPI dependency that yields an AsyncSession and commits on success, rolls back on error."""
     async with AsyncSessionLocal() as session:
         try:
             yield session

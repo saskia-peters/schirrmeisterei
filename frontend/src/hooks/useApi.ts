@@ -1,12 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { adminApi, authApi, ticketsApi, usersApi } from '@/api'
+import { adminApi, authApi, organizationsApi, ticketsApi, usersApi } from '@/api'
 import type {
+  CreateEmailConfigRequest,
   CreateUserGroupRequest,
   ConfigItemType,
   CreateCommentRequest,
   CreateConfigItemRequest,
   CreateTicketRequest,
+  PasswordResetConfirm,
+  PasswordResetRequest,
   UpdateConfigItemRequest,
+  UpdateEmailConfigRequest,
   UpdateTicketRequest,
   UpdateTicketStatusRequest,
   UpdateUserGroupsRequest,
@@ -239,3 +243,116 @@ export const useAdminUsers = (enabled = true) =>
     enabled,
     staleTime: 30_000,
   })
+
+// ─── Organization Hooks ───────────────────────────────────────────────────────
+
+export const useOrganizations = (params?: { level?: string; parent_id?: string }) =>
+  useQuery({
+    queryKey: ['organizations', params],
+    queryFn: () => organizationsApi.list(params),
+    staleTime: 5 * 60_000,
+  })
+
+export const useLandesverbaende = () =>
+  useQuery({
+    queryKey: ['organizations', 'landesverbaende'],
+    queryFn: organizationsApi.listLandesverbaende,
+    staleTime: 5 * 60_000,
+  })
+
+export const useRegionalstellen = (landesverbandId?: string) =>
+  useQuery({
+    queryKey: ['organizations', 'regionalstellen', landesverbandId],
+    queryFn: () => organizationsApi.listRegionalstellen(landesverbandId),
+    enabled: !!landesverbandId,
+    staleTime: 5 * 60_000,
+  })
+
+export const useOrtsverbaende = (regionalstelleId?: string) =>
+  useQuery({
+    queryKey: ['organizations', 'ortsverbaende', regionalstelleId],
+    queryFn: () => organizationsApi.listOrtsverbaende(regionalstelleId),
+    enabled: !!regionalstelleId,
+    staleTime: 5 * 60_000,
+  })
+
+// ─── Password Reset Hooks ─────────────────────────────────────────────────────
+
+export const useRequestPasswordReset = () =>
+  useMutation({
+    mutationFn: (data: PasswordResetRequest) => authApi.requestPasswordReset(data),
+  })
+
+export const useConfirmPasswordReset = () =>
+  useMutation({
+    mutationFn: (data: PasswordResetConfirm) => authApi.confirmPasswordReset(data),
+  })
+
+// ─── Email Config Hooks ───────────────────────────────────────────────────────
+
+export const useEmailConfigs = () =>
+  useQuery({
+    queryKey: ['email-configs'],
+    queryFn: adminApi.listEmailConfigs,
+    staleTime: 60_000,
+  })
+
+export const useCreateEmailConfig = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateEmailConfigRequest) => adminApi.createEmailConfig(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['email-configs'] }),
+  })
+}
+
+export const useUpdateEmailConfig = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateEmailConfigRequest }) =>
+      adminApi.updateEmailConfig(id, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['email-configs'] }),
+  })
+}
+
+// ─── Bulk Upload Hooks ────────────────────────────────────────────────────────
+
+export const useBulkUploadUsers = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => adminApi.bulkUploadUsers(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  })
+}
+
+export const useUploadHierarchy = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => adminApi.uploadHierarchy(file),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['organizations'] }),
+  })
+}
+
+// ─── Permissions Hooks ────────────────────────────────────────────────────────
+
+export const usePermissions = () =>
+  useQuery({
+    queryKey: ['permissions'],
+    queryFn: adminApi.listPermissions,
+    staleTime: 5 * 60_000,
+  })
+
+export const useUserGroupsDetail = () =>
+  useQuery({
+    queryKey: ['user-groups-detail'],
+    queryFn: adminApi.listUserGroupsDetail,
+    staleTime: 60_000,
+  })
+
+export const useSetGroupPermissions = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ groupId, data }: { groupId: string; data: { permission_codenames: string[] } }) =>
+      adminApi.setGroupPermissions(groupId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['user-groups-detail'] }),
+  })
+}

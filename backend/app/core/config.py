@@ -34,6 +34,7 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_secret_key(self) -> "Settings":
+        """Ensure SECRET_KEY has been changed from the default in non-development environments."""
         _default = "change-me-in-production-use-long-random-string"
         if self.SECRET_KEY == _default and self.ENVIRONMENT != "development":
             raise ValueError(

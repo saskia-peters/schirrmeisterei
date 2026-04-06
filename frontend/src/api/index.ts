@@ -3,21 +3,31 @@ import type {
   AppSetting,
   AssignableUser,
   AuthTokens,
+  BulkUserUploadResult,
   ConfigItem,
   ConfigItemType,
   CreateCommentRequest,
   CreateConfigItemRequest,
+  CreateEmailConfigRequest,
   CreateTicketRequest,
+  EmailConfig,
+  HierarchyUploadResult,
   KanbanBoard,
   LoginRequest,
+  Organization,
+  PasswordResetConfirm,
+  PasswordResetRequest,
+  PermissionInfo,
   RegisterRequest,
   Ticket,
   TicketSummary,
   TOTPSetupResponse,
+  UpdateEmailConfigRequest,
   UpdateUserGroupsRequest,
   UpdateUserGroupRequest,
   UpdateWaitingForRequest,
   UserGroup,
+  UserGroupDetail,
   CreateUserGroupRequest,
   UpdateConfigItemRequest,
   UpdateTicketRequest,
@@ -44,6 +54,36 @@ export const authApi = {
 
   disableTotp: (totp_code: string) =>
     apiClient.delete('/auth/totp/disable', { data: { totp_code } }).then((r) => r.data),
+
+  requestPasswordReset: (data: PasswordResetRequest) =>
+    apiClient.post<{ message: string; reset_token?: string }>('/auth/password-reset/request', data).then((r) => r.data),
+
+  confirmPasswordReset: (data: PasswordResetConfirm) =>
+    apiClient.post<{ message: string }>('/auth/password-reset/confirm', data).then((r) => r.data),
+}
+
+// ─── Organizations ────────────────────────────────────────────────────────────
+
+export const organizationsApi = {
+  list: (params?: { level?: string; parent_id?: string }) =>
+    apiClient.get<Organization[]>('/organizations/', { params }).then((r) => r.data),
+
+  listLandesverbaende: () =>
+    apiClient.get<Organization[]>('/organizations/landesverbaende').then((r) => r.data),
+
+  listRegionalstellen: (landesverbandId?: string) =>
+    apiClient
+      .get<Organization[]>('/organizations/regionalstellen', {
+        params: landesverbandId ? { landesverband_id: landesverbandId } : undefined,
+      })
+      .then((r) => r.data),
+
+  listOrtsverbaende: (regionalstelleId?: string) =>
+    apiClient
+      .get<Organization[]>('/organizations/ortsverbaende', {
+        params: regionalstelleId ? { regionalstelle_id: regionalstelleId } : undefined,
+      })
+      .then((r) => r.data),
 }
 
 // ─── Tickets ──────────────────────────────────────────────────────────────────
@@ -147,4 +187,45 @@ export const adminApi = {
 
   listUsers: () =>
     apiClient.get<User[]>('/admin/users').then((r) => r.data),
+
+  listPermissions: () =>
+    apiClient.get<PermissionInfo[]>('/admin/permissions').then((r) => r.data),
+
+  listUserGroupsDetail: () =>
+    apiClient.get<UserGroupDetail[]>('/admin/user-groups-detail').then((r) => r.data),
+
+  setGroupPermissions: (groupId: string, data: { permission_codenames: string[] }) =>
+    apiClient.put<UserGroupDetail>(`/admin/user-groups/${groupId}/permissions`, data).then((r) => r.data),
+
+  listEmailConfigs: () =>
+    apiClient.get<EmailConfig[]>('/admin/email-configs').then((r) => r.data),
+
+  getEmailConfig: (orgId: string) =>
+    apiClient.get<EmailConfig>(`/admin/email-configs/${orgId}`).then((r) => r.data),
+
+  createEmailConfig: (data: CreateEmailConfigRequest) =>
+    apiClient.post<EmailConfig>('/admin/email-configs', data).then((r) => r.data),
+
+  updateEmailConfig: (configId: string, data: UpdateEmailConfigRequest) =>
+    apiClient.patch<EmailConfig>(`/admin/email-configs/${configId}`, data).then((r) => r.data),
+
+  bulkUploadUsers: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient
+      .post<BulkUserUploadResult>('/admin/users/bulk-upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
+
+  uploadHierarchy: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient
+      .post<HierarchyUploadResult>('/admin/hierarchy/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      .then((r) => r.data)
+  },
 }

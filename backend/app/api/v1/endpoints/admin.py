@@ -1,21 +1,43 @@
-from fastapi import APIRouter, Depends
+from io import BytesIO
+
+from fastapi import APIRouter, Depends, File, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_admin_group_user, get_current_superuser, get_current_user
 from app.core.exceptions import ConflictException, NotFoundException, ValidationException
 from app.db.session import get_db
-from app.models.models import AppSetting, ConfigItem, ConfigItemType, User
+from app.models.models import (
+    AppSetting,
+    ConfigItem,
+    ConfigItemType,
+    EmailConfig,
+    Organization,
+    Permission,
+    RolePermission,
+    User,
+    UserGroup,
+)
 from app.schemas.config import ConfigItemCreate, ConfigItemResponse, ConfigItemUpdate
 from app.schemas.user import (
     AppSettingResponse,
     AppSettingUpdate,
+    BulkUserUploadResult,
+    EmailConfigCreate,
+    EmailConfigResponse,
+    EmailConfigUpdate,
+    HierarchyUploadResult,
+    PermissionResponse,
+    RolePermissionUpdate,
     UserGroupAssignmentUpdate,
     UserGroupCreate,
+    UserGroupDetailResponse,
     UserGroupResponse,
     UserGroupUpdate,
     UserResponse,
 )
+from app.services.organization_service import OrganizationService
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -28,6 +50,7 @@ async def list_config_items(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[ConfigItem]:
+    """Return all configuration items, optionally filtered by type and/or active status."""
     stmt = select(ConfigItem)
     if type is not None:
         stmt = stmt.where(ConfigItem.type == type)
@@ -44,6 +67,7 @@ async def create_config_item(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> ConfigItem:
+    """Create a new configuration item."""
     item = ConfigItem(
         type=data.type,
         name=data.name,
@@ -62,6 +86,7 @@ async def update_config_item(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> ConfigItem:
+    """Update an existing configuration item's name, sort order or active flag."""
     result = await db.execute(select(ConfigItem).where(ConfigItem.id == item_id))
     item = result.scalar_one_or_none()
     if item is None:
@@ -83,6 +108,7 @@ async def delete_config_item(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> None:
+    """Delete a configuration item."""
     result = await db.execute(select(ConfigItem).where(ConfigItem.id == item_id))
     item = result.scalar_one_or_none()
     if item is None:
@@ -96,6 +122,7 @@ async def list_user_groups(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> list[UserGroupResponse]:
+    """Return all user groups."""
     service = UserService(db)
     return await service.list_groups()
 
@@ -106,6 +133,7 @@ async def create_user_group(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> UserGroupResponse:
+    """Create a new user group. Returns 409 if a group with that name already exists."""
     service = UserService(db)
     name = data.name.strip().lower()
     if not name:
@@ -123,6 +151,7 @@ async def rename_user_group(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> UserGroupResponse:
+    """Rename a user group. The helfende group cannot be renamed."""
     service = UserService(db)
     groups = await service.list_groups()
     group = next((g for g in groups if g.id == group_id), None)
@@ -151,6 +180,7 @@ async def delete_user_group(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> None:
+    """Delete a user group. Core groups (helfende, schirrmeister, admin) cannot be deleted."""
     service = UserService(db)
     groups = await service.list_groups()
     group = next((g for g in groups if g.id == group_id), None)
@@ -168,6 +198,7 @@ async def get_user_group_names(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> list[str]:
+    """Return the sorted list of group names the given user belongs to."""
     service = UserService(db)
     user = await service.get_by_id(user_id)
     if user is None:
@@ -182,6 +213,7 @@ async def set_user_groups(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> list[str]:
+    """Replace the user's group memberships with the supplied set of group names."""
     service = UserService(db)
     user = await service.get_by_id(user_id)
     if user is None:
@@ -225,6 +257,7 @@ AGE_THRESHOLD_DEFAULTS: dict[str, str] = {
 
 
 async def _ensure_age_defaults(db: AsyncSession) -> None:
+    """Insert default age-threshold settings if they are not yet present in the database."""
     for key, default in AGE_THRESHOLD_DEFAULTS.items():
         result = await db.execute(select(AppSetting).where(AppSetting.key == key))
         if result.scalar_one_or_none() is None:
@@ -237,6 +270,7 @@ async def list_app_settings(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[AppSetting]:
+    """Return all application settings, initialising age-threshold defaults if absent."""
     await _ensure_age_defaults(db)
     result = await db.execute(select(AppSetting).order_by(AppSetting.key))
     return list(result.scalars().all())
@@ -249,6 +283,10 @@ async def update_app_setting(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> AppSetting:
+    """Update the value of an application setting.
+
+    Age-threshold values must be positive integers (number of days).
+    """
     await _ensure_age_defaults(db)
     result = await db.execute(select(AppSetting).where(AppSetting.key == key))
     setting = result.scalar_one_or_none()
@@ -268,3 +306,336 @@ async def update_app_setting(
     await db.flush()
     await db.refresh(setting)
     return setting
+
+
+# ─── Permissions ───────────────────────────────────────────────────────────────
+
+@router.get("/permissions", response_model=list[PermissionResponse])
+async def list_permissions(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_superuser),
+) -> list[Permission]:
+    """Return all defined permissions ordered by codename."""
+    result = await db.execute(select(Permission).order_by(Permission.codename))
+    return list(result.scalars().all())
+
+
+@router.get("/user-groups-detail", response_model=list[UserGroupDetailResponse])
+async def list_user_groups_detail(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_superuser),
+) -> list[UserGroup]:
+    """Return all user groups with their associated permissions."""
+    result = await db.execute(
+        select(UserGroup)
+        .options(selectinload(UserGroup.permissions))
+        .order_by(UserGroup.name)
+    )
+    return list(result.scalars().all())
+
+
+@router.put("/user-groups/{group_id}/permissions", response_model=UserGroupDetailResponse)
+async def set_group_permissions(
+    group_id: str,
+    data: RolePermissionUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_superuser),
+) -> UserGroup:
+    """Replace all permissions for the given user group with the supplied set of codenames."""
+    result = await db.execute(
+        select(UserGroup).where(UserGroup.id == group_id)
+    )
+    group = result.scalar_one_or_none()
+    if group is None:
+        raise NotFoundException("UserGroup")
+
+    # Delete existing role-permission links
+    existing = await db.execute(
+        select(RolePermission).where(RolePermission.role_id == group_id)
+    )
+    for rp in existing.scalars().all():
+        await db.delete(rp)
+    await db.flush()
+
+    # Add new permissions
+    if data.permission_codenames:
+        perm_result = await db.execute(
+            select(Permission).where(Permission.codename.in_(data.permission_codenames))
+        )
+        permissions = list(perm_result.scalars().all())
+        for perm in permissions:
+            db.add(RolePermission(role_id=group_id, permission_id=perm.id))
+        await db.flush()
+
+    # Reload with permissions
+    result = await db.execute(
+        select(UserGroup)
+        .options(selectinload(UserGroup.permissions))
+        .where(UserGroup.id == group_id)
+    )
+    return result.scalar_one()
+
+
+# ─── Email Config ──────────────────────────────────────────────────────────────
+
+@router.get("/email-configs", response_model=list[EmailConfigResponse])
+async def list_email_configs(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_group_user),
+) -> list[EmailConfig]:
+    """Return all email configurations with their associated organisations."""
+    result = await db.execute(
+        select(EmailConfig)
+        .options(selectinload(EmailConfig.organization))
+        .order_by(EmailConfig.organization_id)
+    )
+    return list(result.scalars().all())
+
+
+@router.get("/email-configs/{org_id}", response_model=EmailConfigResponse)
+async def get_email_config(
+    org_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_group_user),
+) -> EmailConfig:
+    """Fetch the email configuration for the given organisation, or 404 if not found."""
+    result = await db.execute(
+        select(EmailConfig)
+        .options(selectinload(EmailConfig.organization))
+        .where(EmailConfig.organization_id == org_id)
+    )
+    config = result.scalar_one_or_none()
+    if config is None:
+        raise NotFoundException("EmailConfig")
+    return config
+
+
+@router.post("/email-configs", response_model=EmailConfigResponse, status_code=201)
+async def create_email_config(
+    data: EmailConfigCreate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_group_user),
+) -> EmailConfig:
+    """Create an email configuration for an organisation. Returns 409 if one already exists."""
+    existing = await db.execute(
+        select(EmailConfig).where(EmailConfig.organization_id == data.organization_id)
+    )
+    if existing.scalar_one_or_none() is not None:
+        raise ConflictException("Email config already exists for this organization")
+    config = EmailConfig(
+        organization_id=data.organization_id,
+        smtp_host=data.smtp_host,
+        smtp_port=data.smtp_port,
+        smtp_user=data.smtp_user,
+        smtp_password=data.smtp_password,
+        from_email=data.from_email,
+        use_tls=data.use_tls,
+        is_active=data.is_active,
+    )
+    db.add(config)
+    await db.flush()
+    await db.refresh(config, attribute_names=["organization"])
+    return config
+
+
+@router.patch("/email-configs/{config_id}", response_model=EmailConfigResponse)
+async def update_email_config(
+    config_id: str,
+    data: EmailConfigUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_admin_group_user),
+) -> EmailConfig:
+    """Update an existing email configuration's SMTP settings."""
+    result = await db.execute(select(EmailConfig).where(EmailConfig.id == config_id))
+    config = result.scalar_one_or_none()
+    if config is None:
+        raise NotFoundException("EmailConfig")
+    if data.smtp_host is not None:
+        config.smtp_host = data.smtp_host
+    if data.smtp_port is not None:
+        config.smtp_port = data.smtp_port
+    if data.smtp_user is not None:
+        config.smtp_user = data.smtp_user
+    if data.smtp_password is not None:
+        config.smtp_password = data.smtp_password
+    if data.from_email is not None:
+        config.from_email = data.from_email
+    if data.use_tls is not None:
+        config.use_tls = data.use_tls
+    if data.is_active is not None:
+        config.is_active = data.is_active
+    await db.flush()
+    await db.refresh(config, attribute_names=["organization"])
+    return config
+
+
+# ─── Bulk User Upload ─────────────────────────────────────────────────────────
+
+@router.post("/users/bulk-upload", response_model=BulkUserUploadResult)
+async def bulk_upload_users(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> BulkUserUploadResult:
+    """Upload an XLSX file to create multiple users at once.
+    Required columns: email, full_name, password
+    Optional columns: organization_id
+    """
+    if not file.filename or not file.filename.endswith(".xlsx"):
+        raise ValidationException("File must be an XLSX file")
+
+    from openpyxl import load_workbook
+
+    contents = await file.read()
+    wb = load_workbook(BytesIO(contents), read_only=True)
+    ws = wb.active
+    if ws is None:
+        raise ValidationException("Empty workbook")
+
+    # Read header row
+    rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+    if not rows:
+        raise ValidationException("Empty spreadsheet")
+
+    header = [str(c).strip().lower() if c else "" for c in rows[0]]
+    required = {"email", "full_name", "password"}
+    if not required.issubset(set(header)):
+        raise ValidationException(f"Missing required columns: {required - set(header)}")
+
+    email_idx = header.index("email")
+    name_idx = header.index("full_name")
+    pwd_idx = header.index("password")
+    org_idx = header.index("organization_id") if "organization_id" in header else None
+
+    service = UserService(db)
+    created = 0
+    errors: list[str] = []
+
+    for i, row in enumerate(rows[1:], start=2):
+        email = str(row[email_idx]).strip() if row[email_idx] else ""
+        full_name = str(row[name_idx]).strip() if row[name_idx] else ""
+        password = str(row[pwd_idx]).strip() if row[pwd_idx] else ""
+
+        if not email or not full_name or not password:
+            errors.append(f"Row {i}: missing required fields")
+            continue
+
+        if len(password) < 8:
+            errors.append(f"Row {i}: password must be at least 8 characters")
+            continue
+
+        existing = await service.get_by_email(email)
+        if existing:
+            errors.append(f"Row {i}: email {email} already exists")
+            continue
+
+        org_id = None
+        if org_idx is not None and row[org_idx]:
+            org_id = str(row[org_idx]).strip()
+        elif current_user.organization_id:
+            org_id = current_user.organization_id
+
+        from app.schemas.user import UserCreate
+        user_data = UserCreate(
+            email=email,
+            full_name=full_name,
+            password=password,
+            organization_id=org_id,
+        )
+        try:
+            await service.create(user_data)
+            created += 1
+        except Exception as exc:
+            errors.append(f"Row {i}: {exc}")
+
+    return BulkUserUploadResult(created=created, errors=errors)
+
+
+# ─── Hierarchy Upload ─────────────────────────────────────────────────────────
+
+@router.post("/hierarchy/upload", response_model=HierarchyUploadResult)
+async def upload_hierarchy(
+    file: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_superuser),
+) -> HierarchyUploadResult:
+    """Upload an XLSX file to import the organisation hierarchy.
+    Required columns: level, name, parent_name
+    level must be one of: leitung, landesverband, regionalstelle, ortsverband
+    parent_name is the display name of the parent unit (empty for top-level).
+    Existing orgs with the same name+level are skipped (not updated).
+    """
+    from app.models.models import OrganizationLevel
+
+    if not file.filename or not file.filename.endswith(".xlsx"):
+        raise ValidationException("File must be an XLSX file")
+
+    from openpyxl import load_workbook
+
+    contents = await file.read()
+    wb = load_workbook(BytesIO(contents), read_only=True)
+    ws = wb.active
+    if ws is None:
+        raise ValidationException("Empty workbook")
+
+    rows = list(ws.iter_rows(values_only=True))
+    wb.close()
+    if not rows:
+        raise ValidationException("Empty spreadsheet")
+
+    header = [str(c).strip().lower() if c else "" for c in rows[0]]
+    required = {"level", "name", "parent_name"}
+    if not required.issubset(set(header)):
+        raise ValidationException(f"Missing required columns: {required - set(header)}")
+
+    level_idx = header.index("level")
+    name_idx = header.index("name")
+    parent_idx = header.index("parent_name")
+
+    LEVEL_ORDER = ["leitung", "landesverband", "regionalstelle", "ortsverband"]
+    data_rows: list[tuple[str, str, str]] = []
+    for row in rows[1:]:
+        lvl = str(row[level_idx]).strip().lower() if row[level_idx] else ""
+        nm = str(row[name_idx]).strip() if row[name_idx] else ""
+        parent_nm = str(row[parent_idx]).strip() if row[parent_idx] else ""
+        if lvl and nm:
+            data_rows.append((lvl, nm, parent_nm))
+
+    # Sort by level order so parents are created first
+    data_rows.sort(key=lambda r: LEVEL_ORDER.index(r[0]) if r[0] in LEVEL_ORDER else 99)
+
+    service = OrganizationService(db)
+    created = 0
+    skipped = 0
+    errors: list[str] = []
+
+    for lvl, nm, parent_nm in data_rows:
+        try:
+            org_level = OrganizationLevel(lvl)
+        except ValueError:
+            errors.append(f"Unknown level '{lvl}' for org '{nm}'")
+            continue
+
+        existing = await service.find_by_name_level(nm, org_level)
+        if existing is not None:
+            skipped += 1
+            continue
+
+        parent_id: str | None = None
+        if parent_nm:
+            # Search for parent across all levels above current
+            parent_org = await db.execute(
+                select(Organization).where(Organization.name == parent_nm)
+            )
+            parent = parent_org.scalar_one_or_none()
+            if parent is None:
+                errors.append(f"Parent '{parent_nm}' not found for '{nm}' — skipped")
+                continue
+            parent_id = parent.id
+
+        await service.create_org(org_level, nm, parent_id)
+        created += 1
+
+    await db.commit()
+    return HierarchyUploadResult(created=created, skipped=skipped, errors=errors)

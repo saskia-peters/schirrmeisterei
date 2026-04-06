@@ -1,5 +1,6 @@
 import { differenceInDays, formatDistanceToNow } from 'date-fns'
 import { useAppSettings } from '@/hooks/useApi'
+import { useAuthStore } from '@/store/authStore'
 import type { TicketSummary } from '@/types'
 
 const PRIORITY_CLASS: Record<string, string> = {
@@ -44,6 +45,8 @@ interface TicketCardProps {
 export function TicketCard({ ticket, onClick, isDragging = false }: TicketCardProps) {
   const daysOpen = differenceInDays(new Date(), new Date(ticket.created_at))
   const ageColor = useAgeColor(daysOpen)
+  const { user } = useAuthStore()
+  const showOrg = user?.organization_level && user.organization_level !== 'ortsverband'
 
   return (
     <div
@@ -58,6 +61,9 @@ export function TicketCard({ ticket, onClick, isDragging = false }: TicketCardPr
         <span className={`priority-badge ${PRIORITY_CLASS[ticket.priority_name] ?? 'priority-default'}`}>
           {ticket.priority_name}
         </span>
+      )}
+      {showOrg && ticket.organization_name && (
+        <span className="ticket-card-org" title="Organization">🏢 {ticket.organization_name}</span>
       )}
       <p className="ticket-card-title">{ticket.title}</p>
       {ticket.status === 'waiting' && ticket.waiting_for && (

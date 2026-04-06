@@ -16,6 +16,7 @@ async def list_assignable_users(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[User]:
+    """Return all users as lightweight records for use in assignee selectors."""
     service = UserService(db)
     return await service.list_all()
 
@@ -25,6 +26,7 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> list[User]:
+    """Return all user accounts. Accessible to superusers only."""
     service = UserService(db)
     return await service.list_all()
 
@@ -35,6 +37,7 @@ async def create_user(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_superuser),
 ) -> User:
+    """Create a new user account. Returns 409 if the email is already registered."""
     service = UserService(db)
     existing = await service.get_by_email(data.email)
     if existing:
@@ -48,6 +51,7 @@ async def get_user(
     db: AsyncSession = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> User:
+    """Fetch a user by UUID, raising 404 if not found."""
     service = UserService(db)
     user = await service.get_by_id(user_id)
     if not user:
@@ -62,6 +66,7 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_unrestricted_user),
 ) -> User:
+    """Update a user's profile. Users may only update their own record; superusers may update any."""
     if user_id != current_user.id and not current_user.is_superuser:
         from app.core.exceptions import ForbiddenException
         raise ForbiddenException()

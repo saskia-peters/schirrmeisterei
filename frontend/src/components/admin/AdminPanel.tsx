@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   useUsers,
@@ -14,64 +15,86 @@ import {
   useAppSettings,
   useUpdateAppSetting,
   useAdminUsers,
+  useEmailConfigs,
+  useCreateEmailConfig,
+  useUpdateEmailConfig,
+  useOrganizations,
+  useBulkUploadUsers,
+  useUploadHierarchy,
+  usePermissions,
+  useUserGroupsDetail,
+  useSetGroupPermissions,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/authStore'
-import type { ConfigItem, ConfigItemType, User, UserGroup } from '@/types'
+import type { ConfigItem, ConfigItemType, EmailConfig, User, UserGroup } from '@/types'
 
-type AdminTab = ConfigItemType | 'user-roles' | 'age-thresholds' | 'users'
+type AdminTab = ConfigItemType | 'user-roles' | 'age-thresholds' | 'users' | 'email-config' | 'bulk-upload' | 'role-permissions' | 'hierarchy'
 
 const BASE_TABS: { type: AdminTab; label: string }[] = [
   { type: 'priority', label: 'Priorities' },
   { type: 'category', label: 'Categories' },
   { type: 'group', label: 'Affected Groups' },
   { type: 'user-roles', label: 'User Roles' },
+  { type: 'role-permissions', label: 'Role Permissions' },
   { type: 'age-thresholds', label: 'Age Thresholds' },
 ]
 
-interface AdminPanelProps {
-  onClose: () => void
-}
-
-export function AdminPanel({ onClose }: AdminPanelProps) {
+export function AdminPanel() {
   const { user } = useAuthStore()
+  const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<AdminTab>('priority')
   const isSuperuser = user?.is_superuser ?? false
   const isAdmin = user?.groups?.includes('admin') ?? false
 
   const tabs = [
     ...BASE_TABS,
-    ...(isAdmin || isSuperuser ? [{ type: 'users' as AdminTab, label: 'Users' }] : []),
+    ...(isAdmin || isSuperuser
+      ? [
+          { type: 'users' as AdminTab, label: 'Users' },
+          { type: 'email-config' as AdminTab, label: 'Email Config' },
+          { type: 'bulk-upload' as AdminTab, label: 'Bulk Upload' },
+          { type: 'hierarchy' as AdminTab, label: 'Hierarchy Import' },
+        ]
+      : []),
   ]
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal admin-panel" role="dialog" aria-modal aria-label="Admin Panel">
-        <div className="modal-header">
-          <h2>Administration</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
-        </div>
+    <div className="admin-page">
+      <div className="admin-page-header">
+        <h1>Administration</h1>
+        <button className="btn btn-secondary btn-sm" onClick={() => navigate('/')}>
+          ← Back to Board
+        </button>
+      </div>
 
-        <div className="admin-tabs">
-          {tabs.map((tab) => (
-            <button
-              key={tab.type}
-              className={`admin-tab ${activeTab === tab.type ? 'admin-tab--active' : ''}`}
-              onClick={() => setActiveTab(tab.type)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="admin-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.type}
+            className={`admin-tab ${activeTab === tab.type ? 'admin-tab--active' : ''}`}
+            onClick={() => setActiveTab(tab.type)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <div className="admin-tab-content">
-          {activeTab === 'users'
-            ? <UserOverview />
-            : activeTab === 'user-roles'
-            ? <UserRoleAdmin isSuperuser={isSuperuser} />
-            : activeTab === 'age-thresholds'
-            ? <AgeThresholdsAdmin isSuperuser={isSuperuser} />
-            : <ConfigItemList type={activeTab as ConfigItemType} isSuperuser={isSuperuser} />}
-        </div>
+      <div className="admin-tab-content">
+        {activeTab === 'users'
+          ? <UserOverview />
+          : activeTab === 'user-roles'
+          ? <UserRoleAdmin isSuperuser={isSuperuser} />
+          : activeTab === 'role-permissions'
+          ? <RolePermissionsAdmin />
+          : activeTab === 'age-thresholds'
+          ? <AgeThresholdsAdmin isSuperuser={isSuperuser} />
+          : activeTab === 'email-config'
+          ? <EmailConfigAdmin />
+          : activeTab === 'bulk-upload'
+          ? <BulkUploadAdmin />
+          : activeTab === 'hierarchy'
+          ? <HierarchyUploadAdmin />
+          : <ConfigItemList type={activeTab as ConfigItemType} isSuperuser={isSuperuser} />}
       </div>
     </div>
   )
@@ -495,6 +518,7 @@ function UserOverview() {
           <tr>
             <th>Name</th>
             <th>Email</th>
+            <th>Organization</th>
             <th>Roles</th>
             <th>Superuser</th>
             <th>Active</th>
@@ -503,8 +527,12 @@ function UserOverview() {
         <tbody>
           {users.map((u) => (
             <tr key={u.id}>
-              <td>{u.full_name}</td>
+              <td>
+                {u.full_name}
+                {u.org_abbrev && <span className="org-badge">({u.org_abbrev})</span>}
+              </td>
               <td>{u.email}</td>
+              <td>{u.organization_name ?? '—'}</td>
               <td>
                 <div className="role-badges">
                   {u.groups.map((g) => (
@@ -518,11 +546,484 @@ function UserOverview() {
           ))}
           {users.length === 0 && (
             <tr>
-              <td colSpan={5} className="admin-empty">No users found.</td>
+              <td colSpan={6} className="admin-empty">No users found.</td>
             </tr>
           )}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+function EmailConfigAdmin() {
+  const { data: configs = [], isLoading } = useEmailConfigs()
+  const { data: orgs = [] } = useOrganizations({ level: 'ortsverband' })
+  const createConfig = useCreateEmailConfig()
+  const updateConfig = useUpdateEmailConfig()
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({
+    organization_id: '',
+    smtp_host: '',
+    smtp_port: 587,
+    smtp_user: '',
+    smtp_password: '',
+    from_email: '',
+    use_tls: true,
+    is_active: true,
+  })
+
+  const resetForm = () => {
+    setForm({
+      organization_id: '',
+      smtp_host: '',
+      smtp_port: 587,
+      smtp_user: '',
+      smtp_password: '',
+      from_email: '',
+      use_tls: true,
+      is_active: true,
+    })
+  }
+
+  const configuredOrgIds = new Set(configs.map((c) => c.organization_id))
+  const availableOrgs = orgs.filter((o) => !configuredOrgIds.has(o.id))
+
+  const handleCreate = async () => {
+    if (!form.organization_id || !form.smtp_host) return
+    try {
+      await createConfig.mutateAsync({
+        organization_id: form.organization_id,
+        smtp_host: form.smtp_host,
+        smtp_port: form.smtp_port,
+        smtp_user: form.smtp_user,
+        smtp_password: form.smtp_password,
+        from_email: form.from_email,
+        use_tls: form.use_tls,
+        is_active: form.is_active,
+      })
+      resetForm()
+      setShowCreate(false)
+      toast.success('Email config created')
+    } catch {
+      toast.error('Failed to create email config')
+    }
+  }
+
+  const handleStartEdit = (config: EmailConfig) => {
+    setEditingId(config.id)
+    setForm({
+      organization_id: config.organization_id,
+      smtp_host: config.smtp_host,
+      smtp_port: config.smtp_port,
+      smtp_user: config.smtp_user,
+      smtp_password: '',
+      from_email: config.from_email,
+      use_tls: config.use_tls,
+      is_active: config.is_active,
+    })
+  }
+
+  const handleSaveEdit = async (id: string) => {
+    try {
+      await updateConfig.mutateAsync({
+        id,
+        data: {
+          smtp_host: form.smtp_host,
+          smtp_port: form.smtp_port,
+          smtp_user: form.smtp_user,
+          ...(form.smtp_password ? { smtp_password: form.smtp_password } : {}),
+          from_email: form.from_email,
+          use_tls: form.use_tls,
+          is_active: form.is_active,
+        },
+      })
+      setEditingId(null)
+      resetForm()
+      toast.success('Email config updated')
+    } catch {
+      toast.error('Failed to update email config')
+    }
+  }
+
+  if (isLoading) return <p className="admin-loading">Loading…</p>
+
+  return (
+    <div className="email-config-admin">
+      <div className="admin-section-header">
+        <h3>Email Configuration per Ortsverband</h3>
+        {availableOrgs.length > 0 && (
+          <button className="btn btn-primary btn-sm" onClick={() => { resetForm(); setShowCreate(true) }}>
+            + Add Config
+          </button>
+        )}
+      </div>
+
+      {showCreate && (
+        <div className="email-config-form">
+          <h4>New Email Config</h4>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Organization</label>
+              <select value={form.organization_id} onChange={(e) => setForm({ ...form, organization_id: e.target.value })}>
+                <option value="">-- Select --</option>
+                {availableOrgs.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label>SMTP Host</label>
+              <input value={form.smtp_host} onChange={(e) => setForm({ ...form, smtp_host: e.target.value })} placeholder="smtp.example.com" />
+            </div>
+            <div className="form-group">
+              <label>SMTP Port</label>
+              <input type="number" value={form.smtp_port} onChange={(e) => setForm({ ...form, smtp_port: Number(e.target.value) })} />
+            </div>
+            <div className="form-group">
+              <label>SMTP User</label>
+              <input value={form.smtp_user} onChange={(e) => setForm({ ...form, smtp_user: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>SMTP Password</label>
+              <input type="password" value={form.smtp_password} onChange={(e) => setForm({ ...form, smtp_password: e.target.value })} />
+            </div>
+            <div className="form-group">
+              <label>From Email</label>
+              <input value={form.from_email} onChange={(e) => setForm({ ...form, from_email: e.target.value })} placeholder="noreply@example.com" />
+            </div>
+            <div className="form-group form-group-checkbox">
+              <label><input type="checkbox" checked={form.use_tls} onChange={(e) => setForm({ ...form, use_tls: e.target.checked })} /> Use TLS</label>
+            </div>
+          </div>
+          <div className="form-actions">
+            <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={createConfig.isPending}>Save</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>SMTP Host</th>
+            <th>Port</th>
+            <th>From</th>
+            <th>TLS</th>
+            <th>Active</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {configs.map((config) => (
+            <tr key={config.id}>
+              {editingId === config.id ? (
+                <>
+                  <td>{config.organization_name ?? config.organization_id}</td>
+                  <td><input className="admin-inline-input" value={form.smtp_host} onChange={(e) => setForm({ ...form, smtp_host: e.target.value })} /></td>
+                  <td><input className="admin-inline-input" type="number" value={form.smtp_port} onChange={(e) => setForm({ ...form, smtp_port: Number(e.target.value) })} style={{ width: '5em' }} /></td>
+                  <td><input className="admin-inline-input" value={form.from_email} onChange={(e) => setForm({ ...form, from_email: e.target.value })} /></td>
+                  <td><input type="checkbox" checked={form.use_tls} onChange={(e) => setForm({ ...form, use_tls: e.target.checked })} /></td>
+                  <td><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /></td>
+                  <td className="admin-actions">
+                    <button className="btn btn-sm btn-primary" onClick={() => handleSaveEdit(config.id)}>Save</button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => { setEditingId(null); resetForm() }}>Cancel</button>
+                  </td>
+                </>
+              ) : (
+                <>
+                  <td>{config.organization_name ?? config.organization_id}</td>
+                  <td>{config.smtp_host}</td>
+                  <td>{config.smtp_port}</td>
+                  <td>{config.from_email}</td>
+                  <td>{config.use_tls ? '✓' : '✗'}</td>
+                  <td>{config.is_active ? '✓' : '✗'}</td>
+                  <td className="admin-actions">
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleStartEdit(config)}>Edit</button>
+                  </td>
+                </>
+              )}
+            </tr>
+          ))}
+          {configs.length === 0 && (
+            <tr>
+              <td colSpan={7} className="admin-empty">No email configurations yet.</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function BulkUploadAdmin() {
+  const bulkUpload = useBulkUploadUsers()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [result, setResult] = useState<{
+    created: number
+    errors: string[]
+  } | null>(null)
+
+  const handleUpload = async () => {
+    const file = fileInputRef.current?.files?.[0]
+    if (!file) {
+      toast.error('Please select an XLSX file')
+      return
+    }
+    try {
+      const res = await bulkUpload.mutateAsync(file)
+      setResult(res)
+      if (res.errors.length === 0) {
+        toast.success(`${res.created} users created successfully`)
+      } else {
+        toast.warning(`${res.created} created, ${res.errors.length} errors`)
+      }
+    } catch {
+      toast.error('Bulk upload failed')
+    }
+  }
+
+  return (
+    <div className="bulk-upload-admin">
+      <h3>Bulk User Upload</h3>
+      <p className="bulk-upload-desc">
+        Upload an XLSX file with columns: <strong>email</strong>, <strong>full_name</strong>, <strong>password</strong>, and optionally <strong>organization_id</strong>.
+        If organization_id is not provided, users will be assigned to your organization.
+      </p>
+
+      <div className="bulk-upload-controls">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="file-input"
+        />
+        <button
+          className="btn btn-primary"
+          onClick={handleUpload}
+          disabled={bulkUpload.isPending}
+        >
+          {bulkUpload.isPending ? 'Uploading…' : 'Upload & Create Users'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="bulk-upload-result">
+          <p className="bulk-upload-summary">
+            ✓ {result.created} user(s) created
+          </p>
+          {result.errors.length > 0 && (
+            <div className="bulk-upload-errors">
+              <p>Errors:</p>
+              <ul>
+                {result.errors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RolePermissionsAdmin() {
+  const { data: allPermissions = [], isLoading: loadingPerms } = usePermissions()
+  const { data: groupsDetail = [], isLoading: loadingGroups } = useUserGroupsDetail()
+  const setGroupPerms = useSetGroupPermissions()
+
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('')
+  const [availableSelected, setAvailableSelected] = useState<string[]>([])
+  const [assignedSelected, setAssignedSelected] = useState<string[]>([])
+
+  if (loadingPerms || loadingGroups) return <p className="admin-loading">Loading…</p>
+
+  const selectedGroup = groupsDetail.find((g) => g.id === selectedGroupId)
+  const assignedCodenames = new Set(selectedGroup?.permissions ?? [])
+
+  const availablePerms = allPermissions.filter((p) => !assignedCodenames.has(p.codename))
+  const assignedPerms = allPermissions.filter((p) => assignedCodenames.has(p.codename))
+
+  const handleAdd = async () => {
+    if (!selectedGroupId || availableSelected.length === 0) return
+    const newPerms = [...(selectedGroup?.permissions ?? []), ...availableSelected]
+    try {
+      await setGroupPerms.mutateAsync({ groupId: selectedGroupId, data: { permission_codenames: newPerms } })
+      setAvailableSelected([])
+      toast.success('Permissions added')
+    } catch {
+      toast.error('Failed to update permissions')
+    }
+  }
+
+  const handleRemove = async () => {
+    if (!selectedGroupId || assignedSelected.length === 0) return
+    const removeSet = new Set(assignedSelected)
+    const newPerms = (selectedGroup?.permissions ?? []).filter((p) => !removeSet.has(p))
+    try {
+      await setGroupPerms.mutateAsync({ groupId: selectedGroupId, data: { permission_codenames: newPerms } })
+      setAssignedSelected([])
+      toast.success('Permissions removed')
+    } catch {
+      toast.error('Failed to update permissions')
+    }
+  }
+
+  return (
+    <div className="role-permissions-admin">
+      <div className="form-group">
+        <label htmlFor="role-select">Select Role</label>
+        <select
+          id="role-select"
+          value={selectedGroupId}
+          onChange={(e) => {
+            setSelectedGroupId(e.target.value)
+            setAvailableSelected([])
+            setAssignedSelected([])
+          }}
+        >
+          <option value="">-- Select a role --</option>
+          {groupsDetail.map((g) => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedGroupId && (
+        <div className="dual-listbox">
+          <div className="dual-listbox-panel">
+            <h4>Available Permissions</h4>
+            <select
+              multiple
+              className="dual-listbox-select"
+              value={availableSelected}
+              onChange={(e) =>
+                setAvailableSelected(Array.from(e.target.selectedOptions, (o) => o.value))
+              }
+            >
+              {availablePerms.map((p) => (
+                <option key={p.id} value={p.codename} title={p.description}>
+                  {p.codename}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="dual-listbox-controls">
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleAdd}
+              disabled={availableSelected.length === 0 || setGroupPerms.isPending}
+              title="Add selected permissions"
+            >
+              →
+            </button>
+            <button
+              className="btn btn-primary btn-sm"
+              onClick={handleRemove}
+              disabled={assignedSelected.length === 0 || setGroupPerms.isPending}
+              title="Remove selected permissions"
+            >
+              ←
+            </button>
+          </div>
+
+          <div className="dual-listbox-panel">
+            <h4>Assigned Permissions</h4>
+            <select
+              multiple
+              className="dual-listbox-select"
+              value={assignedSelected}
+              onChange={(e) =>
+                setAssignedSelected(Array.from(e.target.selectedOptions, (o) => o.value))
+              }
+            >
+              {assignedPerms.map((p) => (
+                <option key={p.id} value={p.codename} title={p.description}>
+                  {p.codename}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function HierarchyUploadAdmin() {
+  const uploadHierarchy = useUploadHierarchy()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [result, setResult] = useState<{
+    created: number
+    skipped: number
+    errors: string[]
+  } | null>(null)
+
+  const handleUpload = async () => {
+    const file = fileInputRef.current?.files?.[0]
+    if (!file) {
+      toast.error('Please select an XLSX file')
+      return
+    }
+    try {
+      const res = await uploadHierarchy.mutateAsync(file)
+      setResult(res)
+      if (res.errors.length === 0) {
+        toast.success(`${res.created} org(s) created, ${res.skipped} skipped`)
+      } else {
+        toast.warning(`${res.created} created, ${res.skipped} skipped, ${res.errors.length} errors`)
+      }
+    } catch {
+      toast.error('Hierarchy upload failed')
+    }
+  }
+
+  return (
+    <div className="bulk-upload-admin">
+      <h3>Import Organisation Hierarchy</h3>
+      <p className="bulk-upload-desc">
+        Upload an XLSX file with columns: <strong>level</strong> (<code>ortsverband</code>, <code>regionalstelle</code>, <code>landesverband</code>, <code>leitung</code>),{' '}
+        <strong>name</strong>, and optionally <strong>parent_name</strong>.
+        Existing organisations are skipped automatically.
+      </p>
+
+      <div className="bulk-upload-controls">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          className="file-input"
+        />
+        <button
+          className="btn btn-primary"
+          onClick={handleUpload}
+          disabled={uploadHierarchy.isPending}
+        >
+          {uploadHierarchy.isPending ? 'Uploading…' : 'Upload & Import'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="bulk-upload-result">
+          <p className="bulk-upload-summary">
+            ✓ {result.created} org(s) created, {result.skipped} skipped
+          </p>
+          {result.errors.length > 0 && (
+            <div className="bulk-upload-errors">
+              <p>Errors:</p>
+              <ul>
+                {result.errors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

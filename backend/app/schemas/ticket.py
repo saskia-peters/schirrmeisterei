@@ -3,6 +3,20 @@ from datetime import datetime
 from pydantic import BaseModel, Field, computed_field, model_validator
 from typing import Any
 
+from app.models.models import ORG_LEVEL_ABBREV
+
+
+def _user_display_name(user: Any) -> str:
+    """Return 'Full Name (OV)' if the user has an organization, else just the name."""
+    if user is None:
+        return ""
+    name = user.full_name
+    if hasattr(user, "organization") and user.organization is not None:
+        abbrev = ORG_LEVEL_ABBREV.get(user.organization.level, "")
+        if abbrev:
+            name = f"{name} ({abbrev})"
+    return name
+
 from app.models.models import TicketStatus
 
 
@@ -55,7 +69,7 @@ class CommentResponse(BaseModel):
                 "id": data.id,
                 "ticket_id": data.ticket_id,
                 "author_id": data.author_id,
-                "author_name": data.author.full_name,
+                "author_name": _user_display_name(data.author),
                 "content": data.content,
                 "created_at": data.created_at,
                 "updated_at": data.updated_at,
@@ -114,6 +128,7 @@ class TicketResponse(BaseModel):
     creator_id: str
     assignee_id: str | None
     assignee_name: str | None
+    organization_id: str | None = None
     priority_id: str | None
     priority_name: str | None
     category_id: str | None
@@ -141,7 +156,8 @@ class TicketResponse(BaseModel):
             "status": data.status,
             "creator_id": data.creator_id,
             "assignee_id": data.owner_id,
-            "assignee_name": data.owner.full_name if data.owner is not None else None,
+            "assignee_name": _user_display_name(data.owner) or None,
+            "organization_id": data.organization_id,
             "priority_id": data.priority_id,
             "priority_name": data.priority.name if data.priority is not None else None,
             "category_id": data.category_id,
@@ -165,6 +181,8 @@ class TicketSummary(BaseModel):
     creator_name: str = ""
     assignee_id: str | None = None
     assignee_name: str | None = None
+    organization_id: str | None = None
+    organization_name: str | None = None
     priority_id: str | None = None
     priority_name: str | None = None
     category_id: str | None = None
@@ -182,14 +200,17 @@ class TicketSummary(BaseModel):
     def populate_names(cls, data: Any) -> Any:
         if not hasattr(data, "creator_id"):
             return data
+        org = getattr(data, "organization", None)
         return {
             "id": data.id,
             "title": data.title,
             "status": data.status,
             "creator_id": data.creator_id,
-            "creator_name": data.creator.full_name if data.creator is not None else "",
+            "creator_name": _user_display_name(data.creator),
             "assignee_id": data.owner_id,
-            "assignee_name": data.owner.full_name if data.owner is not None else None,
+            "assignee_name": _user_display_name(data.owner) or None,
+            "organization_id": data.organization_id,
+            "organization_name": org.name if org else None,
             "priority_id": data.priority_id,
             "priority_name": data.priority.name if data.priority is not None else None,
             "category_id": data.category_id,
