@@ -34,6 +34,9 @@ mobile/node_modules/
 .DS_Store
 Thumbs.db
 
+# MkDocs generated source maps (large, not needed for GitHub Pages)
+docs/assets/javascripts/*.map
+
 # Env files (never commit)
 .env
 .env.local
