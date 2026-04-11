@@ -1,6 +1,25 @@
 # Deployment
 
-## Docker / Podman Compose
+!!! tip "Just want to run the app?"
+    See the [Getting Started](getting-started.md) guide for a step-by-step walkthrough including Windows support. This page covers developer-oriented deployment details.
+
+## Packaged Deployment (`deploy/` directory)
+
+The `deploy/` directory contains a self-contained deployment that pulls pre-built images from GitHub Container Registry. It includes:
+
+- `docker-compose.yml` — production compose file (PostgreSQL + backend + frontend)
+- `deploy.sh` — one-command launcher for Linux / macOS
+- `deploy.ps1` — one-command launcher for Windows (PowerShell)
+
+To publish new images:
+
+```bash
+podman login ghcr.io
+just package           # builds and pushes backend + frontend images
+just package 1.0.0     # same, with a version tag
+```
+
+## Docker / Podman Compose (from source)
 
 ### Production
 

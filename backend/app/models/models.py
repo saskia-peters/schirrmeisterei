@@ -70,6 +70,7 @@ class Organization(Base):
     )
     users: Mapped[list["User"]] = relationship("User", back_populates="organization")
     tickets: Mapped[list["Ticket"]] = relationship("Ticket", back_populates="organization")
+    roles: Mapped[list["UserGroup"]] = relationship("UserGroup", back_populates="organization")
     email_config: Mapped["EmailConfig | None"] = relationship(
         "EmailConfig", back_populates="organization", uselist=False
     )
@@ -191,9 +192,19 @@ class UserGroup(Base):
     __tablename__ = "user_groups"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
-    name: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(64), nullable=False)
+    organization_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("organizations.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
+    __table_args__ = (
+        UniqueConstraint("name", "organization_id", name="uq_user_groups_name_org"),
+    )
+
+    organization: Mapped["Organization | None"] = relationship(
+        "Organization", back_populates="roles"
+    )
     memberships: Mapped[list["UserGroupMembership"]] = relationship(
         "UserGroupMembership", back_populates="group", cascade="all, delete-orphan"
     )

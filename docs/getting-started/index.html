@@ -1,0 +1,1454 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+
+        <meta name="description" content="Documentation for the TicketSystem — a multi-tenant support-ticket platform">
+
+
+
+        <link rel="canonical" href="https://github.com/ticketsystem/getting-started/">
+
+
+        <link rel="prev" href="..">
+
+
+        <link rel="next" href="../architecture/">
+
+
+
+
+
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+
+
+
+        <title>Getting Started - TicketSystem Documentation</title>
+
+
+
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+
+
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+
+
+
+
+
+
+
+
+
+
+
+
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+
+
+
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+
+
+
+
+
+  </head>
+
+
+
+
+
+
+
+
+
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue">
+
+
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+
+
+        <a href="#getting-started" class="md-skip">
+          Skip to content
+        </a>
+
+    </div>
+    <div data-md-component="announce">
+
+    </div>
+
+
+
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="TicketSystem Documentation" class="md-header__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            TicketSystem Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+
+              Getting Started
+
+          </span>
+        </div>
+      </div>
+    </div>
+
+
+        <form class="md-header__option" data-md-component="palette">
+
+
+
+
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+
+
+
+
+
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="blue" data-md-color-accent="light-blue"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+
+
+</form>
+
+
+
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+
+
+
+
+
+        <label class="md-header__button md-icon" for="__search">
+
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+  </nav>
+
+</header>
+
+    <div class="md-container" data-md-component="container">
+
+
+
+
+
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+
+
+
+
+
+  Home
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+
+
+
+
+
+  Getting Started
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+
+
+
+
+
+  Architecture
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../architecture-review/" class="md-tabs__link">
+
+
+
+
+
+  Architecture Review
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../code-review/" class="md-tabs__link">
+
+
+
+
+
+  Code Review
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
+
+
+
+
+
+  API Reference
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../deployment/" class="md-tabs__link">
+
+
+
+
+
+  Deployment
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../development/" class="md-tabs__link">
+
+
+
+
+
+  Development Guide
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+    <li class="md-tabs__item">
+      <a href="../user-guide/" class="md-tabs__link">
+
+
+
+
+
+  User Guide
+
+      </a>
+    </li>
+
+
+
+    </ul>
+  </div>
+</nav>
+
+
+
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+
+
+
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+
+
+
+
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="TicketSystem Documentation" class="md-nav__button md-logo" aria-label="TicketSystem Documentation" data-md-component="logo">
+
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    TicketSystem Documentation
+  </label>
+
+  <ul class="md-nav__list" data-md-scrollfix>
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Home
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item md-nav__item--active">
+
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+
+
+
+
+
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Getting Started
+
+
+
+  </span>
+
+
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+
+      <a href="./" class="md-nav__link md-nav__link--active">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Getting Started
+
+
+
+  </span>
+
+
+
+      </a>
+
+
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Prerequisites
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#1-download-the-deploy-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        1. Download the deploy folder
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#2-start-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        2. Start the application
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="2. Start the application">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#windows-powershell" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Windows (PowerShell)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#linux-macos-bash" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Linux / macOS (Bash)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#what-happens-on-first-run" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        What happens on first run
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#3-open-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        3. Open the application
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="3. Open the application">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#default-login" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Default login
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#4-manage-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        4. Manage the application
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#5-configuration-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        5. Configuration (optional)
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#data-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Data persistence
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Troubleshooting
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#containers-dont-start" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Containers don't start
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#port-already-in-use" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Port already in use
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#reset-everything-fresh-start" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Reset everything (fresh start)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#windows-compose-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Windows: "compose" not found
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#podman-on-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Podman on Windows
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+    </ul>
+
+</nav>
+
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Architecture
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../architecture-review/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Architecture Review
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../code-review/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Code Review
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    API Reference
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Deployment
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../development/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    Development Guide
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+
+
+
+
+
+
+    <li class="md-nav__item">
+      <a href="../user-guide/" class="md-nav__link">
+
+
+
+  <span class="md-ellipsis">
+
+
+    User Guide
+
+
+
+  </span>
+
+
+
+      </a>
+    </li>
+
+
+
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+
+
+
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+
+
+
+
+
+
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+
+        <li class="md-nav__item">
+  <a href="#prerequisites" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Prerequisites
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#1-download-the-deploy-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        1. Download the deploy folder
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#2-start-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        2. Start the application
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="2. Start the application">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#windows-powershell" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Windows (PowerShell)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#linux-macos-bash" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Linux / macOS (Bash)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#what-happens-on-first-run" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        What happens on first run
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#3-open-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        3. Open the application
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="3. Open the application">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#default-login" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Default login
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#4-manage-the-application" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        4. Manage the application
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#5-configuration-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        5. Configuration (optional)
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#data-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Data persistence
+
+    </span>
+  </a>
+
+</li>
+
+        <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Troubleshooting
+
+    </span>
+  </a>
+
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+
+          <li class="md-nav__item">
+  <a href="#containers-dont-start" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Containers don't start
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#port-already-in-use" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Port already in use
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#reset-everything-fresh-start" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Reset everything (fresh start)
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#windows-compose-not-found" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Windows: "compose" not found
+
+    </span>
+  </a>
+
+</li>
+
+          <li class="md-nav__item">
+  <a href="#podman-on-windows" class="md-nav__link">
+    <span class="md-ellipsis">
+
+        Podman on Windows
+
+    </span>
+  </a>
+
+</li>
+
+      </ul>
+    </nav>
+
+</li>
+
+    </ul>
+
+</nav>
+                  </div>
+                </div>
+              </div>
+
+
+
+            <div class="md-content" data-md-component="content">
+
+              <article class="md-content__inner md-typeset">
+
+
+
+
+
+<h1 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h1>
+<p>This guide explains how to download and run the TicketSystem on your own machine. You need <strong>Docker Desktop</strong> or <strong>Podman Desktop</strong> — nothing else.</p>
+<hr />
+<h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
+<p>Install <strong>one</strong> of the following:</p>
+<table>
+<thead>
+<tr>
+<th>Platform</th>
+<th>Option A (recommended)</th>
+<th>Option B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Windows</strong></td>
+<td><a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a></td>
+<td><a href="https://podman-desktop.io/">Podman Desktop</a></td>
+</tr>
+<tr>
+<td><strong>macOS</strong></td>
+<td><a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a></td>
+<td><a href="https://podman-desktop.io/">Podman Desktop</a></td>
+</tr>
+<tr>
+<td><strong>Linux</strong></td>
+<td><code>sudo apt install docker.io docker-compose-v2</code></td>
+<td><code>sudo apt install podman podman-compose</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition tip">
+<p class="admonition-title">Windows users</p>
+<p>Docker Desktop is the easiest option on Windows. It includes everything you need. Make sure <strong>WSL 2</strong> is enabled (Docker Desktop will prompt you if it isn't).</p>
+</div>
+<p>After installation, verify it works by opening a terminal and running:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>docker<span class="w"> </span>--version<span class="w">        </span><span class="c1"># or: podman --version</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>docker<span class="w"> </span>compose<span class="w"> </span>version<span class="w">  </span><span class="c1"># or: podman compose version</span>
+</code></pre></div>
+<hr />
+<h2 id="1-download-the-deploy-folder">1. Download the deploy folder<a class="headerlink" href="#1-download-the-deploy-folder" title="Permanent link">&para;</a></h2>
+<p>Download the three deployment files from the repository and place them in a folder on your machine:</p>
+<ul>
+<li><a href="https://github.com/saskia-peters/schirrmeisterei/raw/master/deploy/docker-compose.yml"><code>docker-compose.yml</code></a></li>
+<li><a href="https://github.com/saskia-peters/schirrmeisterei/raw/master/deploy/deploy.sh"><code>deploy.sh</code></a> (Linux / macOS)</li>
+<li><a href="https://github.com/saskia-peters/schirrmeisterei/raw/master/deploy/deploy.ps1"><code>deploy.ps1</code></a> (Windows)</li>
+</ul>
+<p>Or clone the whole repository and navigate to the <code>deploy/</code> directory:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/saskia-peters/schirrmeisterei.git
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nb">cd</span><span class="w"> </span>schirrmeisterei/deploy
+</code></pre></div>
+<hr />
+<h2 id="2-start-the-application">2. Start the application<a class="headerlink" href="#2-start-the-application" title="Permanent link">&para;</a></h2>
+<h3 id="windows-powershell">Windows (PowerShell)<a class="headerlink" href="#windows-powershell" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">cd </span><span class="n">path</span><span class="p">\</span><span class="n">to</span><span class="p">\</span><span class="n">deploy</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="p">.\</span><span class="n">deploy</span><span class="p">.</span><span class="n">ps1</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Execution policy</p>
+<p>If PowerShell blocks the script, run this once first:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">Set-ExecutionPolicy</span> <span class="n">-Scope</span> <span class="n">CurrentUser</span> <span class="n">-ExecutionPolicy</span> <span class="n">RemoteSigned</span>
+</code></pre></div></p>
+</div>
+<h3 id="linux-macos-bash">Linux / macOS (Bash)<a class="headerlink" href="#linux-macos-bash" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nb">cd</span><span class="w"> </span>path/to/deploy
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>chmod<span class="w"> </span>+x<span class="w"> </span>deploy.sh
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>./deploy.sh
+</code></pre></div>
+<h3 id="what-happens-on-first-run">What happens on first run<a class="headerlink" href="#what-happens-on-first-run" title="Permanent link">&para;</a></h3>
+<ol>
+<li>A <code>.env</code> file is generated with <strong>random database passwords and a secret key</strong> — no manual configuration needed.</li>
+<li>Three container images are pulled from the internet:<ul>
+<li><strong>PostgreSQL 18</strong> — the database</li>
+<li><strong>TicketSystem Backend</strong> — the API server (runs database migrations automatically)</li>
+<li><strong>TicketSystem Frontend</strong> — the web interface</li>
+</ul>
+</li>
+<li>All three containers start up. The backend waits for the database to be healthy, then applies migrations (creates tables, seeds initial data).</li>
+</ol>
+<p>This takes about 1–2 minutes the first time (image download). Subsequent starts take a few seconds.</p>
+<hr />
+<h2 id="3-open-the-application">3. Open the application<a class="headerlink" href="#3-open-the-application" title="Permanent link">&para;</a></h2>
+<p>Once started, open your browser:</p>
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Web application</strong></td>
+<td><a href="http://localhost:8080">http://localhost:8080</a></td>
+</tr>
+<tr>
+<td><strong>API documentation</strong></td>
+<td><a href="http://localhost:8080/api/docs">http://localhost:8080/api/docs</a></td>
+</tr>
+</tbody>
+</table>
+<h3 id="default-login">Default login<a class="headerlink" href="#default-login" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Email</td>
+<td><code>admin@example.com</code></td>
+</tr>
+<tr>
+<td>Password</td>
+<td><code>admin</code></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition warning">
+<p class="admonition-title">Change the password</p>
+<p>You will be prompted to change the password on first login. The default credentials are for initial setup only.</p>
+</div>
+<hr />
+<h2 id="4-manage-the-application">4. Manage the application<a class="headerlink" href="#4-manage-the-application" title="Permanent link">&para;</a></h2>
+<p>All commands work on every platform. Use <code>deploy.ps1</code> on Windows or <code>deploy.sh</code> on Linux/macOS.</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>.\deploy.ps1</code> / <code>./deploy.sh</code></td>
+<td>Start the application</td>
+</tr>
+<tr>
+<td><code>.\deploy.ps1 stop</code> / <code>./deploy.sh stop</code></td>
+<td>Stop all containers</td>
+</tr>
+<tr>
+<td><code>.\deploy.ps1 update</code> / <code>./deploy.sh update</code></td>
+<td>Pull latest version and restart</td>
+</tr>
+<tr>
+<td><code>.\deploy.ps1 logs</code> / <code>./deploy.sh logs</code></td>
+<td>Follow live logs</td>
+</tr>
+<tr>
+<td><code>.\deploy.ps1 status</code> / <code>./deploy.sh status</code></td>
+<td>Show container status</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-configuration-optional">5. Configuration (optional)<a class="headerlink" href="#5-configuration-optional" title="Permanent link">&para;</a></h2>
+<p>The generated <code>.env</code> file in the <code>deploy/</code> directory controls all settings. Edit it with any text editor:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Ports exposed on your machine</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="na">FRONTEND_PORT</span><span class="o">=</span><span class="s">8080</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="na">BACKEND_PORT</span><span class="o">=</span><span class="s">8000</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># Database credentials (auto-generated, change if needed)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="na">POSTGRES_USER</span><span class="o">=</span><span class="s">ticketsystem</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="na">POSTGRES_PASSWORD</span><span class="o">=</span><span class="s">&lt;auto-generated&gt;</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="na">POSTGRES_DB</span><span class="o">=</span><span class="s">ticketsystem</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="c1"># Application secret for JWT tokens (auto-generated)</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="na">SECRET_KEY</span><span class="o">=</span><span class="s">&lt;auto-generated&gt;</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="c1"># Max file upload size in MB</span>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="na">MAX_UPLOAD_SIZE_MB</span><span class="o">=</span><span class="s">10</span>
+<a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>
+<a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a><span class="c1"># Pin a specific version instead of latest</span>
+<a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a><span class="c1"># TICKETSYSTEM_VERSION=1.0.0</span>
+</code></pre></div>
+<p>After editing <code>.env</code>, restart the application:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>./deploy.sh<span class="w"> </span>stop
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>./deploy.sh
+</code></pre></div>
+<hr />
+<h2 id="data-persistence">Data persistence<a class="headerlink" href="#data-persistence" title="Permanent link">&para;</a></h2>
+<p>All data is stored in <strong>Docker/Podman volumes</strong> and survives container restarts:</p>
+<table>
+<thead>
+<tr>
+<th>Volume</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>postgres-data</code></td>
+<td>Database (users, tickets, settings, organisations)</td>
+</tr>
+<tr>
+<td><code>backend-uploads</code></td>
+<td>Uploaded file attachments and avatars</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition danger">
+<p class="admonition-title">Removing volumes deletes all data</p>
+<p>Running <code>docker compose down -v</code> (with <code>-v</code>) <strong>permanently deletes</strong> the database and all uploaded files. Only use this if you want a fresh start.</p>
+</div>
+<hr />
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="containers-dont-start">Containers don't start<a class="headerlink" href="#containers-dont-start" title="Permanent link">&para;</a></h3>
+<p>Check the logs for error messages:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>./deploy.sh<span class="w"> </span>logs<span class="w">     </span><span class="c1"># or: .\deploy.ps1 logs</span>
+</code></pre></div>
+<h3 id="port-already-in-use">Port already in use<a class="headerlink" href="#port-already-in-use" title="Permanent link">&para;</a></h3>
+<p>Edit <code>.env</code> and change <code>FRONTEND_PORT</code> or <code>BACKEND_PORT</code> to an unused port:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="na">FRONTEND_PORT</span><span class="o">=</span><span class="s">9090</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="na">BACKEND_PORT</span><span class="o">=</span><span class="s">9000</span>
+</code></pre></div>
+<h3 id="reset-everything-fresh-start">Reset everything (fresh start)<a class="headerlink" href="#reset-everything-fresh-start" title="Permanent link">&para;</a></h3>
+<p>Stop the application and remove all data:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker<span class="w"> </span>compose<span class="w"> </span>down<span class="w"> </span>-v<span class="w">   </span><span class="c1"># or: podman compose down -v</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>rm<span class="w"> </span>.env
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>./deploy.sh<span class="w">              </span><span class="c1"># re-generates secrets, creates fresh database</span>
+</code></pre></div>
+<h3 id="windows-compose-not-found">Windows: "compose" not found<a class="headerlink" href="#windows-compose-not-found" title="Permanent link">&para;</a></h3>
+<p>Make sure Docker Desktop is running. The <code>docker compose</code> command is included with Docker Desktop but only works when the Docker engine is active (check the system tray icon).</p>
+<h3 id="podman-on-windows">Podman on Windows<a class="headerlink" href="#podman-on-windows" title="Permanent link">&para;</a></h3>
+<p>If using Podman Desktop on Windows, make sure the Podman machine is running:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">podman</span> <span class="n">machine</span> <span class="nb">start</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+              </article>
+            </div>
+
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+
+      </main>
+
+        <footer class="md-footer">
+
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+
+
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+
+</div>
+
+    </div>
+  </div>
+</footer>
+
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+
+
+
+
+
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.highlight", "search.share", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+
+
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+
+
+  </body>
+</html>

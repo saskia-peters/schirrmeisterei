@@ -3,9 +3,9 @@
 # WARNING: Development defaults only. All users have force_password_change: true
 # so the plain-text passwords below must be changed on first login.
 #
-# Users without an "organization" field are created in migration 0001 (before
-# the organization table exists). Users with an "organization" field are created
-# in migration 0002 and assigned to the named organisation node.
+# All users are created in migration 0001. Users without an "organization"
+# field and with is_superuser: true are automatically assigned to THW-Leitung.
+# Users with an explicit "organization" field are assigned to the named node.
 
 users:
   - email: admin@example.com
@@ -16,7 +16,7 @@ users:
     groups:
       - helfende
       - admin
-    # no organization — assigned by migration 0002 to leitung after orgs are created
+    # no organization — automatically assigned to THW-Leitung as superuser
 
   - email: superadmin@example.com
     full_name: Super Admin

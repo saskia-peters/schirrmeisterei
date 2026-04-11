@@ -1,7 +1,17 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Navbar } from '@/components/common/Navbar'
 import type { User } from '@/types'
+
+function renderNavbar() {
+  const queryClient = new QueryClient()
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <Navbar />
+    </QueryClientProvider>
+  )
+}
 
 const mockNavigate = vi.fn()
 vi.mock('react-router-dom', () => ({
@@ -40,13 +50,13 @@ const baseUser: User = {
 describe('Navbar', () => {
   it('renders the user full name', () => {
     mockUseAuthStore.mockReturnValue({ user: baseUser, logout: mockLogout })
-    render(<Navbar />)
+    renderNavbar()
     expect(screen.getByText(/Alice/)).toBeInTheDocument()
   })
 
   it('renders the organisation name in center', () => {
     mockUseAuthStore.mockReturnValue({ user: baseUser, logout: mockLogout })
-    render(<Navbar />)
+    renderNavbar()
     expect(screen.getAllByText('OV München').length).toBeGreaterThan(0)
   })
 
@@ -55,19 +65,19 @@ describe('Navbar', () => {
       user: { ...baseUser, is_superuser: true },
       logout: mockLogout,
     })
-    render(<Navbar />)
+    renderNavbar()
     expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
   })
 
   it('does not show admin button for regular user', () => {
     mockUseAuthStore.mockReturnValue({ user: baseUser, logout: mockLogout })
-    render(<Navbar />)
+    renderNavbar()
     expect(screen.queryByRole('button', { name: /admin/i })).not.toBeInTheDocument()
   })
 
   it('applies light-blue background for ortsverband', () => {
     mockUseAuthStore.mockReturnValue({ user: baseUser, logout: mockLogout })
-    const { container } = render(<Navbar />)
+    const { container } = renderNavbar()
     const nav = container.querySelector('nav.navbar') as HTMLElement
     expect(nav.style.backgroundColor).toBe('rgb(219, 234, 254)')
   })
@@ -77,7 +87,7 @@ describe('Navbar', () => {
       user: { ...baseUser, organization_level: 'regionalstelle' },
       logout: mockLogout,
     })
-    const { container } = render(<Navbar />)
+    const { container } = renderNavbar()
     const nav = container.querySelector('nav.navbar') as HTMLElement
     expect(nav.style.backgroundColor).toBe('rgb(254, 215, 170)')
   })
@@ -87,7 +97,7 @@ describe('Navbar', () => {
       user: { ...baseUser, organization_level: 'landesverband' },
       logout: mockLogout,
     })
-    const { container } = render(<Navbar />)
+    const { container } = renderNavbar()
     const nav = container.querySelector('nav.navbar') as HTMLElement
     expect(nav.style.backgroundColor).toBe('rgb(220, 252, 231)')
   })
@@ -97,7 +107,7 @@ describe('Navbar', () => {
       user: { ...baseUser, organization_level: 'leitung' },
       logout: mockLogout,
     })
-    const { container } = render(<Navbar />)
+    const { container } = renderNavbar()
     const nav = container.querySelector('nav.navbar') as HTMLElement
     expect(nav.style.backgroundColor).toBe('rgb(254, 226, 226)')
   })
@@ -105,7 +115,7 @@ describe('Navbar', () => {
   it('calls logout when Sign Out is clicked', async () => {
     const { default: userEvent } = await import('@testing-library/user-event')
     mockUseAuthStore.mockReturnValue({ user: baseUser, logout: mockLogout })
-    render(<Navbar />)
+    renderNavbar()
     await userEvent.click(screen.getByRole('button', { name: /sign out/i }))
     expect(mockLogout).toHaveBeenCalled()
   })

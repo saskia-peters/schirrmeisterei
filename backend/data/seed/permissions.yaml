@@ -1,5 +1,5 @@
 # All permission codenames and their human-readable descriptions.
-# Loaded by migration 0002.
+# Loaded by migration 0001.
 # Adding a new permission here and running db-reset will insert it into the
 # permissions table. Assign it to roles via role_permissions.yaml.
 
@@ -32,3 +32,5 @@ permissions:
     description: Manage email configuration
   - codename: bulk_upload_users
     description: Upload users via XLSX
+  - codename: manage_roles
+    description: Create and manage roles within the organization

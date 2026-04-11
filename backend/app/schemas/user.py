@@ -89,6 +89,7 @@ class UserResponse(UserBase):
 class UserGroupResponse(BaseModel):
     id: str
     name: str
+    organization_id: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -170,6 +171,7 @@ class PermissionResponse(BaseModel):
 class UserGroupDetailResponse(BaseModel):
     id: str
     name: str
+    organization_id: str | None = None
     permissions: list[str] = []
     created_at: datetime
 
@@ -183,6 +185,7 @@ class UserGroupDetailResponse(BaseModel):
         return {
             "id": data.id,
             "name": data.name,
+            "organization_id": data.organization_id,
             "permissions": sorted([p.codename for p in data.permissions]) if data.permissions else [],
             "created_at": data.created_at,
         }

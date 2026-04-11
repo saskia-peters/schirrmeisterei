@@ -2,7 +2,6 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
-  useUsers,
   useConfigItems,
   useCreateConfigItem,
   useUpdateConfigItem,
@@ -83,7 +82,7 @@ export function AdminPanel() {
         {activeTab === 'users'
           ? <UserOverview />
           : activeTab === 'user-roles'
-          ? <UserRoleAdmin isSuperuser={isSuperuser} />
+          ? <UserRoleAdmin />
           : activeTab === 'role-permissions'
           ? <RolePermissionsAdmin />
           : activeTab === 'age-thresholds'
@@ -246,9 +245,9 @@ function ConfigItemList({ type, isSuperuser }: { type: ConfigItemType; isSuperus
   )
 }
 
-function UserRoleAdmin({ isSuperuser }: { isSuperuser: boolean }) {
-  const { data: users = [] } = useUsers(isSuperuser)
-  const { data: groups = [] } = useUserGroups(isSuperuser)
+function UserRoleAdmin() {
+  const { data: users = [] } = useAdminUsers()
+  const { data: groups = [] } = useUserGroups(true)
 
   const createGroup = useCreateUserGroup()
   const updateGroup = useUpdateUserGroup()
@@ -258,10 +257,6 @@ function UserRoleAdmin({ isSuperuser }: { isSuperuser: boolean }) {
   const [newGroupName, setNewGroupName] = useState('')
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editingGroupName, setEditingGroupName] = useState('')
-
-  if (!isSuperuser) {
-    return <p className="admin-loading">Only admins can manage user roles.</p>
-  }
 
   const coreGroups = new Set(['helfende', 'schirrmeister', 'admin'])
   const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name))

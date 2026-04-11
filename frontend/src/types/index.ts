@@ -74,6 +74,7 @@ export type AgeThresholds = {
 export interface UserGroup {
   id: string
   name: string
+  organization_id: string | null
   created_at: string
 }
 
@@ -288,6 +289,7 @@ export interface PermissionInfo {
 export interface UserGroupDetail {
   id: string
   name: string
+  organization_id: string | null
   permissions: string[]
   created_at: string
 }

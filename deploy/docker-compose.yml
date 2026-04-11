@@ -1,0 +1,67 @@
+# TicketSystem – self-contained production deployment
+#
+# Usage:
+#   1. Copy this directory to the target machine
+#   2. Run:  ./deploy.sh        (first time – generates secrets, starts stack)
+#      or:   podman compose up -d   (subsequent starts)
+#
+# Images are pulled from GitHub Container Registry.
+# Override the tag via TICKETSYSTEM_VERSION (default: latest).
+
+services:
+  postgres:
+    image: docker.io/library/postgres:18
+    container_name: ticketsystem-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ticketsystem}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-ticketsystem}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ticketsystem} -d ${POSTGRES_DB:-ticketsystem}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    image: ghcr.io/saskia-peters/schirrmeisterei-backend:${TICKETSYSTEM_VERSION:-latest}
+    container_name: ticketsystem-backend
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      - APP_NAME=TicketSystem
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-ticketsystem}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ticketsystem}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-["http://localhost:8080"]}
+      - UPLOAD_DIR=/data/uploads
+      - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
+    volumes:
+      - backend-uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    image: ghcr.io/saskia-peters/schirrmeisterei-frontend:${TICKETSYSTEM_VERSION:-latest}
+    container_name: ticketsystem-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
+  backend-uploads:

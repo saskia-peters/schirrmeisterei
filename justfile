@@ -203,6 +203,8 @@ hooks-run:
 # Docker / Podman
 # ─────────────────────────────────────────────────────────────────────────────
 
+REGISTRY := "ghcr.io/saskia-peters"
+
 # Build all Docker images
 build:
     podman compose build
@@ -214,6 +216,30 @@ build-fresh:
 # Remove all containers and volumes (DESTRUCTIVE)
 clean:
     podman compose down -v --remove-orphans
+
+# Build, tag, and push images to GHCR (login first: podman login ghcr.io)
+package version="latest":
+    #!/usr/bin/env bash
+    set -euo pipefail
+    TAG="{{ version }}"
+    echo "Building images..."
+    podman build -t schirrmeisterei-backend:"$TAG"  backend/
+    podman build -t schirrmeisterei-frontend:"$TAG" frontend/
+    echo "Tagging for {{ REGISTRY }}..."
+    podman tag schirrmeisterei-backend:"$TAG"  {{ REGISTRY }}/schirrmeisterei-backend:"$TAG"
+    podman tag schirrmeisterei-frontend:"$TAG" {{ REGISTRY }}/schirrmeisterei-frontend:"$TAG"
+    echo "Pushing to {{ REGISTRY }}..."
+    podman push {{ REGISTRY }}/schirrmeisterei-backend:"$TAG"
+    podman push {{ REGISTRY }}/schirrmeisterei-frontend:"$TAG"
+    if [ "$TAG" != "latest" ]; then
+        podman tag schirrmeisterei-backend:"$TAG"  {{ REGISTRY }}/schirrmeisterei-backend:latest
+        podman tag schirrmeisterei-frontend:"$TAG" {{ REGISTRY }}/schirrmeisterei-frontend:latest
+        podman push {{ REGISTRY }}/schirrmeisterei-backend:latest
+        podman push {{ REGISTRY }}/schirrmeisterei-frontend:latest
+    fi
+    echo "Done. Images pushed:"
+    echo "  {{ REGISTRY }}/schirrmeisterei-backend:$TAG"
+    echo "  {{ REGISTRY }}/schirrmeisterei-frontend:$TAG"
 
 # Push images to registry (set REGISTRY env var)
 push registry="":

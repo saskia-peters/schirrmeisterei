@@ -120,28 +120,39 @@ async def delete_config_item(
 @router.get("/user-groups", response_model=list[UserGroupResponse])
 async def list_user_groups(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> list[UserGroupResponse]:
-    """Return all user groups."""
+    """Return user groups for the current user's organization."""
     service = UserService(db)
-    return await service.list_groups()
+    return await service.list_groups(current_user.organization_id)
 
 
 @router.post("/user-groups", response_model=UserGroupResponse, status_code=201)
 async def create_user_group(
     data: UserGroupCreate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> UserGroupResponse:
-    """Create a new user group. Returns 409 if a group with that name already exists."""
-    service = UserService(db)
+    """Create a new user group within the current user's organization.
+
+    Requires the manage_roles permission. Returns 409 if a group with that
+    name already exists in the organization.
+    """
+    user_svc = UserService(db)
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_roles")
+        if not has_perm:
+            raise ValidationException("You need the manage_roles permission")
+
     name = data.name.strip().lower()
     if not name:
         raise ValidationException("Group name cannot be empty")
-    existing = await service.get_group_by_name(name)
+
+    org_id = current_user.organization_id
+    existing = await user_svc.get_group_by_name(name, org_id)
     if existing is not None:
         raise ConflictException("Group already exists")
-    return await service.create_group(name)
+    return await user_svc.create_group(name, org_id)
 
 
 @router.patch("/user-groups/{group_id}", response_model=UserGroupResponse)
@@ -149,11 +160,20 @@ async def rename_user_group(
     group_id: str,
     data: UserGroupUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> UserGroupResponse:
-    """Rename a user group. The helfende group cannot be renamed."""
-    service = UserService(db)
-    groups = await service.list_groups()
+    """Rename a user group. The helfende group cannot be renamed.
+
+    Only groups belonging to the current user's organization can be renamed.
+    """
+    user_svc = UserService(db)
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_roles")
+        if not has_perm:
+            raise ValidationException("You need the manage_roles permission")
+
+    org_id = current_user.organization_id
+    groups = await user_svc.list_groups(org_id)
     group = next((g for g in groups if g.id == group_id), None)
     if group is None:
         raise NotFoundException("UserGroup")
@@ -161,7 +181,7 @@ async def rename_user_group(
     name = data.name.strip().lower()
     if not name:
         raise ValidationException("Group name cannot be empty")
-    existing = await service.get_group_by_name(name)
+    existing = await user_svc.get_group_by_name(name, org_id)
     if existing is not None and existing.id != group.id:
         raise ConflictException("Group already exists")
 
@@ -178,11 +198,20 @@ async def rename_user_group(
 async def delete_user_group(
     group_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> None:
-    """Delete a user group. Core groups (helfende, schirrmeister, admin) cannot be deleted."""
-    service = UserService(db)
-    groups = await service.list_groups()
+    """Delete a user group. Core groups (helfende, schirrmeister, admin) cannot be deleted.
+
+    Only groups belonging to the current user's organization can be deleted.
+    """
+    user_svc = UserService(db)
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_roles")
+        if not has_perm:
+            raise ValidationException("You need the manage_roles permission")
+
+    org_id = current_user.organization_id
+    groups = await user_svc.list_groups(org_id)
     group = next((g for g in groups if g.id == group_id), None)
     if group is None:
         raise NotFoundException("UserGroup")
@@ -196,12 +225,15 @@ async def delete_user_group(
 async def get_user_group_names(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> list[str]:
     """Return the sorted list of group names the given user belongs to."""
     service = UserService(db)
     user = await service.get_by_id(user_id)
     if user is None:
+        raise NotFoundException("User")
+    # Non-superusers can only view users in their own org
+    if not current_user.is_superuser and user.organization_id != current_user.organization_id:
         raise NotFoundException("User")
     return sorted([group.name for group in user.groups])
 
@@ -211,12 +243,18 @@ async def set_user_groups(
     user_id: str,
     data: UserGroupAssignmentUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> list[str]:
-    """Replace the user's group memberships with the supplied set of group names."""
+    """Replace the user's group memberships with the supplied set of group names.
+
+    Groups are resolved within the user's organization scope.
+    """
     service = UserService(db)
     user = await service.get_by_id(user_id)
     if user is None:
+        raise NotFoundException("User")
+    # Non-superusers can only manage users in their own org
+    if not current_user.is_superuser and user.organization_id != current_user.organization_id:
         raise NotFoundException("User")
     try:
         updated = await service.assign_groups(user, set(data.group_names))
@@ -228,12 +266,17 @@ async def set_user_groups(
 @router.get("/users", response_model=list[UserResponse])
 async def list_users_for_admin(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_admin_group_user),
+    current_user: User = Depends(get_admin_group_user),
 ) -> list[User]:
-    """Return all users with their group memberships.
-    Accessible to superusers and members of the 'admin' group.
+    """Return users visible to the current admin.
+
+    Superusers see all users. Org admins see users in their organization.
     """
     service = UserService(db)
+    if current_user.is_superuser:
+        return await service.list_all()
+    if current_user.organization_id:
+        return await service.list_by_org(current_user.organization_id)
     return await service.list_all()
 
 
@@ -313,7 +356,7 @@ async def update_app_setting(
 @router.get("/permissions", response_model=list[PermissionResponse])
 async def list_permissions(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    _: User = Depends(get_admin_group_user),
 ) -> list[Permission]:
     """Return all defined permissions ordered by codename."""
     result = await db.execute(select(Permission).order_by(Permission.codename))
@@ -323,15 +366,11 @@ async def list_permissions(
 @router.get("/user-groups-detail", response_model=list[UserGroupDetailResponse])
 async def list_user_groups_detail(
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> list[UserGroup]:
-    """Return all user groups with their associated permissions."""
-    result = await db.execute(
-        select(UserGroup)
-        .options(selectinload(UserGroup.permissions))
-        .order_by(UserGroup.name)
-    )
-    return list(result.scalars().all())
+    """Return user groups with their associated permissions for the current user's org."""
+    service = UserService(db)
+    return await service.list_groups_detail(current_user.organization_id)
 
 
 @router.put("/user-groups/{group_id}/permissions", response_model=UserGroupDetailResponse)
@@ -339,9 +378,25 @@ async def set_group_permissions(
     group_id: str,
     data: RolePermissionUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_superuser),
+    current_user: User = Depends(get_admin_group_user),
 ) -> UserGroup:
-    """Replace all permissions for the given user group with the supplied set of codenames."""
+    """Replace all permissions for the given user group with the supplied set of codenames.
+
+    Requires the manage_roles permission. Only groups within the current user's
+    organization can be modified.
+    """
+    user_svc = UserService(db)
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_roles")
+        if not has_perm:
+            raise ValidationException("You need the manage_roles permission")
+
+    # Verify group belongs to current user's org
+    org_id = current_user.organization_id
+    org_groups = await user_svc.list_groups(org_id)
+    if not any(g.id == group_id for g in org_groups):
+        raise NotFoundException("UserGroup")
+
     result = await db.execute(
         select(UserGroup).where(UserGroup.id == group_id)
     )

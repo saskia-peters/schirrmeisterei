@@ -1,5 +1,5 @@
 # Maps each role group to its list of permission codenames.
-# Loaded by migration 0002.
+# Loaded by migration 0001.
 # All codenames listed here must exist in permissions.yaml.
 # To grant a new permission to a role, add its codename to the list and run db-reset.
 
@@ -37,3 +37,4 @@ role_permissions:
     - manage_email
     - delete_ticket
     - bulk_upload_users
+    - manage_roles
