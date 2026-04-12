@@ -1,5 +1,7 @@
 import { apiClient } from './client'
 import type {
+  AdminUserCreateRequest,
+  AdminUserUpdateRequest,
   AppSetting,
   AssignableUser,
   AuthTokens,
@@ -195,8 +197,14 @@ export const adminApi = {
   updateAppSetting: (key: string, data: { value: string }) =>
     apiClient.patch<AppSetting>(`/admin/app-settings/${key}`, data).then((r) => r.data),
 
-  listUsers: () =>
-    apiClient.get<User[]>('/admin/users').then((r) => r.data),
+  listUsers: (filters?: { landesverband_id?: string; regionalstelle_id?: string; ortsverband_id?: string }) =>
+    apiClient.get<User[]>('/admin/users', { params: filters }).then((r) => r.data),
+
+  createUser: (data: AdminUserCreateRequest) =>
+    apiClient.post<User>('/admin/users', data).then((r) => r.data),
+
+  updateUser: (userId: string, data: AdminUserUpdateRequest) =>
+    apiClient.patch<User>(`/admin/users/${userId}`, data).then((r) => r.data),
 
   listPermissions: () =>
     apiClient.get<PermissionInfo[]>('/admin/permissions').then((r) => r.data),
@@ -238,4 +246,13 @@ export const adminApi = {
       })
       .then((r) => r.data)
   },
+
+  listPendingRegistrations: () =>
+    apiClient.get<User[]>('/admin/pending-registrations').then((r) => r.data),
+
+  approveRegistration: (userId: string) =>
+    apiClient.post<User>(`/admin/pending-registrations/${userId}/approve`).then((r) => r.data),
+
+  declineRegistration: (userId: string) =>
+    apiClient.post(`/admin/pending-registrations/${userId}/decline`).then((r) => r.data),
 }

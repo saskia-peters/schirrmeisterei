@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, authApi, organizationsApi, ticketsApi, usersApi } from '@/api'
 import type {
+  AdminUserCreateRequest,
+  AdminUserUpdateRequest,
   CreateEmailConfigRequest,
   CreateUserGroupRequest,
   ConfigItemType,
@@ -236,13 +238,33 @@ export const useUpdateAppSetting = () => {
   })
 }
 
-export const useAdminUsers = (enabled = true) =>
+export const useAdminUsers = (
+  filters?: { landesverband_id?: string; regionalstelle_id?: string; ortsverband_id?: string },
+  enabled = true,
+) =>
   useQuery({
-    queryKey: ['admin-users'],
-    queryFn: adminApi.listUsers,
+    queryKey: ['admin-users', filters],
+    queryFn: () => adminApi.listUsers(filters),
     enabled,
     staleTime: 30_000,
   })
+
+export const useCreateAdminUser = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: AdminUserCreateRequest) => adminApi.createUser(data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  })
+}
+
+export const useUpdateAdminUser = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ userId, data }: { userId: string; data: AdminUserUpdateRequest }) =>
+      adminApi.updateUser(userId, data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-users'] }),
+  })
+}
 
 // ─── Organization Hooks ───────────────────────────────────────────────────────
 
@@ -354,5 +376,33 @@ export const useSetGroupPermissions = () => {
     mutationFn: ({ groupId, data }: { groupId: string; data: { permission_codenames: string[] } }) =>
       adminApi.setGroupPermissions(groupId, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['user-groups-detail'] }),
+  })
+}
+
+// ─── Pending Registrations Hooks ──────────────────────────────────────────────
+
+export const usePendingRegistrations = () =>
+  useQuery({
+    queryKey: ['pending-registrations'],
+    queryFn: adminApi.listPendingRegistrations,
+    staleTime: 30_000,
+  })
+
+export const useApproveRegistration = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) => adminApi.approveRegistration(userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['pending-registrations'] })
+      qc.invalidateQueries({ queryKey: ['admin-users'] })
+    },
+  })
+}
+
+export const useDeclineRegistration = () => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (userId: string) => adminApi.declineRegistration(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['pending-registrations'] }),
   })
 }

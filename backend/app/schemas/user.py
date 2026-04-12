@@ -43,10 +43,28 @@ class UserUpdate(BaseModel):
     password: str | None = Field(None, min_length=8, max_length=128)
 
 
+class AdminUserCreate(BaseModel):
+    email: EmailStr
+    full_name: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    organization_id: str
+    is_active: bool = True
+    group_names: list[str] = Field(default_factory=list)
+
+
+class AdminUserUpdate(BaseModel):
+    full_name: str | None = Field(None, min_length=1, max_length=255)
+    password: str | None = Field(None, min_length=8, max_length=128)
+    is_active: bool | None = None
+    organization_id: str | None = None
+    group_names: list[str] | None = None
+
+
 class UserResponse(UserBase):
     id: str
     is_active: bool
     is_superuser: bool
+    is_approved: bool
     force_password_change: bool
     groups: list[str] = []
     totp_enabled: bool
@@ -73,6 +91,7 @@ class UserResponse(UserBase):
             "full_name": data.full_name,
             "is_active": data.is_active,
             "is_superuser": data.is_superuser,
+            "is_approved": data.is_approved,
             "force_password_change": data.force_password_change,
             "groups": sorted([group.name for group in data.groups]) if data.groups else [],
             "totp_enabled": data.totp_enabled,

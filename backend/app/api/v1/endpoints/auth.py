@@ -55,6 +55,11 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
+    if not user.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="APPROVAL_PENDING",
+        )
 
     if user.totp_enabled:
         if not data.totp_code:
@@ -95,6 +100,11 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found or inactive",
+        )
+    if not user.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="APPROVAL_PENDING",
         )
     return Token(
         access_token=create_access_token(user.id),

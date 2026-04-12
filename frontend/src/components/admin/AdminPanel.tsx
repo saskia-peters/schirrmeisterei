@@ -14,20 +14,28 @@ import {
   useAppSettings,
   useUpdateAppSetting,
   useAdminUsers,
+  useCreateAdminUser,
+  useUpdateAdminUser,
   useEmailConfigs,
   useCreateEmailConfig,
   useUpdateEmailConfig,
   useOrganizations,
+  useLandesverbaende,
+  useRegionalstellen,
+  useOrtsverbaende,
   useBulkUploadUsers,
   useUploadHierarchy,
   usePermissions,
   useUserGroupsDetail,
   useSetGroupPermissions,
+  usePendingRegistrations,
+  useApproveRegistration,
+  useDeclineRegistration,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/authStore'
 import type { ConfigItem, ConfigItemType, EmailConfig, User, UserGroup } from '@/types'
 
-type AdminTab = ConfigItemType | 'user-roles' | 'age-thresholds' | 'users' | 'email-config' | 'bulk-upload' | 'role-permissions' | 'hierarchy'
+type AdminTab = ConfigItemType | 'user-roles' | 'age-thresholds' | 'users' | 'email-config' | 'bulk-upload' | 'role-permissions' | 'hierarchy' | 'registrations'
 
 const BASE_TABS: { type: AdminTab; label: string }[] = [
   { type: 'priority', label: 'Priorities' },
@@ -49,6 +57,7 @@ export function AdminPanel() {
     ...BASE_TABS,
     ...(isAdmin || isSuperuser
       ? [
+          { type: 'registrations' as AdminTab, label: 'Registrations' },
           { type: 'users' as AdminTab, label: 'Users' },
           { type: 'email-config' as AdminTab, label: 'Email Config' },
           { type: 'bulk-upload' as AdminTab, label: 'Bulk Upload' },
@@ -79,7 +88,9 @@ export function AdminPanel() {
       </div>
 
       <div className="admin-tab-content">
-        {activeTab === 'users'
+        {activeTab === 'registrations'
+          ? <PendingRegistrationsAdmin />
+          : activeTab === 'users'
           ? <UserOverview />
           : activeTab === 'user-roles'
           ? <UserRoleAdmin />
@@ -246,6 +257,7 @@ function ConfigItemList({ type, isSuperuser }: { type: ConfigItemType; isSuperus
 }
 
 function UserRoleAdmin() {
+  const { user: currentUser } = useAuthStore()
   const { data: users = [] } = useAdminUsers()
   const { data: groups = [] } = useUserGroups(true)
 
@@ -399,12 +411,13 @@ function UserRoleAdmin() {
               {sortedGroups.map((group) => {
                 const checked = u.groups.includes(group.name)
                 const isHelfende = group.name === 'helfende'
+                const isSelfAdmin = group.name === 'admin' && u.id === currentUser?.id
                 return (
                   <td key={`${u.id}-${group.id}`}>
                     <input
                       type="checkbox"
                       checked={checked || isHelfende}
-                      disabled={isHelfende}
+                      disabled={isHelfende || isSelfAdmin}
                       onChange={(e) => handleToggleUserGroup(u, group.name, e.target.checked)}
                     />
                   </td>
@@ -502,12 +515,225 @@ function AgeThresholdsAdmin({ isSuperuser }: { isSuperuser: boolean }) {
 }
 
 function UserOverview() {
-  const { data: users = [], isLoading } = useAdminUsers()
+  const { user: currentUser } = useAuthStore()
+  const [filterLV, setFilterLV] = useState<string>('')
+  const [filterRSt, setFilterRSt] = useState<string>('')
+  const [filterOV, setFilterOV] = useState<string>('')
+
+  const filters = {
+    ...(filterOV ? { ortsverband_id: filterOV } : filterRSt ? { regionalstelle_id: filterRSt } : filterLV ? { landesverband_id: filterLV } : {}),
+  }
+  const { data: users = [], isLoading } = useAdminUsers(Object.keys(filters).length > 0 ? filters : undefined)
+
+  const { data: landesverbaende = [] } = useLandesverbaende()
+  const { data: regionalstellen = [] } = useRegionalstellen(filterLV || undefined)
+  const { data: ortsverbaende = [] } = useOrtsverbaende(filterRSt || undefined)
+  const { data: allOrgs = [] } = useOrganizations()
+  const { data: groups = [] } = useUserGroups(true)
+
+  const createUser = useCreateAdminUser()
+  const updateUser = useUpdateAdminUser()
+
+  const [showCreate, setShowCreate] = useState(false)
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+
+  const emptyCreateForm = {
+    email: '',
+    full_name: '',
+    password: '',
+    organization_id: '',
+    is_active: true,
+    group_names: [] as string[],
+  }
+  const [createForm, setCreateForm] = useState(emptyCreateForm)
+
+  const emptyEditForm = {
+    full_name: '',
+    password: '',
+    is_active: true,
+    organization_id: '',
+    group_names: [] as string[],
+  }
+  const [editForm, setEditForm] = useState(emptyEditForm)
+
+  const handleCreate = async () => {
+    if (!createForm.email || !createForm.full_name || !createForm.password || !createForm.organization_id) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+    try {
+      await createUser.mutateAsync({
+        email: createForm.email,
+        full_name: createForm.full_name,
+        password: createForm.password,
+        organization_id: createForm.organization_id,
+        is_active: createForm.is_active,
+        group_names: createForm.group_names.length > 0 ? createForm.group_names : undefined,
+      })
+      setCreateForm(emptyCreateForm)
+      setShowCreate(false)
+      toast.success('User created')
+    } catch {
+      toast.error('Failed to create user')
+    }
+  }
+
+  const handleStartEdit = (user: User) => {
+    setEditingUserId(user.id)
+    setEditForm({
+      full_name: user.full_name,
+      password: '',
+      is_active: user.is_active,
+      organization_id: user.organization_id ?? '',
+      group_names: [...user.groups],
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingUserId) return
+    try {
+      await updateUser.mutateAsync({
+        userId: editingUserId,
+        data: {
+          full_name: editForm.full_name || undefined,
+          password: editForm.password || undefined,
+          is_active: editForm.is_active,
+          organization_id: editForm.organization_id || undefined,
+          group_names: editForm.group_names,
+        },
+      })
+      setEditingUserId(null)
+      toast.success('User updated')
+    } catch {
+      toast.error('Failed to update user')
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setEditingUserId(null)
+    setEditForm(emptyEditForm)
+  }
+
+  const toggleEditGroup = (groupName: string) => {
+    if (groupName === 'helfende') return
+    if (groupName === 'admin' && editingUserId === currentUser?.id) return
+    setEditForm((f) => ({
+      ...f,
+      group_names: f.group_names.includes(groupName)
+        ? f.group_names.filter((g) => g !== groupName)
+        : [...f.group_names, groupName],
+    }))
+  }
+
+  const toggleCreateGroup = (groupName: string) => {
+    if (groupName === 'helfende') return
+    setCreateForm((f) => ({
+      ...f,
+      group_names: f.group_names.includes(groupName)
+        ? f.group_names.filter((g) => g !== groupName)
+        : [...f.group_names, groupName],
+    }))
+  }
+
+  const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name))
 
   if (isLoading) return <p className="admin-loading">Loading…</p>
 
   return (
     <div className="user-overview">
+      <div className="admin-section-header">
+        <h3>User Management</h3>
+        <button className="btn btn-primary btn-sm" onClick={() => { setCreateForm(emptyCreateForm); setShowCreate(true) }}>
+          + Create User
+        </button>
+      </div>
+
+      {/* Org hierarchy filters */}
+      <div className="user-filters">
+        <div className="form-group">
+          <label>Landesverband</label>
+          <select value={filterLV} onChange={(e) => { setFilterLV(e.target.value); setFilterRSt(''); setFilterOV('') }}>
+            <option value="">All</option>
+            {landesverbaende.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Regionalstelle</label>
+          <select value={filterRSt} onChange={(e) => { setFilterRSt(e.target.value); setFilterOV('') }} disabled={!filterLV}>
+            <option value="">All</option>
+            {regionalstellen.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group">
+          <label>Ortsverband</label>
+          <select value={filterOV} onChange={(e) => setFilterOV(e.target.value)} disabled={!filterRSt}>
+            <option value="">All</option>
+            {ortsverbaende.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* Create user form */}
+      {showCreate && (
+        <div className="user-edit-form">
+          <h4>Create New User</h4>
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Email *</label>
+              <input type="email" value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })} placeholder="user@example.com" />
+            </div>
+            <div className="form-group">
+              <label>Full Name *</label>
+              <input value={createForm.full_name} onChange={(e) => setCreateForm({ ...createForm, full_name: e.target.value })} placeholder="Full Name" />
+            </div>
+            <div className="form-group">
+              <label>Password *</label>
+              <input type="password" value={createForm.password} onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })} placeholder="Min. 8 characters" />
+            </div>
+            <div className="form-group">
+              <label>Organization *</label>
+              <select value={createForm.organization_id} onChange={(e) => setCreateForm({ ...createForm, organization_id: e.target.value })}>
+                <option value="">-- Select --</option>
+                {allOrgs.map((o) => (
+                  <option key={o.id} value={o.id}>{o.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group form-group-checkbox">
+              <label><input type="checkbox" checked={createForm.is_active} onChange={(e) => setCreateForm({ ...createForm, is_active: e.target.checked })} /> Active</label>
+            </div>
+          </div>
+          {sortedGroups.length > 0 && (
+            <div className="form-group">
+              <label>Roles</label>
+              <div className="role-checkboxes">
+                {sortedGroups.map((g) => (
+                  <label key={g.id} className="role-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={createForm.group_names.includes(g.name) || g.name === 'helfende'}
+                      disabled={g.name === 'helfende'}
+                      onChange={() => toggleCreateGroup(g.name)}
+                    />
+                    {g.name}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="form-actions">
+            <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={createUser.isPending}>Create</button>
+            <button className="btn btn-ghost btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+
       <table className="admin-table">
         <thead>
           <tr>
@@ -515,30 +741,85 @@ function UserOverview() {
             <th>Email</th>
             <th>Organization</th>
             <th>Roles</th>
-            <th>Superuser</th>
             <th>Active</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {users.map((u) => (
-            <tr key={u.id}>
-              <td>
-                {u.full_name}
-                {u.org_abbrev && <span className="org-badge">({u.org_abbrev})</span>}
-              </td>
-              <td>{u.email}</td>
-              <td>{u.organization_name ?? '—'}</td>
-              <td>
-                <div className="role-badges">
-                  {u.groups.map((g) => (
-                    <span key={g} className="role-badge">{g}</span>
-                  ))}
-                </div>
-              </td>
-              <td>{u.is_superuser ? '✓' : ''}</td>
-              <td>{u.is_active ? '✓' : '✗'}</td>
-            </tr>
-          ))}
+          {users.map((u) =>
+            editingUserId === u.id ? (
+              <tr key={u.id} className="editing-row">
+                <td colSpan={6}>
+                  <div className="user-edit-form inline-edit">
+                    <div className="form-grid">
+                      <div className="form-group">
+                        <label>Full Name</label>
+                        <input value={editForm.full_name} onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })} />
+                      </div>
+                      <div className="form-group">
+                        <label>New Password</label>
+                        <input type="password" value={editForm.password} onChange={(e) => setEditForm({ ...editForm, password: e.target.value })} placeholder="Leave empty to keep" />
+                      </div>
+                      <div className="form-group">
+                        <label>Organization</label>
+                        <select value={editForm.organization_id} onChange={(e) => setEditForm({ ...editForm, organization_id: e.target.value })}>
+                          <option value="">-- Select --</option>
+                          {allOrgs.map((o) => (
+                            <option key={o.id} value={o.id}>{o.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-group form-group-checkbox">
+                        <label><input type="checkbox" checked={editForm.is_active} onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })} /> Active</label>
+                      </div>
+                    </div>
+                    {sortedGroups.length > 0 && (
+                      <div className="form-group">
+                        <label>Roles</label>
+                        <div className="role-checkboxes">
+                          {sortedGroups.map((g) => (
+                            <label key={g.id} className="role-checkbox-label">
+                              <input
+                                type="checkbox"
+                                checked={editForm.group_names.includes(g.name) || g.name === 'helfende'}
+                                disabled={g.name === 'helfende' || (g.name === 'admin' && editingUserId === currentUser?.id)}
+                                onChange={() => toggleEditGroup(g.name)}
+                              />
+                              {g.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <div className="form-actions">
+                      <button className="btn btn-primary btn-sm" onClick={handleSaveEdit} disabled={updateUser.isPending}>Save</button>
+                      <button className="btn btn-ghost btn-sm" onClick={handleCancelEdit}>Cancel</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              <tr key={u.id}>
+                <td>
+                  {u.full_name}
+                  {u.org_abbrev && <span className="org-badge">({u.org_abbrev})</span>}
+                </td>
+                <td>{u.email}</td>
+                <td>{u.organization_name ?? '—'}</td>
+                <td>
+                  <div className="role-badges">
+                    {u.groups.map((g) => (
+                      <span key={g} className="role-badge">{g}</span>
+                    ))}
+                  </div>
+                </td>
+                <td>{u.is_active ? '✓' : '✗'}</td>
+                <td className="admin-actions">
+                  <button className="btn btn-sm btn-secondary" onClick={() => handleStartEdit(u)}>Edit</button>
+                </td>
+              </tr>
+            )
+          )}
           {users.length === 0 && (
             <tr>
               <td colSpan={6} className="admin-empty">No users found.</td>
@@ -1019,6 +1300,84 @@ function HierarchyUploadAdmin() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function PendingRegistrationsAdmin() {
+  const { data: pending = [], isLoading } = usePendingRegistrations()
+  const approve = useApproveRegistration()
+  const decline = useDeclineRegistration()
+
+  const handleApprove = async (userId: string) => {
+    try {
+      await approve.mutateAsync(userId)
+      toast.success('Registration approved')
+    } catch {
+      toast.error('Failed to approve registration')
+    }
+  }
+
+  const handleDecline = async (userId: string) => {
+    if (!confirm('Are you sure you want to decline and delete this registration?')) return
+    try {
+      await decline.mutateAsync(userId)
+      toast.success('Registration declined')
+    } catch {
+      toast.error('Failed to decline registration')
+    }
+  }
+
+  if (isLoading) return <p>Loading…</p>
+
+  if (pending.length === 0) {
+    return <p className="text-muted">No pending registrations.</p>
+  }
+
+  return (
+    <div className="admin-section">
+      <h3>Pending Registrations ({pending.length})</h3>
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Organization</th>
+            <th>Registered</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pending.map((user) => (
+            <tr key={user.id}>
+              <td>{user.full_name}</td>
+              <td>{user.email}</td>
+              <td>
+                {user.organization_name
+                  ? `${user.organization_name}${user.org_abbrev ? ` (${user.org_abbrev})` : ''}`
+                  : '—'}
+              </td>
+              <td>{new Date(user.created_at).toLocaleDateString()}</td>
+              <td className="action-buttons">
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={() => handleApprove(user.id)}
+                  disabled={approve.isPending}
+                >
+                  Approve
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => handleDecline(user.id)}
+                  disabled={decline.isPending}
+                >
+                  Decline
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

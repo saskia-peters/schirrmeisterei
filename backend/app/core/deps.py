@@ -53,6 +53,12 @@ async def _get_user_base(
             detail="Inactive user",
         )
 
+    if not user.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="APPROVAL_PENDING",
+        )
+
     return user
 
 

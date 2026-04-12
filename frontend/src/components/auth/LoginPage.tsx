@@ -46,6 +46,8 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
       if (error.response?.data?.detail === 'TOTP code required') {
         setRequireTotp(true)
         toast.info('🔐 Please enter your authenticator code')
+      } else if (error.response?.data?.detail === 'APPROVAL_PENDING') {
+        toast.error('Your registration is still pending approval by an administrator.')
       } else {
         toast.error(error.response?.data?.detail ?? 'Login failed')
       }

@@ -21,6 +21,8 @@ from app.models.models import (
 )
 from app.schemas.config import ConfigItemCreate, ConfigItemResponse, ConfigItemUpdate
 from app.schemas.user import (
+    AdminUserCreate,
+    AdminUserUpdate,
     AppSettingResponse,
     AppSettingUpdate,
     BulkUserUploadResult,
@@ -229,12 +231,15 @@ async def get_user_group_names(
 ) -> list[str]:
     """Return the sorted list of group names the given user belongs to."""
     service = UserService(db)
+    org_svc = OrganizationService(db)
     user = await service.get_by_id(user_id)
     if user is None:
         raise NotFoundException("User")
-    # Non-superusers can only view users in their own org
-    if not current_user.is_superuser and user.organization_id != current_user.organization_id:
-        raise NotFoundException("User")
+    # Non-superusers can only view users within their hierarchy
+    if not current_user.is_superuser and user.organization_id:
+        visible = await org_svc.get_visible_org_ids(current_user.organization_id)
+        if visible is not None and user.organization_id not in visible:
+            raise NotFoundException("User")
     return sorted([group.name for group in user.groups])
 
 
@@ -250,14 +255,21 @@ async def set_user_groups(
     Groups are resolved within the user's organization scope.
     """
     service = UserService(db)
+    org_svc = OrganizationService(db)
     user = await service.get_by_id(user_id)
     if user is None:
         raise NotFoundException("User")
-    # Non-superusers can only manage users in their own org
-    if not current_user.is_superuser and user.organization_id != current_user.organization_id:
-        raise NotFoundException("User")
+    # Non-superusers can only manage users within their hierarchy
+    if not current_user.is_superuser and user.organization_id:
+        visible = await org_svc.get_visible_org_ids(current_user.organization_id)
+        if visible is not None and user.organization_id not in visible:
+            raise NotFoundException("User")
+    group_set = set(data.group_names)
+    # Prevent admins from removing themselves from the admin group
+    if user.id == current_user.id and any(g.name == "admin" for g in user.groups):
+        group_set.add("admin")
     try:
-        updated = await service.assign_groups(user, set(data.group_names))
+        updated = await service.assign_groups(user, group_set)
     except ValueError as exc:
         raise ValidationException(str(exc)) from exc
     return sorted([group.name for group in updated.groups])
@@ -265,19 +277,194 @@ async def set_user_groups(
 
 @router.get("/users", response_model=list[UserResponse])
 async def list_users_for_admin(
+    landesverband_id: str | None = None,
+    regionalstelle_id: str | None = None,
+    ortsverband_id: str | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_admin_group_user),
 ) -> list[User]:
-    """Return users visible to the current admin.
+    """Return users visible to the current admin, with optional org-hierarchy filters.
 
-    Superusers see all users. Org admins see users in their organization.
+    Superusers see all users. Org admins see users in their organization and
+    its descendants. Optional filter params narrow results further.
     """
-    service = UserService(db)
-    if current_user.is_superuser:
-        return await service.list_all()
-    if current_user.organization_id:
-        return await service.list_by_org(current_user.organization_id)
-    return await service.list_all()
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    # Determine the base set of visible org IDs for the admin
+    visible_org_ids = await org_svc.get_visible_org_ids(current_user.organization_id)
+    # visible_org_ids is None for leitung (= sees all)
+
+    # Apply the most specific filter
+    if ortsverband_id:
+        filter_ids = {ortsverband_id}
+    elif regionalstelle_id:
+        filter_ids = set(await org_svc.get_descendants(regionalstelle_id))
+    elif landesverband_id:
+        filter_ids = set(await org_svc.get_descendants(landesverband_id))
+    else:
+        filter_ids = None
+
+    # Intersect with visible scope
+    if visible_org_ids is not None and filter_ids is not None:
+        final_ids = list(set(visible_org_ids) & filter_ids)
+    elif visible_org_ids is not None:
+        final_ids = list(visible_org_ids)
+    elif filter_ids is not None:
+        final_ids = list(filter_ids)
+    else:
+        return await user_svc.list_all()
+
+    if not final_ids:
+        return []
+    return await user_svc.list_by_org_ids(final_ids)
+
+
+async def _check_org_in_hierarchy(
+    org_svc: OrganizationService,
+    admin_org_id: str | None,
+    target_org_id: str,
+    is_superuser: bool,
+) -> None:
+    """Raise 403 if target_org_id is outside the admin's hierarchy."""
+    if is_superuser:
+        return
+    visible = await org_svc.get_visible_org_ids(admin_org_id)
+    if visible is not None and target_org_id not in visible:
+        raise ValidationException("Target organization is outside your hierarchy")
+
+
+@router.post("/users", response_model=UserResponse, status_code=201)
+async def create_user_admin(
+    data: AdminUserCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> User:
+    """Create a new user as an admin.
+
+    The target organization must be within the admin's hierarchy scope.
+    """
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_users")
+        if not has_perm:
+            raise ValidationException("You need the manage_users permission")
+
+    # Verify target org exists
+    target_org = await org_svc.get_by_id(data.organization_id)
+    if target_org is None:
+        raise NotFoundException("Organization")
+
+    # Verify target org is within hierarchy
+    await _check_org_in_hierarchy(org_svc, current_user.organization_id, data.organization_id, current_user.is_superuser)
+
+    # Check email uniqueness
+    existing = await user_svc.get_by_email(data.email)
+    if existing is not None:
+        raise ConflictException("User with this email already exists")
+
+    from app.schemas.user import UserCreate
+    user = await user_svc.create(UserCreate(
+        email=data.email,
+        full_name=data.full_name,
+        password=data.password,
+        organization_id=data.organization_id,
+    ))
+
+    # Set is_active
+    if not data.is_active:
+        user.is_active = False
+        await db.flush()
+
+    # Admin-created users are auto-approved
+    user.is_approved = True
+
+    # Force password change for admin-created users
+    user.force_password_change = True
+    await db.flush()
+
+    # Assign groups if specified
+    if data.group_names:
+        group_set = set(data.group_names)
+        group_set.add("helfende")
+        try:
+            user = await user_svc.assign_groups(user, group_set)
+        except ValueError as exc:
+            raise ValidationException(str(exc)) from exc
+
+    refreshed = await user_svc.get_by_id(user.id)
+    if refreshed is None:
+        raise RuntimeError("User vanished after creation")
+    return refreshed
+
+
+@router.patch("/users/{user_id}", response_model=UserResponse)
+async def update_user_admin(
+    user_id: str,
+    data: AdminUserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> User:
+    """Update a user as an admin.
+
+    Only users within the admin's hierarchy scope can be edited.
+    Admins can update: full_name, password, is_active, organization_id, group_names.
+    """
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    if not current_user.is_superuser:
+        has_perm = await user_svc.user_has_permission(current_user.id, "manage_users")
+        if not has_perm:
+            raise ValidationException("You need the manage_users permission")
+
+    user = await user_svc.get_by_id(user_id)
+    if user is None:
+        raise NotFoundException("User")
+
+    # Verify user is within admin's hierarchy
+    if user.organization_id:
+        await _check_org_in_hierarchy(org_svc, current_user.organization_id, user.organization_id, current_user.is_superuser)
+
+    # If changing organization, verify new org is also within hierarchy
+    if data.organization_id is not None and data.organization_id != user.organization_id:
+        target_org = await org_svc.get_by_id(data.organization_id)
+        if target_org is None:
+            raise NotFoundException("Organization")
+        await _check_org_in_hierarchy(org_svc, current_user.organization_id, data.organization_id, current_user.is_superuser)
+        user.organization_id = data.organization_id
+
+    if data.full_name is not None:
+        user.full_name = data.full_name
+
+    if data.password is not None:
+        from app.core.security import get_password_hash
+        user.hashed_password = get_password_hash(data.password)
+        user.force_password_change = True
+
+    if data.is_active is not None:
+        user.is_active = data.is_active
+
+    await db.flush()
+
+    # Assign groups if specified
+    if data.group_names is not None:
+        group_set = set(data.group_names)
+        group_set.add("helfende")
+        # Prevent admins from removing themselves from the admin group
+        if user.id == current_user.id and any(g.name == "admin" for g in user.groups):
+            group_set.add("admin")
+        try:
+            user = await user_svc.assign_groups(user, group_set)
+        except ValueError as exc:
+            raise ValidationException(str(exc)) from exc
+
+    refreshed = await user_svc.get_by_id(user.id)
+    if refreshed is None:
+        raise RuntimeError("User vanished after update")
+    return refreshed
 
 
 # ─── App Settings ──────────────────────────────────────────────────────────────
@@ -599,7 +786,9 @@ async def bulk_upload_users(
             organization_id=org_id,
         )
         try:
-            await service.create(user_data)
+            new_user = await service.create(user_data)
+            new_user.is_approved = True
+            await db.flush()
             created += 1
         except Exception as exc:
             errors.append(f"Row {i}: {exc}")
@@ -694,3 +883,88 @@ async def upload_hierarchy(
 
     await db.commit()
     return HierarchyUploadResult(created=created, skipped=skipped, errors=errors)
+
+
+# ─── Pending Registrations ────────────────────────────────────────────────────
+
+@router.get("/pending-registrations", response_model=list[UserResponse])
+async def list_pending_registrations(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> list[User]:
+    """Return users who have registered but are not yet approved, scoped to hierarchy."""
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    stmt = (
+        select(User)
+        .options(*user_svc._user_options())
+        .where(User.is_approved == False)  # noqa: E712
+        .order_by(User.created_at)
+    )
+
+    if not current_user.is_superuser:
+        visible = await org_svc.get_visible_org_ids(current_user.organization_id)
+        if visible is not None:
+            stmt = stmt.where(User.organization_id.in_(visible))
+
+    result = await db.execute(stmt)
+    return list(result.scalars().all())
+
+
+@router.post("/pending-registrations/{user_id}/approve", response_model=UserResponse)
+async def approve_registration(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> User:
+    """Approve a pending user registration."""
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    user = await user_svc.get_by_id(user_id)
+    if user is None:
+        raise NotFoundException("User")
+
+    if user.is_approved:
+        raise ValidationException("User is already approved")
+
+    # Verify visibility
+    if not current_user.is_superuser and user.organization_id:
+        visible = await org_svc.get_visible_org_ids(current_user.organization_id)
+        if visible is not None and user.organization_id not in visible:
+            raise NotFoundException("User")
+
+    user.is_approved = True
+    await db.flush()
+    refreshed = await user_svc.get_by_id(user.id)
+    if refreshed is None:
+        raise RuntimeError("User vanished after approval")
+    return refreshed
+
+
+@router.post("/pending-registrations/{user_id}/decline", status_code=204)
+async def decline_registration(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_admin_group_user),
+) -> None:
+    """Decline and delete a pending user registration."""
+    user_svc = UserService(db)
+    org_svc = OrganizationService(db)
+
+    user = await user_svc.get_by_id(user_id)
+    if user is None:
+        raise NotFoundException("User")
+
+    if user.is_approved:
+        raise ValidationException("Cannot decline an already approved user")
+
+    # Verify visibility
+    if not current_user.is_superuser and user.organization_id:
+        visible = await org_svc.get_visible_org_ids(current_user.organization_id)
+        if visible is not None and user.organization_id not in visible:
+            raise NotFoundException("User")
+
+    await db.delete(user)
+    await db.flush()

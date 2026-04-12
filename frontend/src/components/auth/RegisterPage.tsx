@@ -4,7 +4,6 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { authApi } from '@/api'
-import { useAuthStore } from '@/store/authStore'
 import { useLandesverbaende, useRegionalstellen, useOrtsverbaende } from '@/hooks/useApi'
 
 const registerSchema = z.object({
@@ -28,7 +27,7 @@ interface RegisterPageProps {
 
 export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { setTokens, setUser } = useAuthStore()
+  const [registrationComplete, setRegistrationComplete] = useState(false)
 
   const {
     register,
@@ -55,11 +54,7 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
         password: data.password,
         organization_id: effectiveOrgId,
       })
-      const tokens = await authApi.login({ email: data.email, password: data.password })
-      setTokens(tokens.access_token, tokens.refresh_token)
-      const user = await authApi.me()
-      setUser(user)
-      toast.success('Account created successfully!')
+      setRegistrationComplete(true)
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } }
       toast.error(error.response?.data?.detail ?? 'Registration failed')
@@ -72,6 +67,23 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
     <div className="auth-page">
       <div className="auth-card">
         <h1>TicketSystem</h1>
+        {registrationComplete ? (
+          <>
+            <h2>Registration Submitted</h2>
+            <p className="auth-info">
+              Your account has been created and is pending approval by an administrator.
+              You will be able to log in once your registration has been approved.
+            </p>
+            <button
+              type="button"
+              onClick={onSwitchToLogin}
+              className="btn btn-primary btn-full"
+            >
+              Back to Login
+            </button>
+          </>
+        ) : (
+          <>
         <h2>Create Account</h2>
         <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
           <div className="form-group">
@@ -169,6 +181,8 @@ export function RegisterPage({ onSwitchToLogin }: RegisterPageProps) {
             Sign In
           </button>
         </p>
+          </>
+        )}
       </div>
     </div>
   )

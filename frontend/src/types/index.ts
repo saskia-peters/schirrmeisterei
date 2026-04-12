@@ -46,6 +46,7 @@ export interface User {
   full_name: string
   is_active: boolean
   is_superuser: boolean
+  is_approved: boolean
   force_password_change: boolean
   groups: string[]
   totp_enabled: boolean
@@ -88,6 +89,23 @@ export interface UpdateUserGroupRequest {
 
 export interface UpdateUserGroupsRequest {
   group_names: string[]
+}
+
+export interface AdminUserCreateRequest {
+  email: string
+  full_name: string
+  password: string
+  organization_id: string
+  is_active?: boolean
+  group_names?: string[]
+}
+
+export interface AdminUserUpdateRequest {
+  full_name?: string
+  password?: string
+  is_active?: boolean
+  organization_id?: string
+  group_names?: string[]
 }
 
 export interface Attachment {

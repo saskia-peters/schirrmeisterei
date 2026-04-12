@@ -64,6 +64,7 @@ async def test_user(db: AsyncSession) -> User:
         hashed_password=get_password_hash("testpassword123"),
         full_name="Test User",
         is_active=True,
+        is_approved=True,
     )
     db.add(user)
     await db.flush()
@@ -81,6 +82,7 @@ async def superuser(db: AsyncSession) -> User:
         hashed_password=get_password_hash("adminpassword123"),
         full_name="Admin User",
         is_active=True,
+        is_approved=True,
         is_superuser=True,
     )
     db.add(user)
@@ -121,6 +123,7 @@ async def schirrmeister_headers(client: AsyncClient, db: AsyncSession) -> dict[s
         hashed_password=get_password_hash("schirrpassword123"),
         full_name="Schirrmeister User",
         is_active=True,
+        is_approved=True,
     )
     db.add(user)
     await db.flush()

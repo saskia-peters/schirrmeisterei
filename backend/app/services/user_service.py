@@ -244,6 +244,15 @@ class UserService:
         )
         return list(result.scalars().all())
 
+    async def list_by_org_ids(self, org_ids: list[str]) -> list[User]:
+        """Return users belonging to any of the given organizations."""
+        result = await self.db.execute(
+            select(User)
+            .options(*self._user_options())
+            .where(User.organization_id.in_(org_ids))
+        )
+        return list(result.scalars().all())
+
     async def user_has_permission(self, user_id: str, permission_codename: str) -> bool:
         """Check if a user has a specific permission via any of their groups."""
         user = await self.get_by_id(user_id)

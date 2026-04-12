@@ -438,3 +438,14 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
 
 /* Navbar avatar */
 .navbar-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-border); cursor: pointer; }
+
+/* User management */
+.user-filters { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.user-filters .form-group { min-width: 180px; flex: 1; }
+.user-filters select { padding: 0.375rem 0.5rem; border: 1px solid var(--color-border); border-radius: var(--radius); font-size: 0.875rem; width: 100%; }
+.user-edit-form { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem; }
+.user-edit-form h4 { margin: 0 0 0.75rem; font-size: 0.95rem; }
+.user-edit-form.inline-edit { margin: 0; }
+.role-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.role-checkbox-label { display: flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; cursor: pointer; }
+.editing-row td { padding: 0.5rem !important; }
