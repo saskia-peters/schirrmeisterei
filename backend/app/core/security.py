@@ -33,6 +33,18 @@ def create_refresh_token(subject: str | Any) -> str:
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
+def create_password_reset_token(subject: str | Any) -> str:
+    """Create a short-lived JWT token exclusively for password reset.
+
+    Uses a dedicated ``type: password_reset`` claim so it cannot be used as a
+    regular access token and a regular access token cannot be used to reset a
+    password (fixes C-2).
+    """
+    expire = datetime.now(timezone.utc) + timedelta(hours=1)
+    to_encode = {"exp": expire, "sub": str(subject), "type": "password_reset"}
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
 def decode_token(token: str) -> dict[str, Any] | None:
     """Decode and verify a JWT token. Returns the payload dict, or None if invalid."""
     try:

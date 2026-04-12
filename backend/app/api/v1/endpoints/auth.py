@@ -1,8 +1,17 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_unrestricted_user
-from app.core.security import create_access_token, create_refresh_token, decode_token
+from app.core.security import (
+    create_access_token,
+    create_password_reset_token,
+    create_refresh_token,
+    decode_token,
+)
+
+logger = logging.getLogger(__name__)
 from app.db.session import get_db
 from app.models.models import User
 from app.schemas.user import (
@@ -194,15 +203,13 @@ async def request_password_reset(
     that can be used with the confirm endpoint."""
     service = UserService(db)
     user = await service.get_by_email(data.email)
-    # Always return success to avoid user enumeration
+    # Always return the same message to avoid user enumeration.
     if user and user.is_superuser:
-        from datetime import timedelta
-        token = create_access_token(user.id, expires_delta=timedelta(hours=1))
-        # In production, this token would be sent via email.
-        # For now, we log it (and return it in development mode).
-        from app.core.config import settings
-        if settings.ENVIRONMENT == "development":
-            return {"message": "Password reset token generated", "reset_token": token}
+        token = create_password_reset_token(user.id)
+        # In production this token would be delivered by email.
+        # Log it at DEBUG level so it is available in dev logs without being
+        # exposed in the API response (fixes C-1 / A-9).
+        logger.debug("Password reset token for %s: %s", data.email, token)
     return {"message": "If the email is registered as a superadmin, a reset link has been sent"}
 
 
@@ -213,7 +220,7 @@ async def confirm_password_reset(
 ) -> dict[str, str]:
     """Confirm a password reset using a token."""
     payload = decode_token(data.token)
-    if not payload or payload.get("type") != "access":
+    if not payload or payload.get("type") != "password_reset":
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired reset token",
