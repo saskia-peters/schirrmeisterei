@@ -1,8 +1,10 @@
+import io
 import os
 from pathlib import Path
 
 import aiofiles
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -82,8 +84,14 @@ async def update_user(
     return await service.update(user, data)
 
 
-_ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 _MAX_AVATAR_BYTES = 2 * 1024 * 1024  # 2 MB
+# Pillow format names that are allowed for avatars -> canonical file extension
+_ALLOWED_AVATAR_FORMATS: dict[str, str] = {
+    "JPEG": ".jpg",
+    "PNG": ".png",
+    "WEBP": ".webp",
+    "GIF": ".gif",
+}
 
 
 @router.post("/me/avatar", response_model=UserResponse)
@@ -98,18 +106,26 @@ async def upload_avatar(
     served at ``/uploads/avatars/<user_id>.<ext>`` and the URL is written to
     ``user.avatar_url``.
     """
-    if file.content_type not in _ALLOWED_IMAGE_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Only JPEG, PNG, WebP or GIF images are allowed",
-        )
     content = await file.read()
     if len(content) > _MAX_AVATAR_BYTES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Image must be under 2 MB",
         )
-    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    # Validate actual file content via magic bytes (Pillow reads the file
+    # header) rather than the client-supplied Content-Type, which can be
+    # trivially spoofed to upload HTML/script files as images (C-3).
+    detected_format: str | None = None
+    try:
+        detected_format = Image.open(io.BytesIO(content)).format
+    except (UnidentifiedImageError, Exception):  # noqa: BLE001
+        pass
+    ext = _ALLOWED_AVATAR_FORMATS.get(detected_format or "")
+    if not ext:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File does not appear to be a valid JPEG, PNG, WebP or GIF image",
+        )
     avatar_dir = Path(settings.UPLOAD_DIR) / "avatars"
     avatar_dir.mkdir(parents=True, exist_ok=True)
     filename = f"{current_user.id}{ext}"

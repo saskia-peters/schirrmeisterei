@@ -4,6 +4,7 @@
 |---------|------------|----------------------|--------------------------------------|
 | 1.0     | 2026-04-12 | Architecture Reviewer + Code Reviewer (AI-assisted) | Initial review |
 | 1.1     | 2026-04-12 | GitHub Copilot | Fixed C-1, C-2, A-9 (password reset token security) |
+| 1.2     | 2026-04-13 | GitHub Copilot | Fixed C-3 (magic-byte validation on file uploads) |
 
 ---
 
@@ -31,7 +32,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 |---|---------|----------|----------|--------|
 | ~~C-1~~ | ~~Password reset token returned in API response~~ | ✅ Fixed 1.1 | Security | Low |
 | ~~C-2~~ | ~~Password reset accepts any valid access token~~ | ✅ Fixed 1.1 | Security | Low |
-| C-3 | File upload: no magic-byte / content-type validation | 🔴 Critical | Security | Medium |
+| ~~C-3~~ | ~~File upload: no magic-byte / content-type validation~~ | ✅ Fixed 1.2 | Security | Medium |
 | C-4 | `os.remove()` called blocking inside async handler | 🔴 Critical | Reliability | Low |
 | C-5 | Empty-string `organization_id` silently written to DB | 🔴 Critical | Data Integrity | Low |
 | A-1 | SMTP password stored as plaintext in config | 🔴 Critical | Security | Low |
@@ -99,8 +100,10 @@ The password reset flow issues and validates a regular `access` type JWT. Any cu
 
 ---
 
-#### C-3 · File upload: no magic-byte validation (content-type spoofing)
-**File:** [backend/app/services/ticket_service.py](backend/app/services/ticket_service.py)
+#### ~~C-3 · File upload: no magic-byte validation (content-type spoofing)~~ ✅ Fixed in v1.2
+> **Resolution:** Both `add_attachment` (ticket attachments) and `upload_avatar` now use Pillow (`Image.open(io.BytesIO(bytes)).format`) to detect the actual file format from its magic bytes before accepting the upload. The client-supplied `Content-Type` header is ignored entirely. The server-detected MIME type (or canonical extension for avatars) is used for storage. HTML/script files disguised as images are rejected with HTTP 400.
+
+**File:** [backend/app/services/ticket_service.py](backend/app/services/ticket_service.py) · [backend/app/api/v1/endpoints/users.py](backend/app/api/v1/endpoints/users.py)
 **OWASP:** A03 – Injection / A08 – Software and Data Integrity Failures
 
 File MIME type is read from the client-supplied `Content-Type` header without any server-side validation. An attacker can upload an HTML file containing `<script>` tags with `Content-Type: image/png`, which is then served back from the static file mount and executed by a victim's browser.
@@ -377,7 +380,7 @@ return [row[0] for row in result.fetchall()]
 These items represent active security vulnerabilities or data-integrity risks. **Do not deploy publicly without addressing these.**
 
 1. **Fix password reset flow (C-1, C-2, A-9) ✅ Done:** Token no longer returned in response; dedicated `password_reset` JWT type used.
-2. **Add magic-byte validation on uploads (C-3):** Install `python-magic`, validate file contents against an allowlist.
+2. **Add magic-byte validation on uploads (C-3) ✅ Done:** Pillow magic-byte detection in `add_attachment` and `upload_avatar`; `Content-Type` header ignored.
 3. **Make file downloads authenticated (A-5):** Remove `StaticFiles` mount; proxy downloads through an authenticated endpoint.
 4. **Authenticate org endpoints (A-2):** Add `Depends(get_current_user)` to all `/organizations` routes.
 5. **Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.

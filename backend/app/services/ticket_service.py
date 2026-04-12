@@ -1,7 +1,9 @@
+import io
 import os
 
 import aiofiles
 from fastapi import UploadFile
+from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -13,6 +15,27 @@ from app.schemas.ticket import CommentCreate, CommentUpdate, TicketCreate, Ticke
 from app.services.totp_service import get_safe_upload_path
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+
+_PILLOW_FORMAT_TO_MIME: dict[str, str] = {
+    "JPEG": "image/jpeg",
+    "PNG": "image/png",
+    "GIF": "image/gif",
+    "WEBP": "image/webp",
+}
+
+
+def _detect_image_mime(data: bytes) -> str | None:
+    """Return the MIME type inferred from the file's magic bytes via Pillow.
+
+    Returns None if the data is not a recognised image format, or if Pillow
+    cannot parse the header at all.  This prevents content-type spoofing: the
+    client-supplied Content-Type header is ignored entirely.
+    """
+    try:
+        fmt = Image.open(io.BytesIO(data)).format
+        return _PILLOW_FORMAT_TO_MIME.get(fmt or "")
+    except (UnidentifiedImageError, Exception):  # noqa: BLE001
+        return None
 
 
 class TicketService:
@@ -212,18 +235,23 @@ class TicketService:
         self, ticket: Ticket, file: UploadFile, user_id: str
     ) -> Attachment:
         """Validate, save and persist a file attachment for the given ticket."""
-        if file.content_type not in ALLOWED_IMAGE_TYPES:
-            from app.core.exceptions import ValidationException
-            raise ValidationException(
-                f"File type {file.content_type} not allowed. Allowed: {', '.join(ALLOWED_IMAGE_TYPES)}"
-            )
-
         max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
         contents = await file.read()
         if len(contents) > max_size:
             from app.core.exceptions import ValidationException
             raise ValidationException(
                 f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE_MB}MB"
+            )
+
+        # Validate actual file content via magic bytes (Pillow reads the file
+        # header) rather than the client-supplied Content-Type, which can be
+        # trivially spoofed to upload HTML/script files as images (C-3).
+        detected_mime = _detect_image_mime(contents)
+        if not detected_mime:
+            from app.core.exceptions import ValidationException
+            raise ValidationException(
+                f"File does not appear to be a valid image. "
+                f"Allowed types: {', '.join(sorted(ALLOWED_IMAGE_TYPES))}"
             )
 
         # Attachments live in a dedicated subdirectory, separate from avatars.
@@ -239,7 +267,7 @@ class TicketService:
         attachment = Attachment(
             ticket_id=ticket.id,
             filename=file.filename or "upload",
-            content_type=file.content_type,
+            content_type=detected_mime,  # use server-detected type, not client header
             file_path=safe_path,
             file_size=len(contents),
             uploaded_by_id=user_id,
