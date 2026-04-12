@@ -57,6 +57,19 @@ export function TicketCard({ ticket, onClick, isDragging = false }: TicketCardPr
       onKeyDown={(e) => e.key === 'Enter' && onClick()}
       aria-label={`Ticket: ${ticket.title}`}
     >
+      {ticket.assignee_avatar_url ? (
+        <img
+          src={ticket.assignee_avatar_url}
+          alt={ticket.assignee_name ?? 'Assignee'}
+          className="ticket-card-avatar"
+          title={ticket.assignee_name ?? 'Assigned'}
+        />
+      ) : ticket.assignee_name ? (
+        <span className="ticket-card-avatar ticket-card-avatar-placeholder" title={ticket.assignee_name}>
+          {ticket.assignee_name.charAt(0).toUpperCase()}
+        </span>
+      ) : null}
+      <span className="ticket-card-id">Ticket-{ticket.ticket_number}</span>
       {ticket.priority_name && (
         <span className={`priority-badge ${PRIORITY_CLASS[ticket.priority_name] ?? 'priority-default'}`}>
           {ticket.priority_name}

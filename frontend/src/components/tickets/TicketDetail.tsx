@@ -46,7 +46,6 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
-  const [statusNote, setStatusNote] = useState('')
   const [isEditingWaitingFor, setIsEditingWaitingFor] = useState(false)
   const [waitingForInput, setWaitingForInput] = useState('')
 
@@ -99,14 +98,23 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   }
 
   const handleStatusChange = async (newStatus: TicketStatus) => {
-    if (newStatus === 'waiting' && !statusNote.trim()) {
-      toast.error('"Waiting for" note is required when status is Waiting')
+    if (newStatus === 'waiting') {
+      const reason = window.prompt('Waiting for…')
+      if (!reason?.trim()) {
+        toast.error('"Waiting for" note is required when selecting Waiting')
+        return
+      }
+      try {
+        await updateStatus.mutateAsync({ id: ticketId, data: { status: newStatus, note: reason.trim() } })
+        toast.success('Status updated')
+      } catch {
+        toast.error('Failed to update status')
+      }
       return
     }
 
     try {
-      await updateStatus.mutateAsync({ id: ticketId, data: { status: newStatus, note: statusNote || undefined } })
-      setStatusNote('')
+      await updateStatus.mutateAsync({ id: ticketId, data: { status: newStatus } })
       toast.success('Status updated')
     } catch {
       toast.error('Failed to update status')
@@ -174,6 +182,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal ticket-detail" role="dialog" aria-modal aria-label={ticket.title}>
         <div className="modal-header">
+          <span className="ticket-detail-id">Ticket-{ticket.ticket_number}</span>
           {isEditing ? (
             <input
               value={editTitle}
@@ -213,13 +222,6 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-            <input
-              type="text"
-              placeholder='Waiting for... (required only when selecting "Waiting")'
-              value={statusNote}
-              onChange={(e) => setStatusNote(e.target.value)}
-              className="status-note-input"
-            />
           </div>
           {!canCloseTicket && (
             <p className="admin-loading">Only schirrmeister and admin can move tickets to closed.</p>
@@ -277,7 +279,16 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
             ))}
           </select>
           {ticket.assignee_name && (
-            <span className="assignee-badge">👤 {ticket.assignee_name}</span>
+            <div className="assignee-info">
+              {ticket.assignee_avatar_url ? (
+                <img src={ticket.assignee_avatar_url} alt={ticket.assignee_name} className="assignee-avatar" />
+              ) : (
+                <span className="assignee-avatar assignee-avatar-placeholder">
+                  {ticket.assignee_name.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="assignee-badge">{ticket.assignee_name}</span>
+            </div>
           )}
         </div>
 

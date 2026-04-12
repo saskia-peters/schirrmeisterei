@@ -141,12 +141,14 @@ export interface StatusLog {
 
 export interface Ticket {
   id: string
+  ticket_number: number
   title: string
   description: string
   status: TicketStatus
   creator_id: string
   assignee_id: string | null
   assignee_name: string | null
+  assignee_avatar_url: string | null
   organization_id: string | null
   priority_id: string | null
   priority_name: string | null
@@ -164,12 +166,14 @@ export interface Ticket {
 
 export interface TicketSummary {
   id: string
+  ticket_number: number
   title: string
   status: TicketStatus
   creator_id: string
   creator_name: string
   assignee_id: string | null
   assignee_name: string | null
+  assignee_avatar_url: string | null
   organization_id: string | null
   organization_name: string | null
   priority_id: string | null

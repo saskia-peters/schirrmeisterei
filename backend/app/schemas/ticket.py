@@ -122,12 +122,14 @@ class WaitingForUpdate(BaseModel):
 
 class TicketResponse(BaseModel):
     id: str
+    ticket_number: int
     title: str
     description: str
     status: TicketStatus
     creator_id: str
     assignee_id: str | None
     assignee_name: str | None
+    assignee_avatar_url: str | None = None
     organization_id: str | None = None
     priority_id: str | None
     priority_name: str | None
@@ -151,12 +153,14 @@ class TicketResponse(BaseModel):
             return data
         return {
             "id": data.id,
+            "ticket_number": data.ticket_number,
             "title": data.title,
             "description": data.description,
             "status": data.status,
             "creator_id": data.creator_id,
             "assignee_id": data.owner_id,
             "assignee_name": _user_display_name(data.owner) or None,
+            "assignee_avatar_url": data.owner.avatar_url if data.owner else None,
             "organization_id": data.organization_id,
             "priority_id": data.priority_id,
             "priority_name": data.priority.name if data.priority is not None else None,
@@ -175,12 +179,14 @@ class TicketResponse(BaseModel):
 
 class TicketSummary(BaseModel):
     id: str
+    ticket_number: int
     title: str
     status: TicketStatus
     creator_id: str
     creator_name: str = ""
     assignee_id: str | None = None
     assignee_name: str | None = None
+    assignee_avatar_url: str | None = None
     organization_id: str | None = None
     organization_name: str | None = None
     priority_id: str | None = None
@@ -203,12 +209,14 @@ class TicketSummary(BaseModel):
         org = getattr(data, "organization", None)
         return {
             "id": data.id,
+            "ticket_number": data.ticket_number,
             "title": data.title,
             "status": data.status,
             "creator_id": data.creator_id,
             "creator_name": _user_display_name(data.creator),
             "assignee_id": data.owner_id,
             "assignee_name": _user_display_name(data.owner) or None,
+            "assignee_avatar_url": data.owner.avatar_url if data.owner else None,
             "organization_id": data.organization_id,
             "organization_name": org.name if org else None,
             "priority_id": data.priority_id,

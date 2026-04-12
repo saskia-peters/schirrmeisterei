@@ -93,11 +93,14 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
   background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius); padding: 0.75rem;
   cursor: pointer; transition: box-shadow 0.15s, transform 0.1s;
-  user-select: none;
+  user-select: none; position: relative;
 }
 .ticket-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 .ticket-card--dragging { box-shadow: var(--shadow-md); transform: rotate(2deg); }
-.ticket-card-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; }
+.ticket-card-id { font-size: 0.7rem; color: var(--color-text-secondary); font-family: monospace; margin-bottom: 0.125rem; }
+.ticket-card-title { font-size: 0.875rem; font-weight: 500; margin-bottom: 0.375rem; margin-right: 2rem; }
+.ticket-card-avatar { position: absolute; top: 0.5rem; right: 0.5rem; width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-border); }
+.ticket-card-avatar-placeholder { display: flex; align-items: center; justify-content: center; background: var(--color-primary); color: #fff; font-size: 0.7rem; font-weight: 600; }
 .ticket-card-waiting-for {
   margin-bottom: 0.375rem;
   font-size: 0.75rem;
@@ -162,6 +165,7 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
 
 /* ── Ticket Detail ── */
 .ticket-detail { max-width: 720px; }
+.ticket-detail-id { font-size: 0.75rem; color: var(--color-text-secondary); font-family: monospace; display: block; margin-bottom: 0.25rem; }
 .ticket-meta { display: flex; gap: 1rem; padding: 0.75rem 1.25rem; font-size: 0.75rem; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
 .ticket-section { padding: 1rem 1.25rem; border-bottom: 1px solid var(--color-border); }
 .ticket-section h3 { font-size: 0.875rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -181,7 +185,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
   border-radius: var(--radius);
   padding: 0.5rem 0.625rem;
 }
-.assignee-badge { margin-left: 0.5rem; font-size: 0.8125rem; color: var(--color-text-muted); }
+.assignee-badge { font-size: 0.8125rem; color: var(--color-text-muted); }
+.assignee-info { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.375rem; }
+.assignee-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; border: 1px solid var(--color-border); flex-shrink: 0; }
+.assignee-avatar-placeholder { display: flex; align-items: center; justify-content: center; background: var(--color-primary); color: #fff; font-size: 0.8rem; font-weight: 600; }
 
 /* ── Attachments ── */
 .attachments-grid { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }

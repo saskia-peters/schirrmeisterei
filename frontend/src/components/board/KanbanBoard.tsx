@@ -73,7 +73,7 @@ export function KanbanBoard({ onTicketClick, onNewTicket }: KanbanBoardProps) {
         !filterAssignee ||
         (filterAssignee === '__unassigned__'
           ? t.assignee_id == null
-          : t.assignee_name === filterAssignee)
+          : t.assignee_id === filterAssignee)
       const priorityOk = !filterPriority || t.priority_name === filterPriority
       const categoryOk = !filterCategory || t.category_name === filterCategory
       const groupOk = !filterGroup || t.affected_group_name === filterGroup
@@ -169,7 +169,7 @@ export function KanbanBoard({ onTicketClick, onNewTicket }: KanbanBoardProps) {
             <option value="">All</option>
             <option value="__unassigned__">Unassigned</option>
             {assignableUsers.map((u) => (
-              <option key={u.id} value={u.full_name}>{u.full_name}</option>
+              <option key={u.id} value={u.id}>{u.full_name}</option>
             ))}
           </select>
         </label>

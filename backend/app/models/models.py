@@ -2,7 +2,7 @@ import enum
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -234,10 +234,16 @@ class UserGroupMembership(Base):
     group: Mapped["UserGroup"] = relationship("UserGroup", back_populates="memberships")
 
 
+ticket_number_seq = Sequence("ticket_number_seq", schema="ticketsystem")
+
+
 class Ticket(Base):
     __tablename__ = "tickets"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    ticket_number: Mapped[int] = mapped_column(
+        Integer, ticket_number_seq, server_default=ticket_number_seq.next_value(), unique=True, nullable=False
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[TicketStatus] = mapped_column(
