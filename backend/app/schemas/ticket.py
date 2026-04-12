@@ -30,12 +30,14 @@ class AttachmentResponse(BaseModel):
     file_size: int
     uploaded_by_id: str
     created_at: datetime
-    file_path: str
+    # file_path is intentionally omitted — it exposes the internal server path
+    # (H-4). Clients should use the `url` field instead.
 
     @computed_field  # type: ignore[misc]
     @property
     def url(self) -> str:
-        return f"/uploads/{self.file_path.split('/')[-1]}"
+        """Authenticated download URL for this attachment (A-5)."""
+        return f"/api/v1/tickets/{self.ticket_id}/attachments/{self.id}/download"
 
     model_config = {"from_attributes": True}
 

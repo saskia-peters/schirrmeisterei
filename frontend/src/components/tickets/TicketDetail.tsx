@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AttachmentThumb } from './AttachmentThumb'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -375,29 +376,12 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           <h3>Attachments ({ticket.attachments.length})</h3>
           <div className="attachments-grid">
             {ticket.attachments.map((att) => (
-              <div key={att.id} className="attachment-thumbnail-wrap">
-                <a
-                  href={att.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="attachment-thumbnail"
-                  title={`${att.filename} (${Math.round(att.file_size / 1024)} KB)`}
-                >
-                  <img src={att.url} alt={att.filename} className="thumbnail-img" />
-                  <span className="thumbnail-name">{att.filename}</span>
-                </a>
-                {(user?.is_superuser || user?.id === att.uploaded_by_id) && (
-                  <button
-                    type="button"
-                    className="attachment-delete-btn"
-                    aria-label={`Remove ${att.filename}`}
-                    title="Remove image"
-                    onClick={() => handleDeleteAttachment(att.id)}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
+              <AttachmentThumb
+                key={att.id}
+                attachment={att}
+                canDelete={user?.is_superuser || user?.id === att.uploaded_by_id}
+                onDelete={handleDeleteAttachment}
+              />
             ))}
           </div>
           <label className="btn btn-secondary upload-btn">

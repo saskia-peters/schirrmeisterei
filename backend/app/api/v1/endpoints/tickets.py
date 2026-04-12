@@ -1,10 +1,15 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user
 from app.core.exceptions import ForbiddenException, NotFoundException, ValidationException
+from app.core.config import settings
 from app.db.session import get_db
-from app.models.models import Ticket, TicketStatus, User
+from app.models.models import Attachment, Ticket, TicketStatus, User
 from app.schemas.ticket import (
     AttachmentResponse,
     CommentCreate,
@@ -186,6 +191,39 @@ async def delete_attachment(
     service = TicketService(db)
     await service.get_by_id_or_raise(ticket_id)
     await service.delete_attachment(attachment_id, current_user.id, current_user.is_superuser)
+
+
+@router.get("/{ticket_id}/attachments/{attachment_id}/download")
+async def download_attachment(
+    ticket_id: str,
+    attachment_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> FileResponse:
+    """Download an attachment. Requires authentication; verifies the attachment
+    belongs to the requested ticket (A-5)."""
+    result = await db.execute(
+        select(Attachment).where(
+            Attachment.id == attachment_id,
+            Attachment.ticket_id == ticket_id,
+        )
+    )
+    attachment = result.scalar_one_or_none()
+    if attachment is None:
+        raise NotFoundException("Attachment")
+
+    # Path-traversal guard: resolve the stored path and confirm it sits inside
+    # the configured upload root before serving the file (H-1).
+    upload_root = Path(settings.UPLOAD_DIR).resolve()
+    target = Path(attachment.file_path).resolve()
+    if not str(target).startswith(str(upload_root)):
+        raise NotFoundException("Attachment")
+
+    return FileResponse(
+        path=str(target),
+        media_type=attachment.content_type,
+        filename=attachment.filename,
+    )
 
 
 # ─── Comments ─────────────────────────────────────────────────────────────────

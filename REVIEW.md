@@ -5,6 +5,7 @@
 | 1.0     | 2026-04-12 | Architecture Reviewer + Code Reviewer (AI-assisted) | Initial review |
 | 1.1     | 2026-04-12 | GitHub Copilot | Fixed C-1, C-2, A-9 (password reset token security) |
 | 1.2     | 2026-04-13 | GitHub Copilot | Fixed C-3 (magic-byte validation on file uploads) |
+| 1.3     | 2026-04-13 | GitHub Copilot | Fixed A-5, H-4, H-1 (authenticated attachment downloads) |
 
 ---
 
@@ -37,14 +38,14 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | C-5 | Empty-string `organization_id` silently written to DB | 🔴 Critical | Data Integrity | Low |
 | A-1 | SMTP password stored as plaintext in config | 🔴 Critical | Security | Low |
 | A-2 | `GET /org` hierarchy endpoints unauthenticated | 🔴 Critical | Access Control | Low |
-| H-1 | Attachment delete: file path not traversal-checked | 🔴 High | Security | Low |
+| ~~H-1~~ | ~~Attachment delete: file path not traversal-checked~~ | ✅ Fixed 1.3 | Security | Low |
 | H-2 | Refresh token stored in `localStorage` (XSS risk) | 🔴 High | Security | Medium |
 | H-3 | Race condition in concurrent token refresh | 🔴 High | Reliability | Medium |
-| H-4 | `file_path` (internal server path) exposed in API | 🔴 High | Info Disclosure | Low |
+| ~~H-4~~ | ~~`file_path` (internal server path) exposed in API~~ | ✅ Fixed 1.3 | Info Disclosure | Low |
 | H-5 | Spurious `db.commit()` inside `get_db` session context | 🔴 High | Reliability | Low |
 | A-3 | `GET /tickets/{id}` missing org-scoped visibility check | 🔴 High | Access Control | Low |
 | A-4 | No refresh token revocation (TOTP bypass vector) | 🔴 High | Security | Medium |
-| A-5 | Uploaded files publicly accessible without auth | 🔴 High | Access Control | Medium |
+| ~~A-5~~ | ~~All uploaded attachments publicly accessible without authentication~~ | ✅ Fixed 1.3 | Access Control | Medium |
 | A-6 | No rate limiting on login, TOTP, upload endpoints | 🟡 High | Security | Low |
 | A-7 | No pagination on list/kanban endpoints | 🟡 High | Scalability | Medium |
 | A-8 | N+1 query in `get_descendants` (org hierarchy BFS) | 🟡 High | Performance | Low |
@@ -168,8 +169,10 @@ All GET endpoints under `/api/v1/organizations` are accessible without a valid t
 
 ---
 
-#### H-1 · Attachment delete: `file_path` not validated for path traversal
-**File:** [backend/app/api/v1/endpoints/tickets.py](backend/app/api/v1/endpoints/tickets.py) / attachment delete handler
+#### ~~H-1 · Attachment delete: `file_path` not validated for path traversal~~ ✅ Fixed in v1.3
+> **Resolution:** The new `download_attachment` endpoint (which replaced the StaticFiles mount) applies a path-traversal guard: `Path(attachment.file_path).resolve()` is checked to start with `Path(settings.UPLOAD_DIR).resolve()` before the file is served. The attachment `delete_attachment` service method retains the same guard that was already present.
+
+**File:** [backend/app/api/v1/endpoints/tickets.py](backend/app/api/v1/endpoints/tickets.py)
 **OWASP:** A01 – Broken Access Control
 
 The `file_path` stored in the database is passed directly to `os.remove()`. A database row with a crafted `file_path` (e.g. `../../etc/passwd`) could delete arbitrary files on the server.
@@ -204,7 +207,9 @@ When multiple API calls fire simultaneously and the access token has expired, ea
 
 ---
 
-#### H-4 · `file_path` (internal server filesystem path) exposed in API response
+#### ~~H-4 · `file_path` (internal server filesystem path) exposed in API response~~ ✅ Fixed in v1.3
+> **Resolution:** `file_path` has been removed from `AttachmentResponse`. The schema now exposes only `url` (a computed field pointing to the authenticated download endpoint), `filename`, `content_type`, `file_size`, and metadata IDs. Internal server paths are no longer visible to any client.
+
 **File:** [backend/app/schemas/ticket.py](backend/app/schemas/ticket.py) — `AttachmentResponse`
 **OWASP:** A05 – Security Misconfiguration
 
@@ -244,8 +249,14 @@ Refresh tokens are pure JWTs with no server-side revocation list. If a user enab
 
 ---
 
-#### A-5 · All uploaded attachments publicly accessible without authentication
-**File:** [backend/app/main.py](backend/app/main.py#L52)
+#### ~~A-5 · All uploaded attachments publicly accessible without authentication~~ ✅ Fixed in v1.3
+> **Resolution:**
+> - The broad `StaticFiles("/uploads")` mount has been replaced with a narrow `StaticFiles("/uploads/avatars")` mount that serves only avatar images (low-sensitivity profile photos).
+> - Ticket attachments are now served exclusively via `GET /api/v1/tickets/{ticket_id}/attachments/{attachment_id}/download`, which requires a valid `Bearer` token (`get_current_user` dependency). The endpoint also applies a path-traversal guard before serving the file (H-1).
+> - The `AttachmentResponse` schema `url` field now points to this authenticated endpoint. `file_path` is removed from the schema entirely (H-4).
+> - The frontend `AttachmentThumb` component fetches image data via the authenticated `apiClient` (which adds the `Authorization` header) and renders using an Object URL, since `<img src>` and `<a href>` do not send Bearer tokens on their own.
+
+**Files:** [backend/app/main.py](backend/app/main.py) · [backend/app/api/v1/endpoints/tickets.py](backend/app/api/v1/endpoints/tickets.py) · [backend/app/schemas/ticket.py](backend/app/schemas/ticket.py) · [frontend/src/components/tickets/AttachmentThumb.tsx](frontend/src/components/tickets/AttachmentThumb.tsx)
 **OWASP:** A01 – Broken Access Control
 
 ```python
@@ -254,13 +265,7 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 
 Any person who can guess or discover a file URL (e.g. via a browser history, link share, or guessing the UUID pattern) can download sensitive ticket attachments without logging in.
 
-**Fix:** Remove the `StaticFiles` mount. Serve attachments through an authenticated endpoint that verifies org-scoped access and then streams the file:
-```python
-@router.get("/{ticket_id}/attachments/{attachment_id}/download")
-async def download_attachment(ticket_id: str, attachment_id: str, current_user=Depends(get_current_user)):
-    # verify visibility, then stream
-    return FileResponse(attachment.file_path, media_type=attachment.content_type)
-```
+**Fix:** Remove the `StaticFiles` mount. Serve attachments through an authenticated endpoint that verifies org-scoped access and then streams the file.
 
 ---
 
@@ -381,7 +386,7 @@ These items represent active security vulnerabilities or data-integrity risks. *
 
 1. **Fix password reset flow (C-1, C-2, A-9) ✅ Done:** Token no longer returned in response; dedicated `password_reset` JWT type used.
 2. **Add magic-byte validation on uploads (C-3) ✅ Done:** Pillow magic-byte detection in `add_attachment` and `upload_avatar`; `Content-Type` header ignored.
-3. **Make file downloads authenticated (A-5):** Remove `StaticFiles` mount; proxy downloads through an authenticated endpoint.
+3. **Make file downloads authenticated (A-5) ✅ Done:** `StaticFiles` mount narrowed to avatars only; attachments served via auth endpoint; `AttachmentThumb` fetches blobs via apiClient. Also resolved H-4 and H-1.
 4. **Authenticate org endpoints (A-2):** Add `Depends(get_current_user)` to all `/organizations` routes.
 5. **Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.
 6. **Protect SMTP credentials (A-1):** Use Pydantic `SecretStr` for `smtp_password`.

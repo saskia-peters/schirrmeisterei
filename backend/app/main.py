@@ -17,8 +17,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler: creates upload directory structure on startup and disposes the DB engine on shutdown."""
     # Create upload directory tree
     #   uploads/
-    #     avatars/          ← one file per user, named {user_id}.{ext}
-    #     attachments/      ← sharded: attachments/{xx}/{uuid}.{ext}
+    #     avatars/          ← one file per user, named {user_id}.{ext}  (served as public static)
+    #     attachments/      ← sharded: attachments/{xx}/{uuid}.{ext}   (served via auth endpoint)
     for subdir in ("avatars", "attachments"):
         os.makedirs(os.path.join(settings.UPLOAD_DIR, subdir), exist_ok=True)
     yield
@@ -47,9 +47,12 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router)
 
-    # Serve uploaded files
-    if os.path.exists(settings.UPLOAD_DIR):
-        app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+    # Serve only avatar images as public static files.
+    # Ticket attachments are served via the authenticated
+    # GET /api/v1/tickets/{id}/attachments/{id}/download endpoint (A-5).
+    avatars_dir = os.path.join(settings.UPLOAD_DIR, "avatars")
+    if os.path.exists(avatars_dir):
+        app.mount("/uploads/avatars", StaticFiles(directory=avatars_dir), name="avatars")
 
     @app.get("/health")
     async def health() -> dict[str, str]:
