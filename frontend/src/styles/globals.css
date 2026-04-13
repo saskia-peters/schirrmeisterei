@@ -259,6 +259,39 @@ body { font-family: system-ui, -apple-system, sans-serif; background: var(--colo
 .form-row { display: flex; gap: 0.75rem; }
 .form-row .form-group { flex: 1; min-width: 0; }
 .form-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
+.form-hint { font-size: 0.75rem; font-weight: 400; color: var(--color-text-muted); }
+
+/* ── File upload in ticket form ── */
+.file-upload-label {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.4rem 0.75rem; border: 1px dashed var(--color-border);
+  border-radius: var(--radius); font-size: 0.875rem; cursor: pointer;
+  background: var(--color-secondary-bg); color: var(--color-text);
+  transition: border-color 0.15s, background 0.15s;
+}
+.file-upload-label:hover { border-color: var(--color-primary); background: #eef2ff; }
+.file-upload-input { display: none; }
+.file-list { list-style: none; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+.file-list-item {
+  display: flex; align-items: center; gap: 0.375rem;
+  font-size: 0.8125rem; padding: 0.25rem 0.5rem;
+  background: var(--color-secondary-bg); border-radius: var(--radius);
+  border: 1px solid var(--color-border);
+}
+.file-list-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.file-list-size { color: var(--color-text-muted); flex-shrink: 0; }
+.file-list-remove {
+  background: none; border: none; cursor: pointer; color: var(--color-text-muted);
+  font-size: 0.75rem; padding: 0.125rem 0.25rem; flex-shrink: 0;
+}
+.file-list-remove:hover { color: var(--color-danger); }
+
+/* ── Mobile: hide optional classification fields ── */
+@media (max-width: 640px) {
+  .form-optional-fields { display: none; }
+  .modal { border-radius: 0; max-height: 100dvh; height: 100dvh; }
+  .modal-overlay { padding: 0; align-items: flex-end; }
+}
 
 /* ── Priority Badges ── */
 .priority-badge { display: inline-block; padding: 0.125rem 0.4rem; border-radius: 999px; font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; margin-bottom: 0.25rem; }
