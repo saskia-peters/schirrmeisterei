@@ -45,7 +45,13 @@ class OrganizationService:
         return list(result.scalars().all())
 
     async def get_descendants(self, org_id: str) -> list[str]:
-        """Return all descendant org IDs (including the given org_id)."""
+        """Return all descendant org IDs (including the given org_id).
+
+        Current implementation: BFS with one SELECT per level -- acceptable at
+        ≤10 org nodes.  SCALE-UP (P-2): replace with a single PostgreSQL
+        recursive CTE when the org hierarchy grows or query latency increases.
+        See SCALING.md § Organisation Hierarchy and REVIEW.md P-2.
+        """
         ids: list[str] = [org_id]
         queue = [org_id]
         while queue:

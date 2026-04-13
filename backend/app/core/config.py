@@ -22,6 +22,14 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://ticketsystem:ticketsystem@localhost:5432/ticketsystem"
 
+    # Database connection pool
+    # Current defaults are sized for ≤30 concurrent users (single replica).
+    # See SCALING.md for recommended values at each growth tier.
+    DB_POOL_SIZE: int = 5           # raise to 20 at ~100 users (single replica)
+    DB_MAX_OVERFLOW: int = 10       # max extra connections beyond pool_size
+    DB_POOL_RECYCLE: int = 1800     # seconds — recycle idle connections to avoid stale sockets
+    DB_POOL_PRE_PING: bool = True   # validate connection before use; negligible overhead
+
     # CORS
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]
 

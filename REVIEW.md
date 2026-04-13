@@ -7,6 +7,9 @@
 | 1.2     | 2026-04-13 | GitHub Copilot | Fixed C-3 (magic-byte validation on file uploads) |
 | 1.3     | 2026-04-13 | GitHub Copilot | Fixed A-5, H-4, H-1 (authenticated attachment downloads) |
 | 1.4     | 2026-04-13 | GitHub Copilot | Fixed A-2 (org hierarchy `GET /` requires authentication) |
+| 1.5     | 2026-04-13 | GitHub Copilot | Fixed attachment delete regression (`import aiofiles.os`); added new findings N-1–N-13, NEW-1–NEW-3; added 500+ user scale-up action plan |
+| 1.6     | 2026-04-13 | GitHub Copilot | Fixed S-1 (org-scope bypass on all ticket sub-resource endpoints) |
+| 1.7     | 2026-04-13 | GitHub Copilot | Added SCALING.md; added env-configurable DB pool settings; added scale-up code comments; rescheduled roadmap for 20–30-user baseline |
 
 ---
 
@@ -64,6 +67,22 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | A-12 | No structured logging or observability | 🟡 Medium | Operability | Medium |
 | A-13 | DB connection pool uses default size (too small) | 🟡 Medium | Performance | Low |
 | L-1–L-6 | Minor code style / UX inconsistencies | 🟢 Low | Code Quality | Low |
+| **N-1** | **All ticket mutation endpoints lack org-scope check (A-3 scope extension)** | 🔴 Critical | Access Control | Low |
+| **N-2** | **File attachments on local disk — HA blocker for horizontal scaling** | 🔴 Critical | High Availability | High |
+| **N-3** | **DB pool default size (5) — exhausted under 500-user load** | 🔴 Critical | Performance | Low |
+| **N-4** | **Eager-load of full ticket graph on every list/board request** | 🟠 High | Performance / Memory | Medium |
+| **N-5** | **File upload buffers entire content before size check — DoS vector** | 🟠 High | Security / Reliability | Low |
+| **N-6** | **SMTP password stored in plaintext in PostgreSQL (at-rest)** | 🟠 High | Cryptographic Failure | Medium |
+| **N-7** | **TOTP code replay not prevented within 30-second window** | 🟠 High | Authentication | Low |
+| **N-8** | **`/health` does not validate DB connectivity — misleads orchestrators** | 🟡 Medium | Operability | Low |
+| **N-9** | **Single PostgreSQL instance — no HA, no failover** | 🔴 Critical | High Availability | High |
+| **N-10** | **No shared cache/state layer — per-process rate limiting ineffective at scale** | 🟠 High | HA / Security | Medium |
+| **N-11** | **`ALLOWED_ORIGINS` hardcoded to `localhost` in production compose** | 🟡 Medium | Security Misconfiguration | Low |
+| **N-12** | **No structured logging or request correlation IDs** | 🟡 Medium | Operability | Medium |
+| **N-13** | **PKs stored as `String(36)` text UUIDs instead of native PostgreSQL UUID** | 🟢 Low | Performance | Medium |
+| **NEW-1** | **C-3 fix silently blocks non-image attachments (PDFs, etc.)** | 🟡 Medium | Correctness | Low |
+| **NEW-2** | **Comment update/delete don't enforce `ticket_id` FK in query** | 🔴 High | Access Control | Low |
+| **NEW-3** | **`/auth/refresh` bypasses TOTP on stolen refresh token** | 🔴 High | Authentication | Medium |
 
 ---
 
@@ -387,11 +406,11 @@ These items represent active security vulnerabilities or data-integrity risks. *
 2. **Add magic-byte validation on uploads (C-3) ✅ Done:** Pillow magic-byte detection in `add_attachment` and `upload_avatar`; `Content-Type` header ignored.
 3. **Make file downloads authenticated (A-5) ✅ Done:** `StaticFiles` mount narrowed to avatars only; attachments served via auth endpoint; `AttachmentThumb` fetches blobs via apiClient. Also resolved H-4 and H-1.
 4. **Authenticate org endpoints (A-2) ✅ Done:** `GET /organizations/` requires auth. Registration-dropdown endpoints remain public by design.
-5. **Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.
-6. **Protect SMTP credentials (A-1):** Use Pydantic `SecretStr` for `smtp_password`.
-7. **Fix blocking `os.remove` (C-4):** Replace with `await asyncio.to_thread(os.remove, ...)`.
+5. ~~**Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.~~ ✅ Done
+6. ~~**Protect SMTP credentials (A-1):** Use Pydantic `SecretStr` for `smtp_password`.~~ ✅ Done
+7. ~~**Fix blocking `os.remove` (C-4):** Replace with `await asyncio.to_thread(os.remove, ...)`.~~ ✅ Done
 8. ~~**Remove `file_path` from API response (H-4):** Expose only `download_url` and `file_name`.~~ ✅ Done (v1.3)
-9. **Remove spurious `db.commit()` in `get_db` (H-5):** Commits must be explicit in service methods only.
+9. ~~**Remove spurious `db.commit()` in `get_db` (H-5):** Commits must be explicit in service methods only.~~ ✅ Done
 10. ~~**Fix path traversal check on attachment delete (H-1):** Validate resolved path is within upload root.~~ ✅ Done
 
 ---
@@ -427,6 +446,108 @@ Sustainability, observability, and developer experience improvements.
 28. **Move admin config-item CRUD to `ConfigService` (M-6):** Consistent service layer pattern.
 29. **Validate ConfigItem type on assignment (A-10):** Prevent categories being used as priorities.
 30. **Expand test coverage (see Section 5):** Admin endpoints, `users.py`, `TicketDetail`, `KanbanBoard`.
+
+---
+
+## Scale-Up Action Plan — 500+ Concurrent Users
+
+> **v1.7 — Updated 2026-04-13 to reflect the current 20–30-user baseline.**
+>
+> The system is currently deployed for **20–30 concurrent users** on a single-instance stack.
+> Infrastructure-heavy items (object storage, managed HA PostgreSQL, Redis, PgBouncer) are
+> **intentionally deferred** — they are not needed at this scale and would add unnecessary
+> operational burden.  All deferred items are annotated with `⏸ Deferred` below.
+>
+> For the step-by-step growth guide (what to do at 50 / 100 / 300 / 500 users), configuration
+> values, and exact file locations, see **[SCALING.md](SCALING.md)**.
+>
+> Code comments tagged `SCALE-UP` throughout the codebase point directly to the spots that
+> need to change when a tier boundary is crossed.
+
+---
+
+### Tier 0 — Security Blockers (Fix before any deployment, regardless of scale)
+
+These remain active vulnerabilities at any user count:
+
+| # | Finding | Action | Effort |
+|---|---------|--------|--------|
+| ~~S-1~~ | ~~**N-1 / A-3** — All ticket sub-resource endpoints bypass org-scope~~ ✅ Fixed v1.6 | ~~Add `_assert_ticket_visible(ticket, user, db)` helper called after every `get_by_id_or_raise`; return 404 on mismatch~~ | Low |
+| S-2 | **NEW-2** — Comment update/delete don't bind to `ticket_id` | Add `Comment.ticket_id == ticket.id` constraint to `update_comment` / `delete_comment` queries in `ticket_service.py` | Low |
+| S-3 | **N-7** — TOTP code replay within 30-second window | Add `last_totp_code` + `last_totp_used_at` columns to `User`; reject reuse in `verify_totp` | Low + 1 migration |
+| S-4 | **A-4 / NEW-3** — No refresh token revocation; TOTP bypassed via stolen refresh token | Store JTI in a `refresh_tokens` table (or Redis set with TTL); check JTI on every `/auth/refresh`; delete on logout / TOTP enable | Medium |
+| S-5 | **A-6** — No rate limiting on login, TOTP, reset endpoints | Add `slowapi` + Redis backend; apply `@limiter.limit("10/minute")` to `/auth/login`, `/auth/totp/verify`, `/auth/password-reset/request` | Low |
+| S-6 | **N-6** — SMTP password plaintext in DB (A-1 partially fixed) | Add SQLAlchemy `TypeDecorator` (Fernet, key from `SECRET_KEY` via HKDF) for `smtp_password` column; one-time data migration | Medium |
+| S-7 | **H-2** — Refresh token in `localStorage` — XSS exfiltration | Move refresh token to `HttpOnly; Secure; SameSite=Strict` cookie; update `/auth/refresh` to read from cookie; remove token from Zustand persistence | Medium |
+| S-8 | **H-3** — Race condition in concurrent token refresh | Add `refreshPromise` singleton in Axios interceptor (`client.ts`); queue concurrent 401s to await the same promise | Low |
+| S-9 | **N-11** — `ALLOWED_ORIGINS` hardcoded `localhost` in production compose | Move to `ALLOWED_ORIGINS` env var with no default; fail startup in production if unset; restrict `allow_methods` to `["GET","POST","PATCH","DELETE","OPTIONS"]` | Low |
+
+---
+
+### Tier 1 — HA Blockers (Required before horizontal scaling)
+
+These block zero-downtime deployment, multi-replica operation, or disaster recovery:
+
+| # | Finding | Action | Effort |
+|---|---------|--------|--------|
+| H-1 | **N-2** — Local disk storage not shared across replicas | Migrate to **MinIO** (self-hosted, S3-compatible) or AWS S3/GCS. Replace `aiofiles.open` + `FileResponse` with `aioboto3` `put_object` / pre-signed URL. Add `STORAGE_BACKEND` config. | High |
+| H-2 | **N-3** — DB pool `pool_size=5` — exhausted under 500-user load | Set `pool_size=20, max_overflow=30, pool_timeout=30, pool_recycle=1800, pool_pre_ping=True` in `session.py`; make values env-configurable | Low (1-line fix) |
+| H-3 | **N-9** — Single PostgreSQL instance — SPOF | Use a managed PostgreSQL with Multi-AZ (RDS, Cloud SQL) or deploy Patroni + HAProxy. Add `DATABASE_READ_URL` for read replicas. | High (Infra) |
+| H-4 | **N-10** — No Redis — per-process rate limiting broken at scale | Add `redis:7` service to `docker-compose.yml`; wire to `slowapi` (S-5) and JTI store (S-4); cache org-hierarchy lookups (5-min TTL, invalidate on org write) | Medium |
+| H-5 | **N-8** — `/health` always returns 200 | Add `/readiness` endpoint with `SELECT 1` DB ping (for orchestrator routing); keep `/health` as simple `/liveness` (no DB, fast crash-loop detection) | Low |
+| H-6 | **PgBouncer** — DB connection fan-in | Deploy PgBouncer in transaction mode in front of PostgreSQL. The backend pool speaks to PgBouncer; PgBouncer caps server-side connections at PostgreSQL's `max_connections` (set to 200). This allows 50+ backend pool connections without exploding the DB server. | Medium (Infra) |
+
+---
+
+### Tier 2 — Performance (Required to sustain 500 users at acceptable latency)
+
+At 20–30 users the current eager-load and BFS patterns are fine.  Add pagination (P-1) early — it is cheap and prevents regressions as ticket volume grows.
+
+| # | Finding | Action | Effort | Phase |
+|---|---------|--------|--------|-------|
+| P-1 | **A-7** — No pagination | Add `skip: int = 0, limit: int = 100` to `list_all`, `list_by_status`, Kanban board. Cap `limit` at 200 server-side. Return `PaginatedResponse[TicketSummary]`. | Medium | Do early — cheap, prevents DoS as ticket count grows |
+| P-2 | **A-8 + N-4** — N+1 org query + eager-load of full graph on every list | Replace BFS org lookup with PostgreSQL recursive CTE. Split into `_ticket_summary_options()` / `_ticket_detail_options()`. See `SCALE-UP` comment in `ticket_service.py`. | Medium | ⏸ Deferred — needed at 100+ users |
+| P-3 | **N-4** — Kanban board loads all relationships | Kanban endpoint returns `TicketSummary` only. See `SCALE-UP` comment in `ticket_service.py`. | Medium | ⏸ Deferred — needed at 100+ users |
+| P-4 | **N-5** — Upload buffers full file before size check | Read in chunks (see `SCALE-UP` comment in `ticket_service.py`). Add `client_max_body_size 11M;` to `nginx.conf` (commented out, ready to enable). | Low | Do when raising `MAX_UPLOAD_SIZE_MB` |
+| P-5 | **N-10** (caching) | Cache `get_visible_org_ids` in Redis with 5-min TTL per org ID, invalidate on org write. | Medium | ⏸ Deferred — requires Redis (H-4) |
+| P-6 | **N-13** — Text UUID PKs | Migrate PKs to PostgreSQL native `UUID` type. Pure Alembic migration. | Medium (Migration) | ⏸ Deferred — do during a planned maintenance window before traffic spikes |
+
+---
+
+### Tier 3 — Operability (Required to operate a 500-user system safely)
+
+| # | Finding | Action | Effort |
+|---|---------|--------|--------|
+| O-1 | **N-12 / A-12** — No structured logging | Add `structlog` with JSON output. Add `asgi-correlation-id` middleware for `X-Request-ID` propagation. Log: `login.success`, `login.failure`, `token.refresh`, `permission.denied`, `totp.fail`, `attachment.upload`, `ticket.status_change`. | Medium |
+| O-2 | **NEW-1** — C-3 fix blocks all non-image attachments | Decide: images-only (document explicitly, improve error message) **or** extend to PDFs (add `_detect_pdf_mime` via magic bytes `%PDF`). Either way, the product decision must be made now before users hit this. | Low |
+| O-3 | **M-8** — Silent mutation failures | Add default `onError` toast handler in `useApi.ts` base mutations. One implementation, covers all 25+ mutation hooks. | Low |
+| O-4 | **A-10** — `ConfigItem` polymorphism without type constraints | Add a `CHECK` constraint or trigger to prevent `category` items being assigned as `priority`. | Low + Migration |
+| O-5 | **Section 5 test gaps** | At minimum: permission enforcement test per role-gated endpoint; org-scope bypass test for ticket sub-resources (verify the S-1 fix); TOTP replay prevention test. | Medium |
+| O-6 | Dependency audit | Run `uv audit` (backend) and `pnpm audit` (frontend) before production; fix any CVEs. Pin all dependency versions in lockfiles. | Low (ongoing) |
+
+---
+
+### Summary: Critical Path to 500-User Production
+
+For the full growth guide including trigger conditions and exact config values see **[SCALING.md](SCALING.md)**.
+
+```
+S-1 → S-4 → S-5         (security must be clean before going live)
+  ↓         ↓
+H-2 → H-4 → H-1         (HA: Redis → object storage — longest lead time)
+              ↓
+          H-3 / H-6      (managed DB + PgBouncer)
+              ↓
+     P-1 → P-2 → P-3     (pagination + query optimisation)
+              ↓
+          O-1 → O-5       (observability + tests)
+```
+
+**Minimum viable production set** (can go live with 500 users once these are done):
+S-1, S-3, S-4, S-5, S-7, S-9, H-2, H-4, H-5, H-6, P-1, P-4, O-2
+
+**Hard HA blockers** (horizontal scaling physically impossible without these):
+H-1 (object storage), H-3 (managed DB), H-4 (Redis)
 
 ---
 

@@ -39,6 +39,15 @@ async def _get_visible_org_ids(user: User, db: AsyncSession) -> list[str] | None
     return await org_svc.get_visible_org_ids(user.organization_id)
 
 
+async def _assert_ticket_visible(ticket: Ticket, user: User, db: AsyncSession) -> None:
+    """Raise NotFoundException if `ticket` is not in the caller's visible org scope (S-1)."""
+    if user.is_superuser:
+        return
+    org_ids = await _get_visible_org_ids(user, db)
+    if org_ids is not None and ticket.organization_id not in org_ids:
+        raise NotFoundException("Ticket")
+
+
 @router.get("/board", response_model=KanbanBoard)
 async def get_kanban_board(
     db: AsyncSession = Depends(get_db),
@@ -96,11 +105,13 @@ async def create_ticket(
 async def get_ticket(
     ticket_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Ticket:
     """Fetch a single ticket by UUID, raising 404 if not found."""
     service = TicketService(db)
-    return await service.get_by_id_or_raise(ticket_id)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
+    return ticket
 
 
 @router.patch("/{ticket_id}", response_model=TicketResponse)
@@ -113,6 +124,7 @@ async def update_ticket(
     """Partially update a ticket's fields."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     return await service.update(ticket, data, current_user.id)
 
 
@@ -137,6 +149,7 @@ async def update_ticket_status(
 
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     return await service.update_status(ticket, data, current_user.id)
 
 
@@ -145,11 +158,12 @@ async def update_waiting_for(
     ticket_id: str,
     data: WaitingForUpdate,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> Ticket:
     """Edit the 'waiting for' reason while the ticket is in waiting status."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     if ticket.status != TicketStatus.WAITING:
         raise ValidationException("Ticket is not in waiting status")
     return await service.update_waiting_for(ticket, data)
@@ -164,6 +178,7 @@ async def delete_ticket(
     """Delete a ticket. Only the creator or a superuser may delete a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     if ticket.creator_id != current_user.id and not current_user.is_superuser:
         raise ForbiddenException()
     await service.delete(ticket)
@@ -181,6 +196,7 @@ async def upload_attachment(
     """Upload an image attachment to a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     attachment = await service.add_attachment(ticket, file, current_user.id)
     return AttachmentResponse.model_validate(attachment)
 
@@ -194,7 +210,8 @@ async def delete_attachment(
 ) -> None:
     """Delete an attachment from a ticket. Only the uploader or a superuser may delete it."""
     service = TicketService(db)
-    await service.get_by_id_or_raise(ticket_id)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     await service.delete_attachment(attachment_id, current_user.id, current_user.is_superuser)
 
 
@@ -206,7 +223,12 @@ async def download_attachment(
     current_user: User = Depends(get_current_user),
 ) -> FileResponse:
     """Download an attachment. Requires authentication; verifies the attachment
-    belongs to the requested ticket (A-5)."""
+    belongs to the requested ticket and that the ticket is visible to the caller (A-5, S-1)."""
+    # S-1: verify the ticket exists and is within the caller's org scope
+    service = TicketService(db)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
+
     result = await db.execute(
         select(Attachment).where(
             Attachment.id == attachment_id,
@@ -243,6 +265,7 @@ async def add_comment(
     """Add a comment to a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     comment = await service.add_comment(ticket, data, current_user.id)
     return CommentResponse.model_validate(comment)
 
@@ -257,7 +280,8 @@ async def update_comment(
 ) -> CommentResponse:
     """Edit a comment's content. Only the author or a superuser may edit it."""
     service = TicketService(db)
-    await service.get_by_id_or_raise(ticket_id)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     comment = await service.update_comment(comment_id, data, current_user.id, current_user.is_superuser)
     return CommentResponse.model_validate(comment)
 
@@ -271,7 +295,8 @@ async def delete_comment(
 ) -> None:
     """Delete a comment from a ticket. Only the author or a superuser may delete it."""
     service = TicketService(db)
-    await service.get_by_id_or_raise(ticket_id)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     await service.delete_comment(comment_id, current_user.id, current_user.is_superuser)
 
 
@@ -281,9 +306,10 @@ async def delete_comment(
 async def get_status_log(
     ticket_id: str,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> list[StatusLogResponse]:
     """Return the full status-change history for a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
     return [StatusLogResponse.model_validate(log) for log in ticket.status_logs]

@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import aiofiles
+import aiofiles.os
 from fastapi import UploadFile
 from PIL import Image, UnidentifiedImageError
 from sqlalchemy import select
@@ -73,6 +74,11 @@ class TicketService:
 
     async def list_all(self, org_ids: list[str] | None = None) -> list[Ticket]:
         """Return all tickets, optionally restricted to the given organisation IDs."""
+        # SCALE-UP (P-3): at higher ticket counts split this into two option sets:
+        #   _ticket_summary_options()  -- id/title/status/priority/org/assignee only
+        #   _ticket_detail_options()   -- full graph incl. comments + status_logs
+        # Use summary options for list/board, detail options for GET /{id}.
+        # See SCALING.md § Query Optimisation and REVIEW.md P-2/P-3.
         stmt = select(Ticket).options(
             selectinload(Ticket.organization),
             selectinload(Ticket.creator).selectinload(User.organization),
@@ -237,6 +243,16 @@ class TicketService:
     ) -> Attachment:
         """Validate, save and persist a file attachment for the given ticket."""
         max_size = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        # SCALE-UP (P-4): at higher user counts read the file in chunks to avoid
+        # buffering the entire upload in memory before the size check:
+        #   buf = b""
+        #   async for chunk in file:
+        #       buf += chunk
+        #       if len(buf) > max_size:
+        #           raise ValidationException(...)
+        #   contents = buf
+        # Also add `client_max_body_size 11M;` to nginx.conf at the same time.
+        # See SCALING.md § File Uploads.
         contents = await file.read()
         if len(contents) > max_size:
             from app.core.exceptions import ValidationException

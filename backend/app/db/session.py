@@ -5,10 +5,16 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
+# Pool settings are configured via environment variables (DB_POOL_SIZE etc.).
+# See SCALING.md for recommended values at each growth tier.
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
     future=True,
+    pool_size=settings.DB_POOL_SIZE,
+    max_overflow=settings.DB_MAX_OVERFLOW,
+    pool_recycle=settings.DB_POOL_RECYCLE,
+    pool_pre_ping=settings.DB_POOL_PRE_PING,
     connect_args={"server_settings": {"search_path": "ticketsystem"}},
 )
 
