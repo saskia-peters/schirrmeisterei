@@ -10,6 +10,7 @@
 | 1.5     | 2026-04-13 | GitHub Copilot | Fixed attachment delete regression (`import aiofiles.os`); added new findings N-1–N-13, NEW-1–NEW-3; added 500+ user scale-up action plan |
 | 1.6     | 2026-04-13 | GitHub Copilot | Fixed S-1 (org-scope bypass on all ticket sub-resource endpoints) |
 | 1.7     | 2026-04-13 | GitHub Copilot | Added SCALING.md; added env-configurable DB pool settings; added scale-up code comments; rescheduled roadmap for 20–30-user baseline |
+| 1.8     | 2026-04-13 | GitHub Copilot | Fixed S-2 (comment update/delete now enforce `ticket_id` binding) |
 
 ---
 
@@ -81,7 +82,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | **N-12** | **No structured logging or request correlation IDs** | 🟡 Medium | Operability | Medium |
 | **N-13** | **PKs stored as `String(36)` text UUIDs instead of native PostgreSQL UUID** | 🟢 Low | Performance | Medium |
 | **NEW-1** | **C-3 fix silently blocks non-image attachments (PDFs, etc.)** | 🟡 Medium | Correctness | Low |
-| **NEW-2** | **Comment update/delete don't enforce `ticket_id` FK in query** | 🔴 High | Access Control | Low |
+| ~~**NEW-2**~~ | ~~**Comment update/delete don't enforce `ticket_id` FK in query**~~ ✅ Fixed v1.8 | ~~🔴 High~~ | Access Control | Low |
 | **NEW-3** | **`/auth/refresh` bypasses TOTP on stolen refresh token** | 🔴 High | Authentication | Medium |
 
 ---
@@ -473,7 +474,7 @@ These remain active vulnerabilities at any user count:
 | # | Finding | Action | Effort |
 |---|---------|--------|--------|
 | ~~S-1~~ | ~~**N-1 / A-3** — All ticket sub-resource endpoints bypass org-scope~~ ✅ Fixed v1.6 | ~~Add `_assert_ticket_visible(ticket, user, db)` helper called after every `get_by_id_or_raise`; return 404 on mismatch~~ | Low |
-| S-2 | **NEW-2** — Comment update/delete don't bind to `ticket_id` | Add `Comment.ticket_id == ticket.id` constraint to `update_comment` / `delete_comment` queries in `ticket_service.py` | Low |
+| ~~S-2~~ | ~~**NEW-2** — Comment update/delete don't bind to `ticket_id`~~ ✅ Fixed v1.8 | ~~Add `Comment.ticket_id == ticket.id` constraint to `update_comment` / `delete_comment` queries in `ticket_service.py`~~ | Low |
 | S-3 | **N-7** — TOTP code replay within 30-second window | Add `last_totp_code` + `last_totp_used_at` columns to `User`; reject reuse in `verify_totp` | Low + 1 migration |
 | S-4 | **A-4 / NEW-3** — No refresh token revocation; TOTP bypassed via stolen refresh token | Store JTI in a `refresh_tokens` table (or Redis set with TTL); check JTI on every `/auth/refresh`; delete on logout / TOTP enable | Medium |
 | S-5 | **A-6** — No rate limiting on login, TOTP, reset endpoints | Add `slowapi` + Redis backend; apply `@limiter.limit("10/minute")` to `/auth/login`, `/auth/totp/verify`, `/auth/password-reset/request` | Low |

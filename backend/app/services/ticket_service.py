@@ -329,10 +329,17 @@ class TicketService:
         return comment
 
     async def update_comment(
-        self, comment_id: str, data: CommentUpdate, user_id: str, is_superuser: bool
+        self, comment_id: str, ticket_id: str, data: CommentUpdate, user_id: str, is_superuser: bool
     ) -> Comment:
-        """Update a comment's content. Raises ForbiddenException if the caller is not the author."""
-        result = await self.db.execute(select(Comment).where(Comment.id == comment_id))
+        """Update a comment's content. Raises ForbiddenException if the caller is not the author.
+
+        `ticket_id` is required and must match the comment's own ticket_id (S-2): this
+        prevents a caller from editing a comment on a different ticket by supplying a
+        mismatched (ticket_id, comment_id) pair.
+        """
+        result = await self.db.execute(
+            select(Comment).where(Comment.id == comment_id, Comment.ticket_id == ticket_id)
+        )
         comment = result.scalar_one_or_none()
         if comment is None:
             raise NotFoundException("Comment")
@@ -343,9 +350,16 @@ class TicketService:
         await self.db.refresh(comment)
         return comment
 
-    async def delete_comment(self, comment_id: str, user_id: str, is_superuser: bool) -> None:
-        """Delete a comment. Raises ForbiddenException if the caller is not the author."""
-        result = await self.db.execute(select(Comment).where(Comment.id == comment_id))
+    async def delete_comment(self, comment_id: str, ticket_id: str, user_id: str, is_superuser: bool) -> None:
+        """Delete a comment. Raises ForbiddenException if the caller is not the author.
+
+        `ticket_id` is required and must match the comment's own ticket_id (S-2): this
+        prevents a caller from deleting a comment on a different ticket by supplying a
+        mismatched (ticket_id, comment_id) pair.
+        """
+        result = await self.db.execute(
+            select(Comment).where(Comment.id == comment_id, Comment.ticket_id == ticket_id)
+        )
         comment = result.scalar_one_or_none()
         if comment is None:
             raise NotFoundException("Comment")

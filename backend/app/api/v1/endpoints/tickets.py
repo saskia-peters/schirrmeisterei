@@ -282,7 +282,7 @@ async def update_comment(
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     await _assert_ticket_visible(ticket, current_user, db)
-    comment = await service.update_comment(comment_id, data, current_user.id, current_user.is_superuser)
+    comment = await service.update_comment(comment_id, ticket_id, data, current_user.id, current_user.is_superuser)
     return CommentResponse.model_validate(comment)
 
 
@@ -297,7 +297,7 @@ async def delete_comment(
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     await _assert_ticket_visible(ticket, current_user, db)
-    await service.delete_comment(comment_id, current_user.id, current_user.is_superuser)
+    await service.delete_comment(comment_id, ticket_id, current_user.id, current_user.is_superuser)
 
 
 # ─── Status Log ───────────────────────────────────────────────────────────────
