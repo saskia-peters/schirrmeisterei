@@ -50,10 +50,8 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
         allow_credentials=True,
-        # SCALE-UP (S-9): restrict to ["GET","POST","PATCH","DELETE","OPTIONS"]
-        # before production deployment. See SCALING.md § CORS.
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],  # S-9: explicit allowlist
+        allow_headers=["Authorization", "Content-Type"],  # S-9: explicit allowlist
     )
 
     app.include_router(api_router)

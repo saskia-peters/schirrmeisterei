@@ -34,7 +34,7 @@ Work top-to-bottom; each tier assumes the previous one is complete.
 
 | Tier | When to act | Trigger signal | Actions |
 |------|------------|---------------|---------|
-| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-9) |
+| **0 — Security** | ✅ All Tier-0 items resolved | — | All S-1 … S-9 fixed; see REVIEW.md for details |
 | **1 — 30–50 users** | Pilot feedback period | Occasional slow page loads (P95 > 1 s) | Pool tuning, pagination, chunked uploads |
 | **2 — 50–100 users** | Early production growth | DB connection errors in logs | Readiness endpoint, structured logging, migrate `/health` |
 | **3 — 100–300 users** | Sustained production use | Multi-replica needed OR rate-limit gaps exposed | Redis (rate limit + JTI + org cache), refresh-token revocation |
@@ -61,7 +61,10 @@ See REVIEW.md Tier-0 table for the full list.  Priority order:
 7. ~~**S-8** — Concurrent token refresh race condition~~ ✅ Fixed v2.4
    - `refreshPromise` module-level singleton in `client.ts`; concurrent 401s all await the same promise
    - Promise cleared in `.finally()` so subsequent genuine token expiries start a fresh refresh
-8. **S-9** — `ALLOWED_ORIGINS` hardcoded to `localhost` in production compose
+8. ~~**S-9** — `ALLOWED_ORIGINS` hardcoded to `localhost` in production compose~~ ✅ Fixed v2.5
+   - `allow_methods` restricted to `["GET","POST","PATCH","DELETE","OPTIONS"]`; `allow_headers` to `["Authorization","Content-Type"]`
+   - `ALLOWED_ORIGINS` env var required (no default) in `docker-compose.yml` + `deploy/docker-compose.yml`
+   - `config.py` startup validator rejects localhost/wildcard origins in `ENVIRONMENT=production`
 
 ---
 
@@ -193,28 +196,13 @@ Log key security events:
 
 This is also required for meaningful incident analysis if a security event is reported.
 
-### 2.3 CORS Hardening
+### 2.3 CORS Hardening ✅ Fixed v2.5
 
-**File:** `backend/app/main.py` (see `SCALE-UP (S-9)` comment)
-**REVIEW.md:** S-9
+~~**File:** `backend/app/main.py` (see `SCALE-UP (S-9)` comment)~~
+~~**REVIEW.md:** S-9~~
 
-Replace `allow_methods=["*"]` with an explicit list:
-
-```python
-allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-```
-
-Also move `ALLOWED_ORIGINS` out of the compose file default and require it to be set
-explicitly in production:
-
-```python
-# config.py — add:
-@model_validator(mode="after")
-def validate_allowed_origins(self) -> "Settings":
-    if self.ENVIRONMENT == "production" and "localhost" in str(self.ALLOWED_ORIGINS):
-        raise ValueError("ALLOWED_ORIGINS must not contain localhost in production")
-    return self
-```
+**Done:** `allow_methods` and `allow_headers` are now explicit allowlists; `ALLOWED_ORIGINS` is required
+in production (no localhost default); `config.py` validator rejects unsafe origins at startup.
 
 ---
 
@@ -515,20 +503,20 @@ All `SCALE-UP` comments in the codebase:
 | `backend/app/services/ticket_service.py` | `SCALE-UP (P-4)` | Chunked file upload reads |
 | `backend/app/services/ticket_service.py` | `SCALE-UP (P-3)` | Split eager-load into summary/detail options |
 | `backend/app/services/organization_service.py` | `SCALE-UP (P-2)` | Replace BFS with recursive CTE |
-| `backend/app/main.py` | `SCALE-UP (S-9)` | Restrict `allow_methods` |
+| ~~`backend/app/main.py`~~ | ~~`SCALE-UP (S-9)`~~ | ~~Restrict `allow_methods`~~ ✅ Fixed v2.5 |
 | `frontend/nginx.conf` | `SCALE-UP (P-4)` | Uncomment `client_max_body_size` |
 
 ---
 
 ## Quick Checklist: Before Go-Live (Any Scale)
 
-- [ ] `SECRET_KEY` changed from default (enforced at startup in non-dev `ENVIRONMENT`)
-- [ ] `ALLOWED_ORIGINS` set to actual domain(s), no `localhost`
-- [ ] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` validator)
+- [x] `SECRET_KEY` changed from default (enforced at startup in non-dev `ENVIRONMENT`)
+- [x] `ALLOWED_ORIGINS` set to actual domain(s), no `localhost` (enforced at startup) ✅ S-9 v2.5
+- [x] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` + `ALLOWED_ORIGINS` validators)
 - [ ] `POSTGRES_PASSWORD` changed from default
 - [x] Tier-0 security item S-7 resolved (refresh token → HttpOnly cookie) ✅ v2.3
 - [x] Tier-0 security item S-8 resolved (concurrent refresh race condition) ✅ v2.4
-- [ ] Tier-0 security item S-9 in REVIEW.md resolved
+- [x] Tier-0 security item S-9 resolved (CORS hardening) ✅ v2.5
 - [ ] `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` reviewed against expected concurrency
 - [ ] Backups configured for the `postgres-data` Docker volume
 - [ ] Uploaded attachments volume (`backend-uploads`) included in backup scope

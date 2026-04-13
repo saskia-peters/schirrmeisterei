@@ -30,7 +30,9 @@ class Settings(BaseSettings):
     DB_POOL_RECYCLE: int = 1800     # seconds — recycle idle connections to avoid stale sockets
     DB_POOL_PRE_PING: bool = True   # validate connection before use; negligible overhead
 
-    # CORS
+    # CORS (S-9)
+    # In production ALLOWED_ORIGINS must be a real domain — no localhost, no wildcard.
+    # Example: ALLOWED_ORIGINS=["https://ticketsystem.example.com"]
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8080"]
 
     # File uploads
@@ -64,6 +66,14 @@ class Settings(BaseSettings):
                 "COOKIE_SECURE must be True in production (refresh token cookie "
                 "requires HTTPS). Set COOKIE_SECURE=true in your environment."
             )
+        # S-9: reject localhost-only or wildcard ALLOWED_ORIGINS in production
+        if self.ENVIRONMENT == "production":
+            _bad = {"*", "http://localhost:3000", "http://localhost:8080", "http://localhost"}
+            if not self.ALLOWED_ORIGINS or all(o in _bad for o in self.ALLOWED_ORIGINS):
+                raise ValueError(
+                    "ALLOWED_ORIGINS must be set to real domain(s) in production. "
+                    "Example: ALLOWED_ORIGINS=[\"https://ticketsystem.example.com\"]"
+                )
         return self
 
 

@@ -37,7 +37,7 @@ services:
       - ENVIRONMENT=production
       - SECRET_KEY=${SECRET_KEY:?Set SECRET_KEY in .env}
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-ticketsystem}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ticketsystem}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-["http://localhost:8080"]}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:?Set ALLOWED_ORIGINS in .env, e.g. [\"https://your-domain.com\"]}
       - UPLOAD_DIR=/data/uploads
       - MAX_UPLOAD_SIZE_MB=${MAX_UPLOAD_SIZE_MB:-10}
     volumes:

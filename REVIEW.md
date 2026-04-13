@@ -482,7 +482,7 @@ These remain active vulnerabilities at any user count:
 | ~~S-6~~ | ~~**N-6** — SMTP password plaintext in DB (A-1 partially fixed)~~ ✅ Fixed v2.2 | ~~Add SQLAlchemy `TypeDecorator` (Fernet, key from `SECRET_KEY` via HKDF) for `smtp_password` column; one-time data migration~~ | Medium |
 | ~~S-7~~ | ~~**H-2** — Refresh token in `localStorage` — XSS exfiltration~~ ✅ Fixed v2.3 | ~~Move refresh token to `HttpOnly; Secure; SameSite=Strict` cookie; `/auth/login` and `/auth/refresh` set cookie and return only `access_token` in body; `/auth/logout` clears cookie; `refreshToken` removed from Zustand store and `localStorage` persistence; `COOKIE_SECURE` config flag (must be `True` in production)~~ | Medium |
 | ~~S-8~~ | ~~**H-3** — Race condition in concurrent token refresh~~ ✅ Fixed v2.4 | ~~Add `refreshPromise` singleton in Axios interceptor (`client.ts`); concurrent 401s queue onto the same in-flight refresh call; promise cleared in `.finally()` so the next genuine expiry starts a fresh refresh~~ | Low |
-| S-9 | **N-11** — `ALLOWED_ORIGINS` hardcoded `localhost` in production compose | Move to `ALLOWED_ORIGINS` env var with no default; fail startup in production if unset; restrict `allow_methods` to `["GET","POST","PATCH","DELETE","OPTIONS"]` | Low |
+| ~~S-9~~ | ~~**N-11** — `ALLOWED_ORIGINS` hardcoded `localhost` in production compose~~ ✅ Fixed v2.5 | ~~`ALLOWED_ORIGINS` env var required (no default) in both `docker-compose.yml` and `deploy/docker-compose.yml`; `config.py` startup validator rejects localhost/wildcard in production; `allow_methods` restricted to `["GET","POST","PATCH","DELETE","OPTIONS"]`; `allow_headers` restricted to `["Authorization","Content-Type"]`~~ | Low |
 
 ---
 
