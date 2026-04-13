@@ -1,10 +1,11 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.deps import get_current_user, get_unrestricted_user
 from app.core.limiter import limiter
 from app.core.security import (
@@ -16,11 +17,10 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.models import RefreshToken, User
 from app.schemas.user import (
+    AccessToken,
     LoginRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
-    RefreshTokenRequest,
-    Token,
     TOTPSetupResponse,
     TOTPVerifyRequest,
     UserCreate,
@@ -36,6 +36,36 @@ from app.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# ─── Cookie helpers (S-7) ─────────────────────────────────────────────────────
+
+_REFRESH_COOKIE_NAME = "refresh_token"
+# Path scoped to auth endpoints only so the cookie is not sent on every API call.
+_REFRESH_COOKIE_PATH = "/api/v1/auth"
+
+
+def _set_refresh_cookie(response: Response, token: str) -> None:
+    """Attach the refresh token as an HttpOnly cookie (S-7)."""
+    response.set_cookie(
+        key=_REFRESH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="strict",
+        path=_REFRESH_COOKIE_PATH,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86_400,
+    )
+
+
+def _delete_refresh_cookie(response: Response) -> None:
+    """Clear the refresh token cookie on logout (S-7)."""
+    response.delete_cookie(
+        key=_REFRESH_COOKIE_NAME,
+        path=_REFRESH_COOKIE_PATH,
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite="strict",
+    )
 
 # ─── JTI helpers ─────────────────────────────────────────────────────────────
 
@@ -77,9 +107,14 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)) -> User
     return await service.create(data)
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=AccessToken)
 @limiter.limit("10/minute")  # S-5: brute-force guard
-async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
+async def login(
+    request: Request,
+    response: Response,
+    data: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AccessToken:
     """Authenticate a user and return a JWT access + refresh token pair."""
     service = UserService(db)
     user = await service.authenticate(data.email, data.password)
@@ -128,23 +163,32 @@ async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends
         user.last_totp_used_at = datetime.now(timezone.utc)
         await db.flush()
 
-    token = Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
-    await _store_jti(db, user.id, token.refresh_token)  # S-4: persist JTI
-    return token
+    refresh = create_refresh_token(user.id)
+    await _store_jti(db, user.id, refresh)  # S-4: persist JTI
+    _set_refresh_cookie(response, refresh)   # S-7: HttpOnly cookie
+    return AccessToken(access_token=create_access_token(user.id))
 
 
-@router.post("/refresh", response_model=Token)
-async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)) -> Token:
-    """Exchange a valid refresh token for a new access + refresh token pair.
+@router.post("/refresh", response_model=AccessToken)
+async def refresh_token(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+) -> AccessToken:
+    """Exchange a valid refresh token cookie for a new access + refresh token pair.
 
+    The refresh token is read from the ``refresh_token`` HttpOnly cookie (S-7).
     The incoming token's JTI is verified against the DB store (S-4) and deleted
     before a new token pair is issued (rotation).  A stolen refresh token that
     has already been rotated will therefore be rejected.
     """
-    payload = decode_token(data.refresh_token)
+    raw_refresh = request.cookies.get(_REFRESH_COOKIE_NAME)
+    if not raw_refresh:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing refresh token cookie",
+        )
+    payload = decode_token(raw_refresh)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -186,12 +230,10 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
             status_code=status.HTTP_403_FORBIDDEN,
             detail="APPROVAL_PENDING",
         )
-    token = Token(
-        access_token=create_access_token(user.id),
-        refresh_token=create_refresh_token(user.id),
-    )
-    await _store_jti(db, user.id, token.refresh_token)  # S-4: persist new JTI
-    return token
+    new_refresh = create_refresh_token(user.id)
+    await _store_jti(db, user.id, new_refresh)  # S-4: persist new JTI
+    _set_refresh_cookie(response, new_refresh)   # S-7: rotate cookie
+    return AccessToken(access_token=create_access_token(user.id))
 
 
 @router.get("/me", response_model=UserResponse)
@@ -202,18 +244,18 @@ async def get_me(current_user: User = Depends(get_unrestricted_user)) -> User:
 
 @router.post("/logout")
 async def logout(
-    data: RefreshTokenRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_unrestricted_user),
 ) -> dict[str, str]:
-    """Revoke all refresh tokens for the current user (S-4).
+    """Revoke all refresh tokens for the current user and clear the cookie (S-4 / S-7).
 
-    The client must supply the current refresh token so the server can also
-    accept the JTI and confirm ownership.  All stored JTIs for the user are
-    deleted — any previously issued refresh token (e.g. on another device)
-    becomes invalid.
+    The client is identified by the access token in the ``Authorization`` header.
+    All stored JTIs for the user are deleted so any previously issued refresh token
+    (e.g. on another device) becomes invalid.  The HttpOnly cookie is also cleared.
     """
     await _revoke_all_for_user(db, current_user.id)
+    _delete_refresh_cookie(response)
     return {"message": "Logged out successfully"}
 
 

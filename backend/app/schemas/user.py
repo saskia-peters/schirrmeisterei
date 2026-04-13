@@ -152,6 +152,17 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class AccessToken(BaseModel):
+    """Response body returned by login / refresh after S-7.
+
+    The refresh token is no longer included in the body; it is delivered as an
+    ``HttpOnly; Secure; SameSite=Strict`` cookie so JavaScript cannot read it.
+    """
+
+    access_token: str
+    token_type: str = "bearer"
+
+
 class TokenPayload(BaseModel):
     sub: str
     type: str

@@ -51,7 +51,6 @@ describe('LoginPage', () => {
   it('calls login API on valid submit', async () => {
     vi.mocked(authApi.login).mockResolvedValue({
       access_token: 'access',
-      refresh_token: 'refresh',
       token_type: 'bearer',
     })
     vi.mocked(authApi.me).mockResolvedValue({

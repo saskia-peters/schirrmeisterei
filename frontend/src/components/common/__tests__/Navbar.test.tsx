@@ -22,6 +22,10 @@ vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }))
 
+vi.mock('@/api', () => ({
+  authApi: { logout: vi.fn().mockResolvedValue({ message: 'ok' }) },
+}))
+
 const mockLogout = vi.fn()
 const mockUseAuthStore = vi.fn()
 

@@ -5,11 +5,10 @@ import type { User } from '@/types'
 interface AuthState {
   user: User | null
   accessToken: string | null
-  refreshToken: string | null
   isAuthenticated: boolean
   setAccessToken: (access: string) => void
-  setTokens: (access: string, refresh: string) => void
-  login: (access: string, refresh: string, user: User) => void
+  setTokens: (access: string) => void
+  login: (access: string, user: User) => void
   setUser: (user: User) => void
   logout: () => void
 }
@@ -19,22 +18,17 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      refreshToken: null,
       isAuthenticated: false,
       setAccessToken: (access) => set({ accessToken: access }),
-      setTokens: (access, refresh) =>
-        set({ accessToken: access, refreshToken: refresh, isAuthenticated: true }),
-      login: (access, refresh, user) =>
-        set({ accessToken: access, refreshToken: refresh, user, isAuthenticated: true }),
+      setTokens: (access) => set({ accessToken: access, isAuthenticated: true }),
+      login: (access, user) => set({ accessToken: access, user, isAuthenticated: true }),
       setUser: (user) => set({ user }),
-      logout: () =>
-        set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
+      logout: () => set({ user: null, accessToken: null, isAuthenticated: false }),
     }),
     {
       name: 'auth-storage',
       partialize: (state) => ({
         accessToken: state.accessToken,
-        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
       }),

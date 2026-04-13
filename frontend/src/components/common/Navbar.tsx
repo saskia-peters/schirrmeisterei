@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { authApi } from '@/api'
 import { useAuthStore } from '@/store/authStore'
 
 const ORG_LEVEL_COLORS: Record<string, string> = {
@@ -16,6 +17,9 @@ export function Navbar() {
   const isAdmin = user?.is_superuser || user?.groups?.includes('admin')
 
   const handleLogout = () => {
+    // Fire-and-forget: revoke refresh tokens on the server + clear the cookie.
+    // Even if the request fails, clear local state so the user is logged out.
+    authApi.logout().catch(() => undefined)
     logout()
     queryClient.clear()
   }

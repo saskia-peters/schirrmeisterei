@@ -38,8 +38,9 @@ export function LoginPage({ onSwitchToRegister }: LoginPageProps) {
       // before we know whether a password change is required).
       setAccessToken(tokens.access_token)
       const user = await authApi.me()
-      // Atomic update: single re-render with both tokens and user ready.
-      login(tokens.access_token, tokens.refresh_token, user)
+      // Atomic update: single re-render with access token and user ready.
+      // The refresh token now lives in an HttpOnly cookie (S-7).
+      login(tokens.access_token, user)
       toast.success('Logged in successfully')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string }; status?: number } }

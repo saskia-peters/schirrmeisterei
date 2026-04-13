@@ -62,6 +62,9 @@ export const authApi = {
 
   confirmPasswordReset: (data: PasswordResetConfirm) =>
     apiClient.post<{ message: string }>('/auth/password-reset/confirm', data).then((r) => r.data),
+
+  logout: () =>
+    apiClient.post<{ message: string }>('/auth/logout').then((r) => r.data),
 }
 
 // ─── Organizations ────────────────────────────────────────────────────────────

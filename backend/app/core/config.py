@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # at Tier-3 scale (100+ users / multi-replica) for shared counters. See SCALING.md § 3.2.
     RATE_LIMIT_STORAGE_URI: str = "memory://"
 
+    # Refresh-token cookie (S-7)
+    # Set to True in production (HTTPS). Browsers will NOT send Secure cookies over HTTP,
+    # so this MUST remain False during local development (Vite proxy / HTTP).
+    COOKIE_SECURE: bool = False
+
     # 2FA
     TOTP_ISSUER: str = "TicketSystem"
 
@@ -53,6 +58,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "SECRET_KEY must be changed from the default value "
                 "in non-development environments"
+            )
+        if self.ENVIRONMENT == "production" and not self.COOKIE_SECURE:
+            raise ValueError(
+                "COOKIE_SECURE must be True in production (refresh token cookie "
+                "requires HTTPS). Set COOKIE_SECURE=true in your environment."
             )
         return self
 

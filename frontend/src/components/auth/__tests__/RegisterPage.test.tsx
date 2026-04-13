@@ -73,7 +73,6 @@ describe('RegisterPage', () => {
     vi.mocked(authApi.register).mockResolvedValue(undefined as never)
     vi.mocked(authApi.login).mockResolvedValue({
       access_token: 'a',
-      refresh_token: 'r',
       token_type: 'bearer',
     })
     vi.mocked(authApi.me).mockResolvedValue({
