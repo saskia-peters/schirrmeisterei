@@ -193,7 +193,7 @@ async def upload_attachment(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AttachmentResponse:
-    """Upload an image attachment to a ticket."""
+    """Upload a file attachment (image or PDF) to a ticket."""
     service = TicketService(db)
     ticket = await service.get_by_id_or_raise(ticket_id)
     await _assert_ticket_visible(ticket, current_user, db)

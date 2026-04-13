@@ -1,10 +1,12 @@
 /**
  * AttachmentThumb
  *
- * Fetches an attachment image via the authenticated API client (which adds the
+ * Fetches an attachment via the authenticated API client (which adds the
  * Authorization header) and renders a thumbnail + download link. This is
  * necessary because the download endpoint requires authentication — a plain
  * <img src> or <a href> would not send the Bearer token (A-5 fix).
+ *
+ * Images are rendered as inline thumbnails. PDFs show a document icon.
  */
 import { useEffect, useState } from 'react'
 import { apiClient } from '@/api/client'
@@ -19,6 +21,7 @@ interface AttachmentThumbProps {
 export function AttachmentThumb({ attachment, onDelete, canDelete }: AttachmentThumbProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
+  const isPdf = attachment.content_type === 'application/pdf'
 
   useEffect(() => {
     let objectUrl = ''
@@ -56,7 +59,11 @@ export function AttachmentThumb({ attachment, onDelete, canDelete }: AttachmentT
         {error ? (
           <span className="thumbnail-error">Failed to load</span>
         ) : blobUrl ? (
-          <img src={blobUrl} alt={attachment.filename} className="thumbnail-img" />
+          isPdf ? (
+            <span className="thumbnail-pdf-icon" aria-hidden>📄</span>
+          ) : (
+            <img src={blobUrl} alt={attachment.filename} className="thumbnail-img" />
+          )
         ) : (
           <span className="thumbnail-loading">…</span>
         )}
@@ -67,7 +74,7 @@ export function AttachmentThumb({ attachment, onDelete, canDelete }: AttachmentT
           type="button"
           className="attachment-delete-btn"
           aria-label={`Remove ${attachment.filename}`}
-          title="Remove image"
+          title="Remove attachment"
           onClick={() => onDelete(attachment.id)}
         >
           ✕

@@ -17,6 +17,7 @@ from app.schemas.ticket import CommentCreate, CommentUpdate, TicketCreate, Ticke
 from app.services.totp_service import get_safe_upload_path
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+ALLOWED_ATTACHMENT_TYPES = ALLOWED_IMAGE_TYPES | {"application/pdf"}
 
 _PILLOW_FORMAT_TO_MIME: dict[str, str] = {
     "JPEG": "image/jpeg",
@@ -38,6 +39,16 @@ def _detect_image_mime(data: bytes) -> str | None:
         return _PILLOW_FORMAT_TO_MIME.get(fmt or "")
     except (UnidentifiedImageError, Exception):  # noqa: BLE001
         return None
+
+
+def _detect_pdf_mime(data: bytes) -> str | None:
+    """Return 'application/pdf' if the data begins with the PDF magic bytes (%PDF).
+
+    PDF files always start with the four-byte sequence 25 50 44 46.  Checking
+    these magic bytes prevents a malicious client from disguising a non-PDF
+    file with a 'application/pdf' Content-Type header (O-2 / C-3).
+    """
+    return "application/pdf" if data[:4] == b"%PDF" else None
 
 
 class TicketService:
@@ -260,15 +271,15 @@ class TicketService:
                 f"File too large. Maximum size: {settings.MAX_UPLOAD_SIZE_MB}MB"
             )
 
-        # Validate actual file content via magic bytes (Pillow reads the file
-        # header) rather than the client-supplied Content-Type, which can be
-        # trivially spoofed to upload HTML/script files as images (C-3).
-        detected_mime = _detect_image_mime(contents)
+        # Validate actual file content via magic bytes rather than the
+        # client-supplied Content-Type, which can be trivially spoofed (C-3).
+        # Images are detected by Pillow; PDFs by their %PDF magic bytes (O-2).
+        detected_mime = _detect_image_mime(contents) or _detect_pdf_mime(contents)
         if not detected_mime:
             from app.core.exceptions import ValidationException
             raise ValidationException(
-                f"File does not appear to be a valid image. "
-                f"Allowed types: {', '.join(sorted(ALLOWED_IMAGE_TYPES))}"
+                f"File type not supported. "
+                f"Allowed types: {', '.join(sorted(ALLOWED_ATTACHMENT_TYPES))}"
             )
 
         # Attachments live in a dedicated subdirectory, separate from avatars.

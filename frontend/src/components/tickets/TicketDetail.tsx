@@ -385,10 +385,10 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
             ))}
           </div>
           <label className="btn btn-secondary upload-btn">
-            Upload Image
+            Upload File
             <input
               type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
               onChange={handleFileUpload}
               hidden
             />

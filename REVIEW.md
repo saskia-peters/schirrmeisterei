@@ -521,7 +521,7 @@ At 20–30 users the current eager-load and BFS patterns are fine.  Add paginati
 | # | Finding | Action | Effort |
 |---|---------|--------|--------|
 | O-1 | **N-12 / A-12** — No structured logging | Add `structlog` with JSON output. Add `asgi-correlation-id` middleware for `X-Request-ID` propagation. Log: `login.success`, `login.failure`, `token.refresh`, `permission.denied`, `totp.fail`, `attachment.upload`, `ticket.status_change`. | Medium |
-| O-2 | **NEW-1** — C-3 fix blocks all non-image attachments | Decide: images-only (document explicitly, improve error message) **or** extend to PDFs (add `_detect_pdf_mime` via magic bytes `%PDF`). Either way, the product decision must be made now before users hit this. | Low |
+| ~~O-2~~ | ~~**NEW-1** — C-3 fix blocks all non-image attachments~~ ✅ Fixed | ~~Extend to PDFs: added `_detect_pdf_mime` (checks `%PDF` magic bytes); `ALLOWED_ATTACHMENT_TYPES` includes `application/pdf`; frontend `accept` attribute and button label updated; `AttachmentThumb` renders a 📄 icon for PDFs~~ | Low |
 | O-3 | **M-8** — Silent mutation failures | Add default `onError` toast handler in `useApi.ts` base mutations. One implementation, covers all 25+ mutation hooks. | Low |
 | O-4 | **A-10** — `ConfigItem` polymorphism without type constraints | Add a `CHECK` constraint or trigger to prevent `category` items being assigned as `priority`. | Low + Migration |
 | O-5 | **Section 5 test gaps** | At minimum: permission enforcement test per role-gated endpoint; org-scope bypass test for ticket sub-resources (verify the S-1 fix); TOTP replay prevention test. | Medium |
