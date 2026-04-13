@@ -669,7 +669,7 @@ async def create_email_config(
         smtp_host=data.smtp_host,
         smtp_port=data.smtp_port,
         smtp_user=data.smtp_user,
-        smtp_password=data.smtp_password,
+        smtp_password=data.smtp_password.get_secret_value(),
         from_email=data.from_email,
         use_tls=data.use_tls,
         is_active=data.is_active,
@@ -699,7 +699,7 @@ async def update_email_config(
     if data.smtp_user is not None:
         config.smtp_user = data.smtp_user
     if data.smtp_password is not None:
-        config.smtp_password = data.smtp_password
+        config.smtp_password = data.smtp_password.get_secret_value()
     if data.from_email is not None:
         config.from_email = data.from_email
     if data.use_tls is not None:

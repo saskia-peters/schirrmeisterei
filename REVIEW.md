@@ -37,7 +37,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | ~~C-3~~ | ~~File upload: no magic-byte / content-type validation~~ | ✅ Fixed 1.2 | Security | Medium |
 | C-4 | `os.remove()` called blocking inside async handler | 🔴 Critical | Reliability | Low |
 | C-5 | Empty-string `organization_id` silently written to DB | ~~🔴 Critical~~ ✅ Fixed | Data Integrity | Low |
-| A-1 | SMTP password stored as plaintext in config | 🔴 Critical | Security | Low |
+| A-1 | SMTP password stored as plaintext in config | ~~🔴 Critical~~ ✅ Fixed | Security | Low |
 | ~~A-2~~ | ~~`GET /org` hierarchy endpoints unauthenticated~~ | ✅ Fixed 1.4 | Access Control | Low |
 | ~~H-1~~ | ~~Attachment delete: file path not traversal-checked~~ | ✅ Fixed 1.3 | Security | Low |
 | H-2 | Refresh token stored in `localStorage` (XSS risk) | 🔴 High | Security | Medium |
@@ -142,13 +142,13 @@ If `current_user.organization_id` is `None`, an empty string is persisted as the
 
 ---
 
-#### A-1 · SMTP password stored in plaintext config
-**File:** [backend/app/core/config.py](backend/app/core/config.py) / `EmailConfig`
+#### ~~A-1 · SMTP password stored in plaintext config~~ ✅ Fixed 2026-04-13
+**File:** [backend/app/schemas/user.py](backend/app/schemas/user.py) / `EmailConfigCreate`, `EmailConfigUpdate`
 **OWASP:** A02 – Cryptographic Failures
 
 The SMTP password is stored as a plain string in the application config model. If the config is logged, serialised, or included in an error response, the credential is exposed.
 
-**Fix:** Mark the field as `SecretStr` (Pydantic) and access it via `.get_secret_value()` only at the point of use (e.g. in the SMTP connection code). Never log `settings.email_config`.
+> **Resolution:** `smtp_password` in `EmailConfigCreate` and `EmailConfigUpdate` changed from `str` to `SecretStr`. The two admin endpoints (`create_email_config`, `update_email_config`) now call `.get_secret_value()` only when writing to the SQLAlchemy model, so the secret is never present in serialised request payloads, logs, or tracebacks. `EmailConfigResponse` already omitted `smtp_password`, so the GET endpoints are unaffected. Note: at-rest encryption in the database (e.g. Fernet-based SQLAlchemy `TypeDecorator`) remains a follow-up hardening step.
 
 ---
 

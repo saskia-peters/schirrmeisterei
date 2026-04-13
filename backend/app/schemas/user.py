@@ -2,7 +2,7 @@ from datetime import datetime
 
 from typing import Any
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from pydantic import BaseModel, EmailStr, Field, SecretStr, model_validator
 
 from app.models.models import ORG_LEVEL_ABBREV
 
@@ -221,7 +221,7 @@ class EmailConfigCreate(BaseModel):
     smtp_host: str = Field("", max_length=255)
     smtp_port: int = 587
     smtp_user: str = Field("", max_length=255)
-    smtp_password: str = Field("", max_length=255)
+    smtp_password: SecretStr = Field(SecretStr(""), max_length=255)
     from_email: str = Field("", max_length=255)
     use_tls: bool = True
     is_active: bool = False
@@ -231,7 +231,7 @@ class EmailConfigUpdate(BaseModel):
     smtp_host: str | None = Field(None, max_length=255)
     smtp_port: int | None = None
     smtp_user: str | None = Field(None, max_length=255)
-    smtp_password: str | None = Field(None, max_length=255)
+    smtp_password: SecretStr | None = Field(None, max_length=255)
     from_email: str | None = Field(None, max_length=255)
     use_tls: bool | None = None
     is_active: bool | None = None
