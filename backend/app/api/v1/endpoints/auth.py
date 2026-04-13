@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,6 +82,23 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid TOTP code",
             )
+        # S-3: reject replayed codes.  A valid code stays valid for up to
+        # 2 × 30 s windows (valid_window=1).  If the same code was already
+        # accepted within that window, treat it as a replay attack.
+        _TOTP_VALID_WINDOW_SECONDS = 90  # 3 × 30 s (current + 1 drift window + margin)
+        if (
+            user.last_totp_code == data.totp_code
+            and user.last_totp_used_at is not None
+            and (datetime.now(timezone.utc) - user.last_totp_used_at)
+            < timedelta(seconds=_TOTP_VALID_WINDOW_SECONDS)
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid TOTP code",
+            )
+        user.last_totp_code = data.totp_code
+        user.last_totp_used_at = datetime.now(timezone.utc)
+        await db.flush()
 
     return Token(
         access_token=create_access_token(user.id),

@@ -11,6 +11,7 @@
 | 1.6     | 2026-04-13 | GitHub Copilot | Fixed S-1 (org-scope bypass on all ticket sub-resource endpoints) |
 | 1.7     | 2026-04-13 | GitHub Copilot | Added SCALING.md; added env-configurable DB pool settings; added scale-up code comments; rescheduled roadmap for 20–30-user baseline |
 | 1.8     | 2026-04-13 | GitHub Copilot | Fixed S-2 (comment update/delete now enforce `ticket_id` binding) |
+| 1.9     | 2026-04-13 | GitHub Copilot | Fixed S-3 (TOTP replay prevention: `last_totp_code` + `last_totp_used_at` on User; migration 0003) |
 
 ---
 
@@ -74,7 +75,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | **N-4** | **Eager-load of full ticket graph on every list/board request** | 🟠 High | Performance / Memory | Medium |
 | **N-5** | **File upload buffers entire content before size check — DoS vector** | 🟠 High | Security / Reliability | Low |
 | **N-6** | **SMTP password stored in plaintext in PostgreSQL (at-rest)** | 🟠 High | Cryptographic Failure | Medium |
-| **N-7** | **TOTP code replay not prevented within 30-second window** | 🟠 High | Authentication | Low |
+| ~~**N-7**~~ | ~~**TOTP code replay not prevented within 30-second window**~~ ✅ Fixed v1.9 | ~~🟠 High~~ | Authentication | Low |
 | **N-8** | **`/health` does not validate DB connectivity — misleads orchestrators** | 🟡 Medium | Operability | Low |
 | **N-9** | **Single PostgreSQL instance — no HA, no failover** | 🔴 Critical | High Availability | High |
 | **N-10** | **No shared cache/state layer — per-process rate limiting ineffective at scale** | 🟠 High | HA / Security | Medium |
@@ -475,7 +476,7 @@ These remain active vulnerabilities at any user count:
 |---|---------|--------|--------|
 | ~~S-1~~ | ~~**N-1 / A-3** — All ticket sub-resource endpoints bypass org-scope~~ ✅ Fixed v1.6 | ~~Add `_assert_ticket_visible(ticket, user, db)` helper called after every `get_by_id_or_raise`; return 404 on mismatch~~ | Low |
 | ~~S-2~~ | ~~**NEW-2** — Comment update/delete don't bind to `ticket_id`~~ ✅ Fixed v1.8 | ~~Add `Comment.ticket_id == ticket.id` constraint to `update_comment` / `delete_comment` queries in `ticket_service.py`~~ | Low |
-| S-3 | **N-7** — TOTP code replay within 30-second window | Add `last_totp_code` + `last_totp_used_at` columns to `User`; reject reuse in `verify_totp` | Low + 1 migration |
+| ~~S-3~~ | ~~**N-7** — TOTP code replay within 30-second window~~ ✅ Fixed v1.9 | ~~Add `last_totp_code` + `last_totp_used_at` columns to `User`; reject reuse in `verify_totp`~~ | Low + 1 migration |
 | S-4 | **A-4 / NEW-3** — No refresh token revocation; TOTP bypassed via stolen refresh token | Store JTI in a `refresh_tokens` table (or Redis set with TTL); check JTI on every `/auth/refresh`; delete on logout / TOTP enable | Medium |
 | S-5 | **A-6** — No rate limiting on login, TOTP, reset endpoints | Add `slowapi` + Redis backend; apply `@limiter.limit("10/minute")` to `/auth/login`, `/auth/totp/verify`, `/auth/password-reset/request` | Low |
 | S-6 | **N-6** — SMTP password plaintext in DB (A-1 partially fixed) | Add SQLAlchemy `TypeDecorator` (Fernet, key from `SECRET_KEY` via HKDF) for `smtp_password` column; one-time data migration | Medium |

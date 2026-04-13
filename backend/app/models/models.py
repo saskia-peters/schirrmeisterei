@@ -158,6 +158,13 @@ class User(Base):
     force_password_change: Mapped[bool] = mapped_column(Boolean, default=False)
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    # S-3: replay prevention — store the last accepted TOTP code and the time it
+    # was accepted.  A second login attempt with the same code within the valid
+    # window (≤90 s) is rejected even though pyotp would accept it.
+    last_totp_code: Mapped[str | None] = mapped_column(String(6), nullable=True)
+    last_totp_used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     avatar_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
     organization_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("organizations.id"), nullable=True, index=True
