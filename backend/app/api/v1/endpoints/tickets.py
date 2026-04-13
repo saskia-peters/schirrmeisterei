@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -83,6 +83,11 @@ async def create_ticket(
     current_user: User = Depends(get_current_user),
 ) -> Ticket:
     """Create a new ticket belonging to the current user's organisation."""
+    if not current_user.organization_id:
+        raise HTTPException(
+            status_code=400,
+            detail="User must belong to an organisation to create tickets",
+        )
     service = TicketService(db)
     return await service.create(data, current_user.id, current_user.organization_id)
 

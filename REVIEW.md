@@ -36,7 +36,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | ~~C-2~~ | ~~Password reset accepts any valid access token~~ | ✅ Fixed 1.1 | Security | Low |
 | ~~C-3~~ | ~~File upload: no magic-byte / content-type validation~~ | ✅ Fixed 1.2 | Security | Medium |
 | C-4 | `os.remove()` called blocking inside async handler | 🔴 Critical | Reliability | Low |
-| C-5 | Empty-string `organization_id` silently written to DB | 🔴 Critical | Data Integrity | Low |
+| C-5 | Empty-string `organization_id` silently written to DB | ~~🔴 Critical~~ ✅ Fixed | Data Integrity | Low |
 | A-1 | SMTP password stored as plaintext in config | 🔴 Critical | Security | Low |
 | ~~A-2~~ | ~~`GET /org` hierarchy endpoints unauthenticated~~ | ✅ Fixed 1.4 | Access Control | Low |
 | ~~H-1~~ | ~~Attachment delete: file path not traversal-checked~~ | ✅ Fixed 1.3 | Security | Low |
@@ -128,7 +128,7 @@ This call blocks the asyncio event loop for the duration of the filesystem opera
 
 ---
 
-#### C-5 · Empty-string `organization_id` silently written to ticket
+#### ~~C-5 · Empty-string `organization_id` silently written to ticket~~ ✅ Fixed 2026-04-13
 **File:** [backend/app/services/ticket_service.py](backend/app/services/ticket_service.py#L96)
 **OWASP:** A04 – Insecure Design
 
@@ -138,11 +138,7 @@ organization_id=organization_id or "",
 
 If `current_user.organization_id` is `None`, an empty string is persisted as the foreign key. This bypasses the DB FK constraint (since `""` is not a valid UUID), results in a `ForeignKeyViolationError` unhandled 500, or silently creates an unscoped ticket.
 
-**Fix:** Add an explicit guard at the endpoint level:
-```python
-if not current_user.organization_id:
-    raise HTTPException(status_code=400, detail="User must belong to an organisation to create tickets")
-```
+> **Resolution:** Added an explicit guard in `create_ticket` (tickets.py) that raises `HTTP 400` before calling the service when the user has no `organization_id`. Removed the silent `or ""` fallback in `TicketService.create` so the method signature now reflects the real invariant (`organization_id` must be a valid UUID when reached).
 
 ---
 

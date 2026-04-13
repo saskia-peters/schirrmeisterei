@@ -117,7 +117,7 @@ class TicketService:
             description=data.description,
             creator_id=creator_id,
             owner_id=data.assignee_id,
-            organization_id=organization_id or "",
+            organization_id=organization_id,
             priority_id=data.priority_id,
             category_id=data.category_id,
             affected_group_id=data.affected_group_id,
