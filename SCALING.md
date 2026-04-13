@@ -34,7 +34,7 @@ Work top-to-bottom; each tier assumes the previous one is complete.
 
 | Tier | When to act | Trigger signal | Actions |
 |------|------------|---------------|---------|
-| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-8 … S-9) |
+| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-9) |
 | **1 — 30–50 users** | Pilot feedback period | Occasional slow page loads (P95 > 1 s) | Pool tuning, pagination, chunked uploads |
 | **2 — 50–100 users** | Early production growth | DB connection errors in logs | Readiness endpoint, structured logging, migrate `/health` |
 | **3 — 100–300 users** | Sustained production use | Multi-replica needed OR rate-limit gaps exposed | Redis (rate limit + JTI + org cache), refresh-token revocation |
@@ -58,7 +58,9 @@ See REVIEW.md Tier-0 table for the full list.  Priority order:
    - `/auth/logout`: clears the cookie on the server
    - `COOKIE_SECURE=false` in dev (HTTP); must be `true` in production
    - `refreshToken` removed from Zustand store and `localStorage` persistence
-7. **S-8** — Concurrent token refresh race condition
+7. ~~**S-8** — Concurrent token refresh race condition~~ ✅ Fixed v2.4
+   - `refreshPromise` module-level singleton in `client.ts`; concurrent 401s all await the same promise
+   - Promise cleared in `.finally()` so subsequent genuine token expiries start a fresh refresh
 8. **S-9** — `ALLOWED_ORIGINS` hardcoded to `localhost` in production compose
 
 ---
@@ -525,7 +527,8 @@ All `SCALE-UP` comments in the codebase:
 - [ ] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` validator)
 - [ ] `POSTGRES_PASSWORD` changed from default
 - [x] Tier-0 security item S-7 resolved (refresh token → HttpOnly cookie) ✅ v2.3
-- [ ] Tier-0 security items in REVIEW.md resolved (S-8 … S-9)
+- [x] Tier-0 security item S-8 resolved (concurrent refresh race condition) ✅ v2.4
+- [ ] Tier-0 security item S-9 in REVIEW.md resolved
 - [ ] `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` reviewed against expected concurrency
 - [ ] Backups configured for the `postgres-data` Docker volume
 - [ ] Uploaded attachments volume (`backend-uploads`) included in backup scope

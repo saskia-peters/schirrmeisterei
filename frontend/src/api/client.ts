@@ -19,6 +19,13 @@ apiClient.interceptors.request.use((config) => {
 
 // Refresh token on 401
 // The refresh token travels as an HttpOnly cookie (S-7); no body is needed.
+//
+// S-8: singleton refresh promise — if multiple requests fail with 401 at the
+// same time, they all queue onto the one in-flight refresh call instead of each
+// firing their own.  A second simultaneous refresh would consume the rotated
+// cookie and leave every subsequent request with a revoked token.
+let refreshPromise: Promise<string> | null = null
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -26,10 +33,18 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !original._retry) {
       original._retry = true
       try {
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, {})
-        useAuthStore.getState().setTokens(data.access_token)
+        if (!refreshPromise) {
+          refreshPromise = axios
+            .post(`${BASE_URL}/auth/refresh`, {})
+            .then(({ data }) => data.access_token as string)
+            .finally(() => {
+              refreshPromise = null
+            })
+        }
+        const newAccessToken = await refreshPromise
+        useAuthStore.getState().setTokens(newAccessToken)
         if (original.headers) {
-          original.headers['Authorization'] = `Bearer ${data.access_token}`
+          original.headers['Authorization'] = `Bearer ${newAccessToken}`
         }
         return apiClient(original)
       } catch {
