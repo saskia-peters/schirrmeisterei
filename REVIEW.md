@@ -6,6 +6,7 @@
 | 1.1     | 2026-04-12 | GitHub Copilot | Fixed C-1, C-2, A-9 (password reset token security) |
 | 1.2     | 2026-04-13 | GitHub Copilot | Fixed C-3 (magic-byte validation on file uploads) |
 | 1.3     | 2026-04-13 | GitHub Copilot | Fixed A-5, H-4, H-1 (authenticated attachment downloads) |
+| 1.4     | 2026-04-13 | GitHub Copilot | Fixed A-2 (org hierarchy `GET /` requires authentication) |
 
 ---
 
@@ -37,7 +38,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | C-4 | `os.remove()` called blocking inside async handler | 🔴 Critical | Reliability | Low |
 | C-5 | Empty-string `organization_id` silently written to DB | 🔴 Critical | Data Integrity | Low |
 | A-1 | SMTP password stored as plaintext in config | 🔴 Critical | Security | Low |
-| A-2 | `GET /org` hierarchy endpoints unauthenticated | 🔴 Critical | Access Control | Low |
+| ~~A-2~~ | ~~`GET /org` hierarchy endpoints unauthenticated~~ | ✅ Fixed 1.4 | Access Control | Low |
 | ~~H-1~~ | ~~Attachment delete: file path not traversal-checked~~ | ✅ Fixed 1.3 | Security | Low |
 | H-2 | Refresh token stored in `localStorage` (XSS risk) | 🔴 High | Security | Medium |
 | H-3 | Race condition in concurrent token refresh | 🔴 High | Reliability | Medium |
@@ -155,7 +156,9 @@ The SMTP password is stored as a plain string in the application config model. I
 
 ---
 
-#### A-2 · Organisation hierarchy endpoints are unauthenticated
+#### ~~A-2 · Organisation hierarchy endpoints are unauthenticated~~ ✅ Fixed in v1.4
+> **Resolution:** `GET /organizations/` (the catch-all list endpoint used by the authenticated admin panel) now requires `Depends(get_current_user)`. The three narrowly-scoped registration endpoints (`/landesverbaende`, `/regionalstellen`, `/ortsverbaende`) are intentionally left public — they expose only org names and IDs and are called by the registration form before a user token exists. Each endpoint now has a docstring that explicitly states its access policy.
+
 **File:** [backend/app/api/v1/endpoints/organizations.py](backend/app/api/v1/endpoints/organizations.py)
 **OWASP:** A01 – Broken Access Control
 
@@ -387,7 +390,7 @@ These items represent active security vulnerabilities or data-integrity risks. *
 1. **Fix password reset flow (C-1, C-2, A-9) ✅ Done:** Token no longer returned in response; dedicated `password_reset` JWT type used.
 2. **Add magic-byte validation on uploads (C-3) ✅ Done:** Pillow magic-byte detection in `add_attachment` and `upload_avatar`; `Content-Type` header ignored.
 3. **Make file downloads authenticated (A-5) ✅ Done:** `StaticFiles` mount narrowed to avatars only; attachments served via auth endpoint; `AttachmentThumb` fetches blobs via apiClient. Also resolved H-4 and H-1.
-4. **Authenticate org endpoints (A-2):** Add `Depends(get_current_user)` to all `/organizations` routes.
+4. **Authenticate org endpoints (A-2) ✅ Done:** `GET /organizations/` requires auth. Registration-dropdown endpoints remain public by design.
 5. **Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.
 6. **Protect SMTP credentials (A-1):** Use Pydantic `SecretStr` for `smtp_password`.
 7. **Fix blocking `os.remove` (C-4):** Replace with `await asyncio.to_thread(os.remove, ...)`.
