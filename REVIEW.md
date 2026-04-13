@@ -453,7 +453,7 @@ Sustainability, observability, and developer experience improvements.
 
 ## Scale-Up Action Plan — 500+ Concurrent Users
 
-> **v1.7 — Updated 2026-04-13 to reflect the current 20–30-user baseline.**
+> **v2.0 — Updated 2026-04-13.  S-4 (refresh token revocation) fixed.**
 >
 > The system is currently deployed for **20–30 concurrent users** on a single-instance stack.
 > Infrastructure-heavy items (object storage, managed HA PostgreSQL, Redis, PgBouncer) are
@@ -477,7 +477,7 @@ These remain active vulnerabilities at any user count:
 | ~~S-1~~ | ~~**N-1 / A-3** — All ticket sub-resource endpoints bypass org-scope~~ ✅ Fixed v1.6 | ~~Add `_assert_ticket_visible(ticket, user, db)` helper called after every `get_by_id_or_raise`; return 404 on mismatch~~ | Low |
 | ~~S-2~~ | ~~**NEW-2** — Comment update/delete don't bind to `ticket_id`~~ ✅ Fixed v1.8 | ~~Add `Comment.ticket_id == ticket.id` constraint to `update_comment` / `delete_comment` queries in `ticket_service.py`~~ | Low |
 | ~~S-3~~ | ~~**N-7** — TOTP code replay within 30-second window~~ ✅ Fixed v1.9 | ~~Add `last_totp_code` + `last_totp_used_at` columns to `User`; reject reuse in `verify_totp`~~ | Low + 1 migration |
-| S-4 | **A-4 / NEW-3** — No refresh token revocation; TOTP bypassed via stolen refresh token | Store JTI in a `refresh_tokens` table (or Redis set with TTL); check JTI on every `/auth/refresh`; delete on logout / TOTP enable | Medium |
+| ~~S-4~~ | ~~**A-4 / NEW-3** — No refresh token revocation; TOTP bypassed via stolen refresh token~~ ✅ Fixed v2.0 | ~~Store JTI in a `refresh_tokens` table (or Redis set with TTL); check JTI on every `/auth/refresh`; delete on logout / TOTP enable~~ | Medium |
 | S-5 | **A-6** — No rate limiting on login, TOTP, reset endpoints | Add `slowapi` + Redis backend; apply `@limiter.limit("10/minute")` to `/auth/login`, `/auth/totp/verify`, `/auth/password-reset/request` | Low |
 | S-6 | **N-6** — SMTP password plaintext in DB (A-1 partially fixed) | Add SQLAlchemy `TypeDecorator` (Fernet, key from `SECRET_KEY` via HKDF) for `smtp_password` column; one-time data migration | Medium |
 | S-7 | **H-2** — Refresh token in `localStorage` — XSS exfiltration | Move refresh token to `HttpOnly; Secure; SameSite=Strict` cookie; update `/auth/refresh` to read from cookie; remove token from Zustand persistence | Medium |

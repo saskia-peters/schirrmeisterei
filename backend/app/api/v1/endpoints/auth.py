@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_unrestricted_user
@@ -11,10 +12,8 @@ from app.core.security import (
     create_refresh_token,
     decode_token,
 )
-
-logger = logging.getLogger(__name__)
 from app.db.session import get_db
-from app.models.models import User
+from app.models.models import RefreshToken, User
 from app.schemas.user import (
     LoginRequest,
     PasswordResetConfirm,
@@ -34,7 +33,34 @@ from app.services.totp_service import (
 )
 from app.services.user_service import UserService
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# ─── JTI helpers ─────────────────────────────────────────────────────────────
+
+async def _store_jti(db: AsyncSession, user_id: str, token: str) -> None:
+    """Decode `token`, extract its JTI claim and persist a RefreshToken row (S-4)."""
+    payload = decode_token(token)
+    if not payload:
+        return
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if not jti or not exp:
+        return
+    row = RefreshToken(
+        jti=jti,
+        user_id=user_id,
+        expires_at=datetime.fromtimestamp(exp, tz=timezone.utc),
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(row)
+    await db.flush()
+
+
+async def _revoke_all_for_user(db: AsyncSession, user_id: str) -> None:
+    """Delete every stored refresh token JTI for the given user (S-4)."""
+    await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user_id))
+    await db.flush()
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -100,21 +126,46 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token
         user.last_totp_used_at = datetime.now(timezone.utc)
         await db.flush()
 
-    return Token(
+    token = Token(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
     )
+    await _store_jti(db, user.id, token.refresh_token)  # S-4: persist JTI
+    return token
 
 
 @router.post("/refresh", response_model=Token)
 async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(get_db)) -> Token:
-    """Exchange a valid refresh token for a new access + refresh token pair."""
+    """Exchange a valid refresh token for a new access + refresh token pair.
+
+    The incoming token's JTI is verified against the DB store (S-4) and deleted
+    before a new token pair is issued (rotation).  A stolen refresh token that
+    has already been rotated will therefore be rejected.
+    """
     payload = decode_token(data.refresh_token)
     if not payload or payload.get("type") != "refresh":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
         )
+    # S-4: verify JTI exists in DB
+    jti = payload.get("jti")
+    if not jti:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+        )
+    result = await db.execute(select(RefreshToken).where(RefreshToken.jti == jti))
+    stored = result.scalar_one_or_none()
+    if stored is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh token has been revoked",
+        )
+    # Rotate: delete old JTI before issuing a new token pair
+    await db.delete(stored)
+    await db.flush()
+
     user_id: str | None = payload.get("sub")
     if not user_id:
         raise HTTPException(
@@ -133,16 +184,35 @@ async def refresh_token(data: RefreshTokenRequest, db: AsyncSession = Depends(ge
             status_code=status.HTTP_403_FORBIDDEN,
             detail="APPROVAL_PENDING",
         )
-    return Token(
+    token = Token(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
     )
+    await _store_jti(db, user.id, token.refresh_token)  # S-4: persist new JTI
+    return token
 
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_unrestricted_user)) -> User:
     """Return the currently authenticated user's profile."""
     return current_user
+
+
+@router.post("/logout")
+async def logout(
+    data: RefreshTokenRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_unrestricted_user),
+) -> dict[str, str]:
+    """Revoke all refresh tokens for the current user (S-4).
+
+    The client must supply the current refresh token so the server can also
+    accept the JTI and confirm ownership.  All stored JTIs for the user are
+    deleted — any previously issued refresh token (e.g. on another device)
+    becomes invalid.
+    """
+    await _revoke_all_for_user(db, current_user.id)
+    return {"message": "Logged out successfully"}
 
 
 @router.post("/totp/setup", response_model=TOTPSetupResponse)
@@ -184,6 +254,8 @@ async def verify_totp_endpoint(
         )
     service = UserService(db)
     await service.enable_totp(current_user)
+    # S-4: revoke all refresh tokens — user must re-authenticate with TOTP
+    await _revoke_all_for_user(db, current_user.id)
     return {"message": "TOTP enabled successfully"}
 
 
@@ -206,6 +278,8 @@ async def disable_totp(
         )
     service = UserService(db)
     await service.disable_totp(current_user)
+    # S-4: revoke all refresh tokens — user must re-authenticate without TOTP
+    await _revoke_all_for_user(db, current_user.id)
     return {"message": "TOTP disabled successfully"}
 
 

@@ -385,3 +385,26 @@ class AppSetting(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
     )
+
+
+class RefreshToken(Base):
+    """Issued refresh token JTI store (S-4).
+
+    Every refresh token issued by the server has a unique JTI (JWT ID) persisted
+    here.  The `/auth/refresh` endpoint checks that the JTI exists before issuing
+    a new token pair, and deletes (rotates) it.  Logout and TOTP state changes
+    delete ALL rows for the user, forcing a full re-authentication.
+
+    Expired rows are left in the table; a periodic cleanup job or a startup sweep
+    can purge them, but they are harmless because the JWT itself will also have
+    expired.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    jti: Mapped[str] = mapped_column(String(36), primary_key=True)
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

@@ -34,7 +34,7 @@ Work top-to-bottom; each tier assumes the previous one is complete.
 
 | Tier | When to act | Trigger signal | Actions |
 |------|------------|---------------|---------|
-| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-4 … S-9) |
+| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-5 … S-9) |
 | **1 — 30–50 users** | Pilot feedback period | Occasional slow page loads (P95 > 1 s) | Pool tuning, pagination, chunked uploads |
 | **2 — 50–100 users** | Early production growth | DB connection errors in logs | Readiness endpoint, structured logging, migrate `/health` |
 | **3 — 100–300 users** | Sustained production use | Multi-replica needed OR rate-limit gaps exposed | Redis (rate limit + JTI + org cache), refresh-token revocation |
@@ -50,8 +50,7 @@ See REVIEW.md Tier-0 table for the full list.  Priority order:
 
 1. ~~**S-2** — Comment update/delete don't enforce `ticket_id`~~ ✅ Fixed v1.8
 2. ~~**S-3** — TOTP replay within 30-second window~~ ✅ Fixed v1.9
-3. **S-4** — No refresh token revocation (TOTP bypass via stolen token)
-3. **S-4** — No refresh token revocation (TOTP bypass via stolen token)
+3. ~~**S-4** — No refresh token revocation (TOTP bypass via stolen token)~~ ✅ Fixed v2.0
 4. **S-5** — No rate limiting on login/TOTP/reset endpoints
 5. **S-6** — SMTP password in plaintext in DB
 6. **S-7** — Refresh token in `localStorage` (XSS risk)
@@ -271,12 +270,20 @@ async def request_password_reset(...): ...
 Using a Redis backend ensures the limit is shared across all backend replicas
 (in-memory limits are per-process and rendered meaningless when replicated).
 
-### 3.3 Refresh Token Revocation (JTI Store)
+### 3.3 Refresh Token Revocation (JTI Store) ✅ Implemented (S-4 v2.0)
 
-**REVIEW.md:** S-4
-**Files:** `backend/app/core/security.py`, `backend/app/api/v1/endpoints/auth.py`
+**REVIEW.md:** ~~S-4~~ ✅ Fixed
+**Files:** `backend/app/core/security.py`, `backend/app/api/v1/endpoints/auth.py`, `backend/app/models/models.py`, `backend/alembic/versions/0004_add_refresh_tokens_table.py`
 
-Create a `refresh_tokens` table (or Redis set with TTL) to track issued JTIs:
+A `refresh_tokens` table now tracks every issued JTI with `user_id` and `expires_at`.
+`POST /auth/refresh` validates the JTI before rotating, `POST /auth/logout` revokes all
+tokens for the user, and TOTP enable/disable also revoke all existing sessions.
+
+At Tier-3 scale (300+ users), migrate the JTI store from PostgreSQL to **Redis** with
+`SETEX jti:<jti> <ttl_seconds> 1` for O(1) lookups and automatic expiry.
+
+<!-- original implementation note preserved below -->
+<!--
 
 ```sql
 -- Alembic migration
@@ -289,6 +296,7 @@ CREATE TABLE ticketsystem.refresh_tokens (
 
 On `/auth/refresh`: verify JTI exists in store, then rotate (delete old, insert new).
 On logout / TOTP enable: delete all JTIs for the user.
+-->
 
 ### 3.4 Organisation Hierarchy Cache
 
@@ -488,7 +496,7 @@ environment variables or `.env` file.  The table shows the full scaling-relevant
 | `DB_POOL_PRE_PING` | `true` | Leave as-is |
 | `MAX_UPLOAD_SIZE_MB` | `10` | When users need larger files; also update nginx |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `30` | No change needed |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Reduce to `1` once JTI store is implemented (S-4) |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | `7` | Can reduce to `1` now that JTI rotation is active (S-4 ✅) |
 | `ALLOWED_ORIGINS` | `["http://localhost:3000"]` | Must be set to real domain in production |
 | `REDIS_URL` | *(add in Tier 3)* | `redis://redis:6379/0` |
 | `STORAGE_BACKEND` | `local` | `s3` in Tier 4 |
@@ -516,7 +524,7 @@ All `SCALE-UP` comments in the codebase:
 - [ ] `ALLOWED_ORIGINS` set to actual domain(s), no `localhost`
 - [ ] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` validator)
 - [ ] `POSTGRES_PASSWORD` changed from default
-- [ ] Tier-0 security items in REVIEW.md resolved (S-4 … S-9)
+- [ ] Tier-0 security items in REVIEW.md resolved (S-5 … S-9)
 - [ ] `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` reviewed against expected concurrency
 - [ ] Backups configured for the `postgres-data` Docker volume
 - [ ] Uploaded attachments volume (`backend-uploads`) included in backup scope

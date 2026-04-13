@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
+import uuid
 
 import bcrypt
 import jwt
@@ -27,9 +28,14 @@ def create_access_token(subject: str | Any, expires_delta: timedelta | None = No
 
 
 def create_refresh_token(subject: str | Any) -> str:
-    """Create a signed JWT refresh token for the given subject."""
+    """Create a signed JWT refresh token for the given subject.
+
+    Includes a unique ``jti`` (JWT ID) claim so the token can be tracked in the
+    ``refresh_tokens`` table and revoked on logout or TOTP state changes (S-4).
+    """
+    jti = str(uuid.uuid4())
     expire = datetime.now(timezone.utc) + timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
-    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh"}
+    to_encode = {"exp": expire, "sub": str(subject), "type": "refresh", "jti": jti}
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 
