@@ -881,7 +881,6 @@ async def upload_hierarchy(
         await service.create_org(org_level, nm, parent_id)
         created += 1
 
-    await db.commit()
     return HierarchyUploadResult(created=created, skipped=skipped, errors=errors)
 
 

@@ -43,7 +43,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | H-2 | Refresh token stored in `localStorage` (XSS risk) | 🔴 High | Security | Medium |
 | H-3 | Race condition in concurrent token refresh | 🔴 High | Reliability | Medium |
 | ~~H-4~~ | ~~`file_path` (internal server path) exposed in API~~ | ✅ Fixed 1.3 | Info Disclosure | Low |
-| H-5 | Spurious `db.commit()` inside `get_db` session context | 🔴 High | Reliability | Low |
+| H-5 | Spurious `db.commit()` inside `get_db` session context | ~~🔴 High~~ ✅ Fixed | Reliability | Low |
 | A-3 | `GET /tickets/{id}` missing org-scoped visibility check | 🔴 High | Access Control | Low |
 | A-4 | No refresh token revocation (TOTP bypass vector) | 🔴 High | Security | Medium |
 | ~~A-5~~ | ~~All uploaded attachments publicly accessible without authentication~~ | ✅ Fixed 1.3 | Access Control | Medium |
@@ -218,13 +218,13 @@ The response schema includes the full server-side path (e.g. `/app/uploads/attac
 
 ---
 
-#### H-5 · Spurious `db.commit()` inside `get_db` session context
+#### ~~H-5 · Spurious `db.commit()` inside `get_db` session context~~ ✅ Fixed 2026-04-13
 **File:** [backend/app/db/session.py](backend/app/db/session.py)
 **OWASP:** N/A — data integrity
 
 A `db.commit()` call appears inside the `get_db` dependency generator, causing every request to auto-commit even if the handler raised an exception and the commit should have been rolled back. This can leave partially-written data in the database.
 
-**Fix:** Remove the `db.commit()` from `get_db`. Commits should be explicit in service methods. Add `db.rollback()` in the exception branch.
+> **Resolution:** `get_db` in `session.py` already wraps the commit in a `try/except`: commit runs only on success, and `session.rollback()` is called on any exception before re-raising — this is the correct transaction-boundary pattern. The remaining issue was an explicit `await db.commit()` at the end of the `bulk_upload_hierarchy` endpoint in `admin.py` (line 884), which double-committed and could bypass the session's rollback guarantee if subsequent code raised after the early commit. That redundant commit has been removed; `get_db` is now the single commit boundary for all endpoints.
 
 ---
 
@@ -390,7 +390,7 @@ These items represent active security vulnerabilities or data-integrity risks. *
 5. **Fix empty-string org_id guard (C-5):** Validate `organization_id` at the endpoint level before calling the service.
 6. **Protect SMTP credentials (A-1):** Use Pydantic `SecretStr` for `smtp_password`.
 7. **Fix blocking `os.remove` (C-4):** Replace with `await asyncio.to_thread(os.remove, ...)`.
-8. **Remove `file_path` from API response (H-4):** Expose only `download_url` and `file_name`.
+8. ~~**Remove `file_path` from API response (H-4):** Expose only `download_url` and `file_name`.~~ ✅ Done (v1.3)
 9. **Remove spurious `db.commit()` in `get_db` (H-5):** Commits must be explicit in service methods only.
 10. **Fix path traversal check on attachment delete (H-1):** Validate resolved path is within upload root.
 
