@@ -18,7 +18,7 @@
 | Database | 1 PostgreSQL instance (Docker volume) |
 | File storage | Local disk (`uploads/` volume) |
 | Cache / message broker | None |
-| Rate limiting | None yet (in-process only — S-5 deferred) |
+| Rate limiting | `slowapi` in-memory per-process — switch to Redis at Tier-3 (S-5 ✅) |
 | Deployment | `docker-compose.yml` on a single host |
 
 This profile is appropriate for the **pilot phase**.  The application has been deliberately
@@ -34,7 +34,7 @@ Work top-to-bottom; each tier assumes the previous one is complete.
 
 | Tier | When to act | Trigger signal | Actions |
 |------|------------|---------------|---------|
-| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-5 … S-9) |
+| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-6 … S-9) |
 | **1 — 30–50 users** | Pilot feedback period | Occasional slow page loads (P95 > 1 s) | Pool tuning, pagination, chunked uploads |
 | **2 — 50–100 users** | Early production growth | DB connection errors in logs | Readiness endpoint, structured logging, migrate `/health` |
 | **3 — 100–300 users** | Sustained production use | Multi-replica needed OR rate-limit gaps exposed | Redis (rate limit + JTI + org cache), refresh-token revocation |
@@ -51,7 +51,7 @@ See REVIEW.md Tier-0 table for the full list.  Priority order:
 1. ~~**S-2** — Comment update/delete don't enforce `ticket_id`~~ ✅ Fixed v1.8
 2. ~~**S-3** — TOTP replay within 30-second window~~ ✅ Fixed v1.9
 3. ~~**S-4** — No refresh token revocation (TOTP bypass via stolen token)~~ ✅ Fixed v2.0
-4. **S-5** — No rate limiting on login/TOTP/reset endpoints
+4. ~~**S-5** — No rate limiting on login/TOTP/reset endpoints~~ ✅ Fixed v2.1
 5. **S-6** — SMTP password in plaintext in DB
 6. **S-7** — Refresh token in `localStorage` (XSS risk)
 7. **S-8** — Concurrent token refresh race condition
@@ -248,27 +248,23 @@ Add to `config.py`:
 REDIS_URL: str = "redis://redis:6379/0"
 ```
 
-### 3.2 Rate Limiting
+### 3.2 Rate Limiting ✅ Implemented (S-5 v2.1)
 
-**File:** `backend/app/api/v1/endpoints/auth.py`
-**REVIEW.md:** S-5
+**REVIEW.md:** ~~S-5~~ ✅ Fixed
+**Files:** `backend/app/core/limiter.py`, `backend/app/core/config.py`, `backend/app/main.py`, `backend/app/api/v1/endpoints/auth.py`
 
-```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
-limiter = Limiter(key_func=get_remote_address, storage_uri=settings.REDIS_URL)
+`slowapi` is active with an **in-memory** backing store (`RATE_LIMIT_STORAGE_URI=memory://`).
+Limits applied:
 
-@router.post("/login")
-@limiter.limit("10/minute")
-async def login(...): ...
+| Endpoint | Limit |
+|---|---|
+| `POST /auth/login` | 10 / minute per IP |
+| `POST /auth/totp/verify` | 10 / minute per IP |
+| `DELETE /auth/totp/disable` | 10 / minute per IP |
+| `POST /auth/password-reset/request` | 5 / minute per IP |
 
-@router.post("/password-reset/request")
-@limiter.limit("5/minute")
-async def request_password_reset(...): ...
-```
-
-Using a Redis backend ensures the limit is shared across all backend replicas
-(in-memory limits are per-process and rendered meaningless when replicated).
+**Upgrade path:** Set `RATE_LIMIT_STORAGE_URI=redis://redis:6379/1` at Tier-3 (100+ users /
+multi-replica) to share counters across all backend processes.  Zero code change required.
 
 ### 3.3 Refresh Token Revocation (JTI Store) ✅ Implemented (S-4 v2.0)
 
@@ -524,7 +520,7 @@ All `SCALE-UP` comments in the codebase:
 - [ ] `ALLOWED_ORIGINS` set to actual domain(s), no `localhost`
 - [ ] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` validator)
 - [ ] `POSTGRES_PASSWORD` changed from default
-- [ ] Tier-0 security items in REVIEW.md resolved (S-5 … S-9)
+- [ ] Tier-0 security items in REVIEW.md resolved (S-6 … S-9)
 - [ ] `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` reviewed against expected concurrency
 - [ ] Backups configured for the `postgres-data` Docker volume
 - [ ] Uploaded attachments volume (`backend-uploads`) included in backup scope

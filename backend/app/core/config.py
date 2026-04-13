@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
     MAX_UPLOAD_SIZE_MB: int = 10
 
+    # Rate limiting (S-5)
+    # Default: in-memory per-process. Set RATE_LIMIT_STORAGE_URI=redis://redis:6379/1
+    # at Tier-3 scale (100+ users / multi-replica) for shared counters. See SCALING.md § 3.2.
+    RATE_LIMIT_STORAGE_URI: str = "memory://"
+
     # 2FA
     TOTP_ISSUER: str = "TicketSystem"
 

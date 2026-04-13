@@ -1,11 +1,12 @@
 import logging
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_unrestricted_user
+from app.core.limiter import limiter
 from app.core.security import (
     create_access_token,
     create_password_reset_token,
@@ -77,7 +78,8 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)) -> User
 
 
 @router.post("/login", response_model=Token)
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
+@limiter.limit("10/minute")  # S-5: brute-force guard
+async def login(request: Request, data: LoginRequest, db: AsyncSession = Depends(get_db)) -> Token:
     """Authenticate a user and return a JWT access + refresh token pair."""
     service = UserService(db)
     user = await service.authenticate(data.email, data.password)
@@ -236,7 +238,9 @@ async def setup_totp(
 
 
 @router.post("/totp/verify")
+@limiter.limit("10/minute")  # S-5
 async def verify_totp_endpoint(
+    request: Request,
     data: TOTPVerifyRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -260,7 +264,9 @@ async def verify_totp_endpoint(
 
 
 @router.delete("/totp/disable")
+@limiter.limit("10/minute")  # S-5
 async def disable_totp(
+    request: Request,
     data: TOTPVerifyRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -286,7 +292,9 @@ async def disable_totp(
 # ─── Password Recovery (for superadmin) ──────────────────────────────────────
 
 @router.post("/password-reset/request")
+@limiter.limit("5/minute")  # S-5: prevent reset-link spam
 async def request_password_reset(
+    request: Request,
     data: PasswordResetRequest,
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, str]:
