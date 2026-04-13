@@ -286,8 +286,8 @@ class TicketService:
         if attachment.uploaded_by_id != user_id and not is_superuser:
             raise ForbiddenException()
 
-        if os.path.exists(attachment.file_path):
-            os.remove(attachment.file_path)
+        if await aiofiles.os.path.exists(attachment.file_path):
+            await aiofiles.os.remove(attachment.file_path)
 
         await self.db.delete(attachment)
         await self.db.flush()

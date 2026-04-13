@@ -35,7 +35,7 @@ A prioritised three-phase remediation roadmap follows the detailed findings belo
 | ~~C-1~~ | ~~Password reset token returned in API response~~ | ✅ Fixed 1.1 | Security | Low |
 | ~~C-2~~ | ~~Password reset accepts any valid access token~~ | ✅ Fixed 1.1 | Security | Low |
 | ~~C-3~~ | ~~File upload: no magic-byte / content-type validation~~ | ✅ Fixed 1.2 | Security | Medium |
-| C-4 | `os.remove()` called blocking inside async handler | 🔴 Critical | Reliability | Low |
+| C-4 | `os.remove()` called blocking inside async handler | ~~🔴 Critical~~ ✅ Fixed | Reliability | Low |
 | C-5 | Empty-string `organization_id` silently written to DB | ~~🔴 Critical~~ ✅ Fixed | Data Integrity | Low |
 | A-1 | SMTP password stored as plaintext in config | ~~🔴 Critical~~ ✅ Fixed | Security | Low |
 | ~~A-2~~ | ~~`GET /org` hierarchy endpoints unauthenticated~~ | ✅ Fixed 1.4 | Access Control | Low |
@@ -114,7 +114,7 @@ File MIME type is read from the client-supplied `Content-Type` header without an
 
 ---
 
-#### C-4 · `os.remove()` called blocking in async endpoint
+#### ~~C-4 · `os.remove()` called blocking in async endpoint~~ ✅ Fixed 2026-04-13
 **File:** [backend/app/services/ticket_service.py](backend/app/services/ticket_service.py)
 **OWASP:** N/A — reliability
 
@@ -124,7 +124,7 @@ os.remove(attachment.file_path)  # blocks the event loop
 
 This call blocks the asyncio event loop for the duration of the filesystem operation. Under any significant request concurrency, this causes all other requests to stall.
 
-**Fix:** Replace with `await asyncio.to_thread(os.remove, attachment.file_path)` or `await aiofiles.os.remove(attachment.file_path)`.
+> **Resolution:** Replaced both `os.path.exists()` and `os.remove()` in `delete_attachment` with their async equivalents from the already-imported `aiofiles` package: `await aiofiles.os.path.exists(...)` and `await aiofiles.os.remove(...)`. The event loop is no longer blocked during file deletion.
 
 ---
 
