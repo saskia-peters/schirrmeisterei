@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Sequence, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.encryption import EncryptedString
 from app.db.session import Base
 
 
@@ -110,7 +111,7 @@ class EmailConfig(Base):
     smtp_host: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     smtp_port: Mapped[int] = mapped_column(Integer, nullable=False, default=587)
     smtp_user: Mapped[str] = mapped_column(String(255), nullable=False, default="")
-    smtp_password: Mapped[str] = mapped_column(String(255), nullable=False, default="")
+    smtp_password: Mapped[str] = mapped_column(EncryptedString, nullable=False, default="")  # S-6: Fernet-encrypted
     from_email: Mapped[str] = mapped_column(String(255), nullable=False, default="")
     use_tls: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

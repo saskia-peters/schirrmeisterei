@@ -34,7 +34,7 @@ Work top-to-bottom; each tier assumes the previous one is complete.
 
 | Tier | When to act | Trigger signal | Actions |
 |------|------------|---------------|---------|
-| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-6 … S-9) |
+| **0 — Security** | Now, before go-live | — | Fix remaining Tier-0 items in REVIEW.md (S-7 … S-9) |
 | **1 — 30–50 users** | Pilot feedback period | Occasional slow page loads (P95 > 1 s) | Pool tuning, pagination, chunked uploads |
 | **2 — 50–100 users** | Early production growth | DB connection errors in logs | Readiness endpoint, structured logging, migrate `/health` |
 | **3 — 100–300 users** | Sustained production use | Multi-replica needed OR rate-limit gaps exposed | Redis (rate limit + JTI + org cache), refresh-token revocation |
@@ -52,7 +52,7 @@ See REVIEW.md Tier-0 table for the full list.  Priority order:
 2. ~~**S-3** — TOTP replay within 30-second window~~ ✅ Fixed v1.9
 3. ~~**S-4** — No refresh token revocation (TOTP bypass via stolen token)~~ ✅ Fixed v2.0
 4. ~~**S-5** — No rate limiting on login/TOTP/reset endpoints~~ ✅ Fixed v2.1
-5. **S-6** — SMTP password in plaintext in DB
+5. ~~**S-6** — SMTP password in plaintext in DB~~ ✅ Fixed v2.2
 6. **S-7** — Refresh token in `localStorage` (XSS risk)
 7. **S-8** — Concurrent token refresh race condition
 8. **S-9** — `ALLOWED_ORIGINS` hardcoded to `localhost` in production compose
@@ -520,7 +520,7 @@ All `SCALE-UP` comments in the codebase:
 - [ ] `ALLOWED_ORIGINS` set to actual domain(s), no `localhost`
 - [ ] `ENVIRONMENT=production` in compose (enables the `SECRET_KEY` validator)
 - [ ] `POSTGRES_PASSWORD` changed from default
-- [ ] Tier-0 security items in REVIEW.md resolved (S-6 … S-9)
+- [ ] Tier-0 security items in REVIEW.md resolved (S-7 … S-9)
 - [ ] `DB_POOL_SIZE` / `DB_MAX_OVERFLOW` reviewed against expected concurrency
 - [ ] Backups configured for the `postgres-data` Docker volume
 - [ ] Uploaded attachments volume (`backend-uploads`) included in backup scope
