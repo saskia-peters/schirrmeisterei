@@ -1,5 +1,6 @@
 import io
 import os
+from pathlib import Path
 
 import aiofiles
 from fastapi import UploadFile
@@ -284,6 +285,11 @@ class TicketService:
         if attachment is None:
             raise NotFoundException("Attachment")
         if attachment.uploaded_by_id != user_id and not is_superuser:
+            raise ForbiddenException()
+
+        upload_root = Path(settings.UPLOAD_DIR).resolve()
+        target = Path(attachment.file_path).resolve()
+        if not str(target).startswith(str(upload_root)):
             raise ForbiddenException()
 
         if await aiofiles.os.path.exists(attachment.file_path):

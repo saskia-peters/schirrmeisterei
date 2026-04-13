@@ -168,8 +168,8 @@ All GET endpoints under `/api/v1/organizations` are accessible without a valid t
 
 ---
 
-#### ~~H-1 · Attachment delete: `file_path` not validated for path traversal~~ ✅ Fixed in v1.3
-> **Resolution:** The new `download_attachment` endpoint (which replaced the StaticFiles mount) applies a path-traversal guard: `Path(attachment.file_path).resolve()` is checked to start with `Path(settings.UPLOAD_DIR).resolve()` before the file is served. The attachment `delete_attachment` service method retains the same guard that was already present.
+#### ~~H-1 · Attachment delete: `file_path` not validated for path traversal~~ ✅ Fixed 2026-04-13
+> **Resolution:** The `download_attachment` endpoint applies a path-traversal guard: `Path(attachment.file_path).resolve()` is checked to start with `Path(settings.UPLOAD_DIR).resolve()` before serving the file. The same guard has now been added to `delete_attachment` in `ticket_service.py`: if the resolved path escapes the upload root a `ForbiddenException` is raised and the file is never touched.
 
 **File:** [backend/app/api/v1/endpoints/tickets.py](backend/app/api/v1/endpoints/tickets.py)
 **OWASP:** A01 – Broken Access Control
@@ -392,7 +392,7 @@ These items represent active security vulnerabilities or data-integrity risks. *
 7. **Fix blocking `os.remove` (C-4):** Replace with `await asyncio.to_thread(os.remove, ...)`.
 8. ~~**Remove `file_path` from API response (H-4):** Expose only `download_url` and `file_name`.~~ ✅ Done (v1.3)
 9. **Remove spurious `db.commit()` in `get_db` (H-5):** Commits must be explicit in service methods only.
-10. **Fix path traversal check on attachment delete (H-1):** Validate resolved path is within upload root.
+10. ~~**Fix path traversal check on attachment delete (H-1):** Validate resolved path is within upload root.~~ ✅ Done
 
 ---
 
