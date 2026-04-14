@@ -78,6 +78,37 @@ The email body is added as a comment on the ticket.  Attached images and PDFs ar
 
 ---
 
+---
+
+## Watching a Ticket
+
+Any user who can see a ticket can **watch** it to receive email notifications when its status changes.
+
+### Subscribe / unsubscribe
+
+1. Open the ticket detail view by clicking its title.
+2. Click the **🔔 Watch** button in the top-right area of the ticket header to subscribe.
+3. Click **🔕 Unwatch** to stop receiving notifications.
+
+The button label and style reflect your current watch state at a glance.
+
+### When are notifications sent?
+
+An email is sent to all watchers (except the user who performed the status change) whenever a ticket's status is updated.
+
+**Requirements for notifications:**
+
+- Your organisation must have an outgoing SMTP configuration set up in the Admin Panel → *Email Config* tab.
+- Your user account must have a valid email address.
+- You must be watching the ticket at the time of the status change.
+
+The notification email includes the ticket number, title, old status, and new status.
+
+!!! note
+    If no Email Config exists for the ticket's organisation, notifications are silently skipped. Contact your administrator to enable outgoing email.
+
+---
+
 ## Filtering Tickets
 
 Use the filter bar above the board to narrow tickets by:

@@ -313,3 +313,31 @@ async def get_status_log(
     ticket = await service.get_by_id_or_raise(ticket_id)
     await _assert_ticket_visible(ticket, current_user, db)
     return [StatusLogResponse.model_validate(log) for log in ticket.status_logs]
+
+
+# ─── Watchers ─────────────────────────────────────────────────────────────────
+
+@router.post("/{ticket_id}/watch", status_code=204)
+async def watch_ticket(
+    ticket_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Subscribe the current user to status-change notifications for this ticket."""
+    service = TicketService(db)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
+    await service.add_watcher(ticket, current_user.id)
+
+
+@router.delete("/{ticket_id}/watch", status_code=204)
+async def unwatch_ticket(
+    ticket_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """Unsubscribe the current user from status-change notifications for this ticket."""
+    service = TicketService(db)
+    ticket = await service.get_by_id_or_raise(ticket_id)
+    await _assert_ticket_visible(ticket, current_user, db)
+    await service.remove_watcher(ticket, current_user.id)

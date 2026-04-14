@@ -1,3 +1,4 @@
+import asyncio
 import io
 import os
 from pathlib import Path
@@ -12,7 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
 from app.core.exceptions import ForbiddenException, NotFoundException
-from app.models.models import Attachment, Comment, StatusLog, Ticket, TicketStatus, User
+from app.models.models import Attachment, Comment, EmailConfig, StatusLog, Ticket, TicketStatus, TicketWatcher, User
 from app.schemas.ticket import CommentCreate, CommentUpdate, TicketCreate, TicketStatusUpdate, TicketUpdate, WaitingForUpdate
 from app.services.totp_service import get_safe_upload_path
 
@@ -72,6 +73,7 @@ class TicketService:
                 selectinload(Ticket.attachments),
                 selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
                 selectinload(Ticket.status_logs),
+                selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
             )
         )
         return result.scalar_one_or_none()
@@ -100,6 +102,7 @@ class TicketService:
             selectinload(Ticket.attachments),
             selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
             selectinload(Ticket.status_logs),
+            selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
         )
         if org_ids is not None:
             stmt = stmt.where(Ticket.organization_id.in_(org_ids))
@@ -121,6 +124,7 @@ class TicketService:
                 selectinload(Ticket.attachments),
                 selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
                 selectinload(Ticket.status_logs),
+                selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
             )
         )
         if org_ids is not None:
@@ -232,7 +236,85 @@ class TicketService:
         )
         self.db.add(log)
         await self.db.flush()
-        return await self.get_by_id_or_raise(ticket.id)
+        updated = await self.get_by_id_or_raise(ticket.id)
+
+        # Fire-and-forget email notifications to watchers (only on actual status change).
+        if old_status != data.status and updated.watchers:
+            await self._schedule_watcher_notifications(
+                updated, old_status.value, data.status.value, user_id
+            )
+
+        return updated
+
+    async def _schedule_watcher_notifications(
+        self,
+        ticket: Ticket,
+        old_status: str,
+        new_status: str,
+        changed_by_user_id: str,
+    ) -> None:
+        """Query the org email config and schedule a background notification task."""
+        ec_result = await self.db.execute(
+            select(EmailConfig).where(
+                EmailConfig.organization_id == ticket.organization_id,
+                EmailConfig.is_active.is_(True),
+            )
+        )
+        email_config = ec_result.scalar_one_or_none()
+        if email_config is None:
+            return
+
+        # Notify all watchers except the person who made the change.
+        to_addresses = [
+            w.user.email
+            for w in ticket.watchers
+            if w.user and w.user.email and w.user.id != changed_by_user_id
+        ]
+        if not to_addresses:
+            return
+
+        from app.services.email_service import send_watcher_notifications  # local import
+
+        asyncio.create_task(
+            send_watcher_notifications(
+                smtp_host=email_config.smtp_host,
+                smtp_port=email_config.smtp_port,
+                smtp_user=email_config.smtp_user,
+                smtp_password=email_config.smtp_password,
+                from_email=email_config.from_email,
+                use_tls=email_config.use_tls,
+                to_addresses=to_addresses,
+                ticket_number=ticket.ticket_number,
+                ticket_title=ticket.title,
+                old_status=old_status,
+                new_status=new_status,
+            )
+        )
+
+    async def add_watcher(self, ticket: Ticket, user_id: str) -> None:
+        """Subscribe user_id to status-change notifications for this ticket. Idempotent."""
+        existing = await self.db.execute(
+            select(TicketWatcher).where(
+                TicketWatcher.ticket_id == ticket.id,
+                TicketWatcher.user_id == user_id,
+            )
+        )
+        if existing.scalar_one_or_none() is None:
+            self.db.add(TicketWatcher(ticket_id=ticket.id, user_id=user_id))
+            await self.db.flush()
+
+    async def remove_watcher(self, ticket: Ticket, user_id: str) -> None:
+        """Unsubscribe user_id from status-change notifications for this ticket. Idempotent."""
+        result = await self.db.execute(
+            select(TicketWatcher).where(
+                TicketWatcher.ticket_id == ticket.id,
+                TicketWatcher.user_id == user_id,
+            )
+        )
+        watcher = result.scalar_one_or_none()
+        if watcher is not None:
+            await self.db.delete(watcher)
+            await self.db.flush()
 
     async def update_waiting_for(
         self, ticket: Ticket, data: WaitingForUpdate

@@ -58,17 +58,17 @@ organisations          users
   parent_id (FK self)    organization_id (FK)
                          is_superuser
 
-tickets                user_group_memberships
-  id (UUID)              user_id (FK)
-  title                  group_id (FK)
+tickets                ticket_watchers
+  id (UUID)              ticket_id (FK, PK)
+  title                  user_id  (FK, PK)
   description
-  status (enum)        user_groups
-  creator_id (FK)        id (UUID)
-  assignee_id (FK)       name
+  status (enum)        user_group_memberships
+  creator_id (FK)        user_id (FK)
+  assignee_id (FK)       group_id (FK)
   organization_id (FK)
-  priority_id (FK)     permissions / role_permissions
-  category_id (FK)       (RBAC permission table)
-  affected_group_id (FK)
+  priority_id (FK)     user_groups
+  category_id (FK)       id (UUID)
+  affected_group_id (FK) name
 ```
 
 ## Authentication Flow
@@ -87,6 +87,29 @@ The backend runs optional background asyncio tasks started inside the FastAPI li
 | IMAP poller (`imap_poller.py`) | `IMAP_ENABLED=true` | Polls a mailbox for UNSEEN messages, parses `[Ticket #N]` subjects, and adds comments + attachments |
 
 The IMAP poller runs as a single `asyncio.Task` (no separate worker process or queue). IMAP I/O is dispatched to the default `ThreadPoolExecutor` via `run_in_executor` so the event loop is never blocked.
+
+## Ticket Watchers & Email Notifications
+
+Any user who can see a ticket can subscribe as a **watcher** (`ticket_watchers` join table, composite PK `(ticket_id, user_id)`).
+
+When `TicketService.update_status()` detects a real status change it calls `_schedule_watcher_notifications()`, which:
+
+1. Queries the org's `EmailConfig` (SMTP credentials, encrypted at rest with Fernet).
+2. Filters out the user who triggered the change.
+3. Fires an `asyncio.create_task()` wrapping `email_service.send_watcher_notifications()`.
+
+Using `create_task()` (fire-and-forget) means SMTP latency or failure **never blocks** the API response.
+
+`send_watcher_notifications()` (`backend/app/services/email_service.py`) runs `smtplib` inside `asyncio.to_thread()` to keep the event loop free. All SMTP exceptions are caught and logged — they are never re-raised to the caller.
+
+New API surface:
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/v1/tickets/{id}/watch` | Subscribe current user |
+| `DELETE` | `/api/v1/tickets/{id}/watch` | Unsubscribe current user |
+
+`TicketResponse` gains a `watcher_ids: list[str]` field populated on serialisation.
 
 ## Navbar Colour Coding
 

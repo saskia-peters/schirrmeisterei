@@ -76,7 +76,34 @@ Response:
 | `POST` | `/tickets/{id}/comments` | Add a comment |
 | `PATCH` | `/tickets/{id}/comments/{cmt_id}` | Edit a comment |
 | `DELETE` | `/tickets/{id}/comments/{cmt_id}` | Delete a comment |
+| `POST` | `/tickets/{id}/watch` | Subscribe (watch) the ticket |
+| `DELETE` | `/tickets/{id}/watch` | Unsubscribe (unwatch) the ticket |
 | `GET` | `/tickets/{id}/status-log` | Full status-change history |
+
+---
+
+### Ticket Watchers
+
+`POST /tickets/{id}/watch` — subscribe the **current user** to ticket updates.
+`DELETE /tickets/{id}/watch` — unsubscribe the current user.
+
+Both endpoints return **204 No Content** on success and are idempotent (watching an already-watched ticket or unwatching a non-watched ticket is a no-op).
+
+**Access rule:** the caller must be able to see the ticket (same organisation-visibility rules as `GET /tickets/{id}`).
+
+When a ticket's status changes, an email notification is sent to all watchers **except** the user who triggered the change. Notifications are only sent when an SMTP Email Config exists for the ticket's organisation.
+
+The `watcher_ids` field on every `TicketResponse` lists the UUIDs of current watchers:
+
+```json
+{
+  "id": "abc123",
+  "title": "Network outage in OV Schwabing",
+  "status": "in_progress",
+  "watcher_ids": ["user-uuid-1", "user-uuid-2"],
+  ...
+}
+```
 
 ---
 

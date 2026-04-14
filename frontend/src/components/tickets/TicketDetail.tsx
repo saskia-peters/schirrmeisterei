@@ -17,6 +17,8 @@ import {
   useAssignableUsers,
   useConfigItems,
   useUpdateWaitingFor,
+  useWatchTicket,
+  useUnwatchTicket,
 } from '@/hooks/useApi'
 import { useAuthStore } from '@/store/authStore'
 import type { TicketStatus } from '@/types'
@@ -58,6 +60,24 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   const deleteComment = useDeleteComment(ticketId)
   const uploadAttachment = useUploadAttachment(ticketId)
   const deleteAttachment = useDeleteAttachment(ticketId)
+  const watchTicket = useWatchTicket(ticketId)
+  const unwatchTicket = useUnwatchTicket(ticketId)
+
+  const isWatching = user ? ticket.watcher_ids.includes(user.id) : false
+
+  const handleToggleWatch = async () => {
+    try {
+      if (isWatching) {
+        await unwatchTicket.mutateAsync()
+        toast.success('No longer watching this ticket')
+      } else {
+        await watchTicket.mutateAsync()
+        toast.success('Now watching this ticket')
+      }
+    } catch {
+      toast.error('Failed to update watch status')
+    }
+  }
 
   const commentForm = useForm<CommentForm>({ resolver: zodResolver(commentSchema) })
 
@@ -194,6 +214,15 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
             <h2>{ticket.title}</h2>
           )}
           <div className="modal-header-actions">
+            <button
+              type="button"
+              className={`btn btn-sm ${isWatching ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={handleToggleWatch}
+              disabled={watchTicket.isPending || unwatchTicket.isPending}
+              title={isWatching ? 'Stop receiving email notifications' : 'Get email notifications on status changes'}
+            >
+              {isWatching ? '🔔 Watching' : '🔕 Watch'}
+            </button>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleSaveAndClose}

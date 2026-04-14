@@ -127,6 +127,22 @@ export const useUpdateWaitingFor = (ticketId: string) => {
   })
 }
 
+export const useWatchTicket = (ticketId: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => ticketsApi.watchTicket(ticketId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ticket', ticketId] }),
+  })
+}
+
+export const useUnwatchTicket = (ticketId: string) => {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => ticketsApi.unwatchTicket(ticketId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ticket', ticketId] }),
+  })
+}
+
 // ─── User Hooks ───────────────────────────────────────────────────────────────
 
 export const useUsers = (enabled = true) =>

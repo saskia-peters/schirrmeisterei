@@ -157,6 +157,7 @@ export interface Ticket {
   affected_group_id: string | null
   affected_group_name: string | null
   waiting_for: string | null
+  watcher_ids: string[]
   created_at: string
   updated_at: string
   attachments: Attachment[]

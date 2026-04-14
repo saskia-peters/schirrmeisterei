@@ -135,6 +135,12 @@ export const ticketsApi = {
 
   updateWaitingFor: (ticketId: string, data: UpdateWaitingForRequest) =>
     apiClient.patch<Ticket>(`/tickets/${ticketId}/waiting-for`, data).then((r) => r.data),
+
+  watchTicket: (ticketId: string) =>
+    apiClient.post(`/tickets/${ticketId}/watch`).then((r) => r.data),
+
+  unwatchTicket: (ticketId: string) =>
+    apiClient.delete(`/tickets/${ticketId}/watch`).then((r) => r.data),
 }
 
 // ─── Users ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

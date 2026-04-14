@@ -195,6 +195,9 @@ class User(Base):
         back_populates="users",
         viewonly=True,
     )
+    watched_tickets: Mapped[list["TicketWatcher"]] = relationship(
+        "TicketWatcher", back_populates="user", cascade="all, delete-orphan"
+    )
 
 
 class UserGroup(Base):
@@ -309,6 +312,9 @@ class Ticket(Base):
     status_logs: Mapped[list["StatusLog"]] = relationship(
         "StatusLog", back_populates="ticket", cascade="all, delete-orphan"
     )
+    watchers: Mapped[list["TicketWatcher"]] = relationship(
+        "TicketWatcher", back_populates="ticket", cascade="all, delete-orphan"
+    )
 
 
 class Attachment(Base):
@@ -409,3 +415,20 @@ class RefreshToken(Base):
     )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class TicketWatcher(Base):
+    """Users who have subscribed to status-change notifications for a ticket."""
+
+    __tablename__ = "ticket_watchers"
+
+    ticket_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("tickets.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    ticket: Mapped["Ticket"] = relationship("Ticket", back_populates="watchers")
+    user: Mapped["User"] = relationship("User", back_populates="watched_tickets")

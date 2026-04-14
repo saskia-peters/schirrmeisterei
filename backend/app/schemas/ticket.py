@@ -140,6 +140,7 @@ class TicketResponse(BaseModel):
     affected_group_id: str | None
     affected_group_name: str | None
     waiting_for: str | None
+    watcher_ids: list[str] = []
     created_at: datetime
     updated_at: datetime
     attachments: list[AttachmentResponse] = []
@@ -171,6 +172,7 @@ class TicketResponse(BaseModel):
             "affected_group_id": data.affected_group_id,
             "affected_group_name": data.affected_group.name if data.affected_group is not None else None,
             "waiting_for": data.waiting_for,
+            "watcher_ids": [w.user_id for w in data.watchers] if hasattr(data, "watchers") else [],
             "created_at": data.created_at,
             "updated_at": data.updated_at,
             "attachments": list(data.attachments),
