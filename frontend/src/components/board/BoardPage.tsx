@@ -26,10 +26,7 @@ export function BoardPage() {
       {showCreateModal && (
         <CreateTicketModal
           onClose={() => setShowCreateModal(false)}
-          onCreated={(id) => {
-            setShowCreateModal(false)
-            setSelectedTicketId(id)
-          }}
+          onCreated={() => setShowCreateModal(false)}
         />
       )}
     </div>

@@ -21,7 +21,9 @@ interface AttachmentThumbProps {
 export function AttachmentThumb({ attachment, onDelete, canDelete }: AttachmentThumbProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [error, setError] = useState(false)
-  const isPdf = attachment.content_type === 'application/pdf'
+  const isPdf =
+    attachment.content_type === 'application/pdf' ||
+    attachment.filename.toLowerCase().endsWith('.pdf')
 
   useEffect(() => {
     let objectUrl = ''
@@ -53,17 +55,21 @@ export function AttachmentThumb({ attachment, onDelete, canDelete }: AttachmentT
         className="attachment-thumbnail"
         title={`${attachment.filename} (${Math.round(attachment.file_size / 1024)} KB)`}
         onClick={handleDownload}
-        disabled={!blobUrl && !error}
+        disabled={!isPdf && !blobUrl && !error}
         aria-label={`Download ${attachment.filename}`}
       >
         {error ? (
           <span className="thumbnail-error">Failed to load</span>
+        ) : isPdf ? (
+          <div className="thumbnail-pdf-icon" aria-hidden>
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" width="28" height="34">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span className="thumbnail-pdf-label">PDF</span>
+          </div>
         ) : blobUrl ? (
-          isPdf ? (
-            <span className="thumbnail-pdf-icon" aria-hidden>📄</span>
-          ) : (
-            <img src={blobUrl} alt={attachment.filename} className="thumbnail-img" />
-          )
+          <img src={blobUrl} alt={attachment.filename} className="thumbnail-img" />
         ) : (
           <span className="thumbnail-loading">…</span>
         )}

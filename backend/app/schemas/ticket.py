@@ -37,7 +37,7 @@ class AttachmentResponse(BaseModel):
     @property
     def url(self) -> str:
         """Authenticated download URL for this attachment (A-5)."""
-        return f"/api/v1/tickets/{self.ticket_id}/attachments/{self.id}/download"
+        return f"/tickets/{self.ticket_id}/attachments/{self.id}/download"
 
     model_config = {"from_attributes": True}
 
