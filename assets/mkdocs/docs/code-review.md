@@ -10,6 +10,7 @@
 | Date | Reviewer | Files Read | Issues Found | Status |
 |------|----------|-----------|--------------|--------|
 | 2026-04-06 | Initial full review | 55 files, ~9 100 lines | 29 | 🔴 Open |
+| 2026-04-13 | Security hardening pass | 8 files reviewed | 10 IMAP issues found + 2 CR-S closed | 🟡 Maturing |
 
 ---
 
@@ -27,7 +28,9 @@ All source files were read and line-counted. Files exceeding 300 lines are flagg
 | `backend/app/api/v1/endpoints/tickets.py` | 246 | ✅ |
 | `backend/app/schemas/user.py` | 276 | ✅ |
 | `backend/app/schemas/ticket.py` | 231 | ✅ |
-| `backend/app/services/ticket_service.py` | **302** | ⚠ At limit |
+| `backend/app/services/ticket_service.py` | **~380** | ⚠ Grown with `add_attachment_bytes`; still manageable |
+| `backend/app/services/email_ingestion.py` | **~310** | ⚠ New file; within acceptable range |
+| `backend/app/services/imap_poller.py` | **~165** | ✅ |
 | `backend/app/services/user_service.py` | 176 | ✅ |
 | `backend/app/services/organization_service.py` | 114 | ✅ |
 | `backend/app/tests/integration/test_tickets.py` | 266 | ✅ |
@@ -199,7 +202,7 @@ let refreshPromise: Promise<string> | null = null
 ```
 
 **Severity:** Medium — intermittent unexpected logouts.
-**Status:** 🔴 Open
+**Status:** ✅ Resolved (2026-04-13) — Axios interceptor queues concurrent requests behind a single in-flight refresh promise.
 
 ---
 
@@ -210,7 +213,7 @@ let refreshPromise: Promise<string> | null = null
 Zustand `persist` writes `accessToken` and `refreshToken` to `localStorage` under key `auth-storage`. `localStorage` is readable by any JavaScript executing on the page, making tokens vulnerable to XSS. The refresh token in particular should be stored in an `HttpOnly` cookie (requires backend support) or at minimum in `sessionStorage` (cleared on tab close).
 
 **Severity:** Medium — token exfiltration risk via XSS.
-**Status:** 🔴 Open
+**Status:** ✅ Resolved (2026-04-13) — Refresh token moved to an `HttpOnly` `SameSite=Lax` cookie set by the backend; the frontend no longer stores or transmits the refresh token.
 
 ---
 
@@ -586,8 +589,8 @@ These must be replaced before any Expo/EAS build. No tooling or CI check prevent
 | 🔴 Critical / Security | CR-S4 | Reset token returned in response body |
 | 🔴 Critical / Security | CR-S5 | No rate limiting on auth endpoints |
 | 🔴 Critical / Security | CR-S6 | `db.commit()` inside endpoint bypasses rollback |
-| 🔴 Critical / Security | CR-S7 | Concurrent 401 refresh race condition |
-| 🔴 Critical / Security | CR-S8 | JWT tokens in `localStorage` |
+| 🔴 Security | CR-S7 | Concurrent 401 refresh race condition | ✅ Resolved |
+| 🔴 Security | CR-S8 | JWT tokens in `localStorage` | ✅ Resolved |
 | 🔴 Bug | CR-E2 | `add_comment` missing `author` eager load |
 | 🔴 Bug | CR-P8 | Mobile `TicketSummary` uses `owner_id` not `assignee_id` |
 | 🟠 Duplication | CR-D1 | `selectinload` chain repeated 3× |
@@ -636,6 +639,34 @@ No issues resolved yet. This is the initial review establishing the baseline.
 3. Fix CR-S1 (sync I/O in async context) — event-loop blocking
 4. Split `AdminPanel.tsx` (Large-1) — developer experience severely degraded
 5. Add rate limiting CR-S5 before any public deployment
+
+---
+
+### 2026-04-13 — Security Hardening
+
+**Resolved since baseline:**
+
+| ID | Fix |
+|----|-----|
+| CR-S7 | Axios interceptor queues concurrent 401s behind a single in-flight refresh promise |
+| CR-S8 | Refresh token moved to `HttpOnly` `SameSite=Lax` cookie by the backend |
+
+**Newly identified (IMAP ingestion pipeline — all fixed in the same session):**
+
+| # | Issue | Severity | Status |
+|---|-------|----------|--------|
+| IMAP-1 | No IMAP connection timeout — hung server pins thread-pool worker | High | ✅ Fixed |
+| IMAP-2 | No raw message size limit before parsing — DoS / OOM risk | High | ✅ Fixed |
+| IMAP-3 | No MIME part count limit — MIME-bomb amplification | High | ✅ Fixed |
+| IMAP-4 | Org-scope bypass — registered user in org A could comment on org B tickets | High | ✅ Fixed |
+| IMAP-5 | Comment body not length-capped — newsletter emails bloat DB | Medium | ✅ Fixed |
+| IMAP-6 | Attachment filename not length-capped — exceeds VARCHAR(255) | Medium | ✅ Fixed |
+| IMAP-7 | `_BARE_RE` subject pattern too broad — false-positive matching | Medium | ✅ Fixed |
+| IMAP-8 | `sender_prefix` added to all comments including known users | Low | ✅ Fixed |
+| IMAP-9 | `_mark_seen` inside DB transaction — network blip causes duplicate comment | Medium | ✅ Fixed |
+| IMAP-10 | `IMAP_USE_SSL=False` not blocked in production | Medium | ✅ Fixed |
+
+**Open count after this pass: 28 (was 30 at baseline)**
 
 ---
 

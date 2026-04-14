@@ -67,6 +67,22 @@ just podman-up
 | `ENVIRONMENT` | `development` | One of `development`, `staging`, `production` |
 | `DEBUG` | `false` | Enable SQLAlchemy query echo |
 
+#### Email Ingestion (IMAP)
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `IMAP_ENABLED` | `false` | Enable the background IMAP polling task |
+| `IMAP_HOST` | `""` | IMAP server hostname |
+| `IMAP_PORT` | `993` | IMAP server port |
+| `IMAP_USER` | `""` | Mailbox username |
+| `IMAP_PASSWORD` | `""` | Mailbox password |
+| `IMAP_MAILBOX` | `INBOX` | Folder to poll for UNSEEN messages |
+| `IMAP_USE_SSL` | `true` | Use IMAPS (required in production — startup validator enforces this) |
+| `IMAP_POLL_INTERVAL_SECONDS` | `60` | How often to poll for new messages |
+| `IMAP_MAX_MESSAGE_SIZE_MB` | `10` | Maximum raw email size to process (DoS guard) |
+| `IMAP_REQUIRE_REGISTERED_SENDER` | `true` | Only accept emails from registered, active user accounts |
+| `IMAP_SYSTEM_USER_EMAIL` | `""` | Fallback author when `IMAP_REQUIRE_REGISTERED_SENDER=false` |
+
 ### Frontend (`frontend/.env`)
 
 | Variable | Default | Description |

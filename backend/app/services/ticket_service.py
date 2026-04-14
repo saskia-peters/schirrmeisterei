@@ -325,6 +325,53 @@ class TicketService:
         await self.db.delete(attachment)
         await self.db.flush()
 
+    async def add_attachment_bytes(
+        self,
+        ticket: Ticket,
+        contents: bytes,
+        filename: str,
+        user_id: str,
+    ) -> Attachment | None:
+        """Save *contents* as a ticket attachment without going through UploadFile.
+
+        Used by the email-ingestion pipeline.  Returns ``None`` (without raising)
+        if the content has an unsupported MIME type or exceeds the size limit — the
+        caller should log the rejection and continue processing remaining parts.
+        """
+        max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+        if len(contents) > max_bytes:
+            return None
+
+        detected_mime = _detect_image_mime(contents) or _detect_pdf_mime(contents)
+        if detected_mime is None or detected_mime not in ALLOWED_ATTACHMENT_TYPES:
+            return None
+
+        # Truncate the filename to fit the DB column (VARCHAR 255).
+        # Email Content-Disposition filenames are attacker-controlled and may be
+        # arbitrarily long.  get_safe_upload_path uses only the extension, so the
+        # actual file on disk is always UUID-named; only the DB record is affected.
+        filename = filename[:255]
+
+        attachment_dir = os.path.join(settings.UPLOAD_DIR, "attachments")
+        os.makedirs(attachment_dir, exist_ok=True)
+
+        safe_path = get_safe_upload_path(attachment_dir, filename)
+        async with aiofiles.open(safe_path, "wb") as f:
+            await f.write(contents)
+
+        attachment = Attachment(
+            ticket_id=ticket.id,
+            filename=filename,
+            content_type=detected_mime,
+            file_path=safe_path,
+            file_size=len(contents),
+            uploaded_by_id=user_id,
+        )
+        self.db.add(attachment)
+        await self.db.flush()
+        await self.db.refresh(attachment)
+        return attachment
+
     # ─── Comments ─────────────────────────────────────────────────────────────
 
     async def add_comment(self, ticket: Ticket, data: CommentCreate, user_id: str) -> Comment:

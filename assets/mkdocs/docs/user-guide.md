@@ -36,9 +36,47 @@ The navbar background colour indicates your organisational level at a glance:
 ## Creating a Ticket
 
 1. Click **+ New Ticket** on the board.
-2. Fill in the title and description (both required).
-3. Optionally set Priority, Category, Affected Group, and Assignee.
-4. Click **Create Ticket**.
+2. Fill in the **title** and **description** (required).
+3. Optionally attach one or more files — **images or PDFs** are supported (max 10 MB each).
+4. Optionally set Priority, Category, Affected Group, and Assignee.
+5. Click **Create Ticket**.
+
+!!! tip "Mobile"
+    On small screens the optional fields (Priority, Category, Affected Group, Assignee) are hidden by default to keep the form compact. The form still works with just title and description.
+
+## Attaching Files to a Ticket
+
+Both **images** (JPEG, PNG, GIF, WebP) and **PDF documents** can be attached to a ticket:
+
+- During ticket creation — use the file picker in the create form.
+- After creation — open the ticket detail view and use the attachment upload button.
+
+Each file is validated against its actual content (not just the extension) and must not exceed 10 MB.
+
+---
+
+## Sending an Email to a Ticket
+
+When IMAP ingestion is enabled by your administrator, you can reply to a ticket by email.
+
+**Subject line format** — include the ticket reference in square brackets:
+
+```
+[Ticket #42] Follow-up question about the power outage
+[Ticket-42] Follow-up question
+[Ticket 42] Follow-up question
+```
+
+The email body is added as a comment on the ticket.  Attached images and PDFs are saved as ticket attachments automatically.
+
+**Rules:**
+
+- Your **From:** address must match a registered, active user account.
+- You may only comment on tickets that belong to your own organisation.
+- Superusers may comment on any ticket.
+- Messages from unrecognised senders are silently discarded (configurable — see admin settings).
+
+---
 
 ## Filtering Tickets
 
@@ -75,6 +113,7 @@ Users in the **admin** group or with superuser status can access the Admin Panel
 | Age Thresholds | Configure ticket-age warning thresholds |
 | Users | View all users; change their roles and activation status |
 | Email Config | Configure SMTP settings per organisation |
+| Email Ingestion | Manually trigger an IMAP poll cycle and review results |
 | Bulk Upload | Import users from an XLSX file |
 | Hierarchy Import | Import the organisation hierarchy from an XLSX file |
 

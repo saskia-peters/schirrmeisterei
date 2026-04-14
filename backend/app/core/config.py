@@ -52,6 +52,47 @@ class Settings(BaseSettings):
     # 2FA
     TOTP_ISSUER: str = "TicketSystem"
 
+    # ── Email ingestion (IMAP) ─────────────────────────────────────────────────
+    # Set IMAP_ENABLED=true and fill in the remaining IMAP_* vars to have the
+    # application poll an IMAP mailbox for incoming emails and convert matching
+    # messages into ticket comments.
+    #
+    # Subject format — any of the following patterns is recognised (case-insensitive):
+    #   [Ticket #123]         ← canonical reply-subject format
+    #   [Ticket-123]
+    #   Ticket #123 …
+    #   Ticket 123: …
+    #
+    # Attachments (images and PDFs) are automatically saved to the ticket.
+    # The comment author is resolved as follows:
+    #   1. A registered, active user whose email matches the message From: address.
+    #   2. If IMAP_REQUIRE_REGISTERED_SENDER=true (default): message is REJECTED.
+    #   2. If IMAP_REQUIRE_REGISTERED_SENDER=false: falls back to the user
+    #      configured via IMAP_SYSTEM_USER_EMAIL.  Messages with no resolvable
+    #      author are always discarded regardless of this setting.
+    #
+    IMAP_ENABLED: bool = False
+    IMAP_HOST: str = ""
+    IMAP_PORT: int = 993
+    IMAP_USER: str = ""
+    IMAP_PASSWORD: str = ""
+    IMAP_MAILBOX: str = "INBOX"
+    IMAP_USE_SSL: bool = True
+    # How often (in seconds) to poll for new messages.  60 s is a sensible default.
+    IMAP_POLL_INTERVAL_SECONDS: int = 60
+    # Maximum raw message size accepted before parsing (DoS guard).
+    # Messages exceeding this limit are marked SEEN and skipped.
+    IMAP_MAX_MESSAGE_SIZE_MB: int = 10
+    # Security: when True (the default) only emails from registered, active user
+    # accounts are accepted.  Messages from unknown senders are silently discarded.
+    # Set to False only in controlled environments where you trust all senders in
+    # the mailbox and want unrecognised senders attributed to IMAP_SYSTEM_USER_EMAIL.
+    IMAP_REQUIRE_REGISTERED_SENDER: bool = True
+    # Optional: email address of the system user to attribute ingested comments to
+    # when IMAP_REQUIRE_REGISTERED_SENDER=false and the sender is not registered.
+    # Has no effect (and is never used) when IMAP_REQUIRE_REGISTERED_SENDER=true.
+    IMAP_SYSTEM_USER_EMAIL: str = ""
+
     @model_validator(mode="after")
     def validate_secret_key(self) -> "Settings":
         """Ensure SECRET_KEY has been changed from the default in non-development environments."""
@@ -73,6 +114,11 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "ALLOWED_ORIGINS must be set to real domain(s) in production. "
                     "Example: ALLOWED_ORIGINS=[\"https://ticketsystem.example.com\"]"
+                )
+            if self.IMAP_ENABLED and not self.IMAP_USE_SSL:
+                raise ValueError(
+                    "IMAP_USE_SSL must be True in production — plaintext IMAP connections "
+                    "expose credentials. Set IMAP_USE_SSL=true in your environment."
                 )
         return self
 

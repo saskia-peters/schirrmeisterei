@@ -73,10 +73,20 @@ tickets                user_group_memberships
 
 ## Authentication Flow
 
-1. `POST /api/v1/auth/login` → returns `access_token` (15 min) + `refresh_token` (7 days)
+1. `POST /api/v1/auth/login` → returns `access_token` (15 min) in the JSON body and sets the `refresh_token` (7 days) as an **HttpOnly cookie** (not accessible to JavaScript)
 2. All protected endpoints require `Authorization: Bearer <access_token>`
-3. `POST /api/v1/auth/refresh` exchanges a valid refresh token for a new pair
+3. `POST /api/v1/auth/refresh` reads the HttpOnly cookie and returns a new access token
 4. Optional TOTP: user enables 2FA; subsequent logins require OTP code
+
+## Background Services
+
+The backend runs optional background asyncio tasks started inside the FastAPI lifespan:
+
+| Service | Config flag | Purpose |
+|---------|-------------|--------|
+| IMAP poller (`imap_poller.py`) | `IMAP_ENABLED=true` | Polls a mailbox for UNSEEN messages, parses `[Ticket #N]` subjects, and adds comments + attachments |
+
+The IMAP poller runs as a single `asyncio.Task` (no separate worker process or queue). IMAP I/O is dispatched to the default `ThreadPoolExecutor` via `run_in_executor` so the event loop is never blocked.
 
 ## Navbar Colour Coding
 

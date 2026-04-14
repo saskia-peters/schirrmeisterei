@@ -967,3 +967,36 @@ async def decline_registration(
 
     await db.delete(user)
     await db.flush()
+
+
+# ─── Email ingestion ───────────────────────────────────────────────────────────
+
+@router.post("/email-ingestion/poll", tags=["admin"])
+async def trigger_email_poll(
+    current_user: User = Depends(get_current_superuser),
+) -> dict:
+    """Manually trigger one IMAP poll cycle.  Superuser only.
+
+    Returns a summary of how many messages were processed, skipped, and how
+    many errors occurred.  Useful for testing the IMAP configuration without
+    waiting for the next scheduled poll.
+
+    Responds with 503 if IMAP ingestion is not enabled (``IMAP_ENABLED=false``).
+    """
+    from fastapi import HTTPException
+    from app.core.config import settings as _settings
+    from app.services.imap_poller import poll_once
+
+    if not _settings.IMAP_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="Email ingestion is not enabled (IMAP_ENABLED=false).",
+        )
+
+    result = await poll_once()
+    return {
+        "processed": result.processed,
+        "skipped": result.skipped,
+        "errors": result.errors,
+        "error_details": result.error_details,
+    }

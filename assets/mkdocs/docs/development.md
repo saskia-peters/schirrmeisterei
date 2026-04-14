@@ -101,6 +101,39 @@ just db-reset
 
 ---
 
+## Email Ingestion
+
+The IMAP poller runs as a background asyncio task inside the FastAPI lifespan. It is only started when `IMAP_ENABLED=true`.
+
+### Testing locally
+
+The admin endpoint triggers a single poll without waiting for the interval:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/admin/email-ingestion/poll \
+  -H "Authorization: Bearer <superuser_token>"
+# returns: {"processed": 1, "skipped": 0, "errors": 0, "error_details": []}
+```
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `app/services/email_ingestion.py` | RFC 2822 parsing, subject matching, comment + attachment persistence |
+| `app/services/imap_poller.py` | IMAP connection, UNSEEN fetch loop, `poll_once()` / `run_forever()` |
+
+### Subject format
+
+Only bracket notation is accepted to avoid false positives:
+
+```
+[Ticket #42]  ← preferred
+[Ticket-42]
+[Ticket 42]
+```
+
+---
+
 ## Code Style
 
 - **Backend**: `ruff` (lint + format), `mypy` (type checking)

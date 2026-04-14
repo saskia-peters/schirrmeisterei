@@ -9,8 +9,7 @@
 
 | Date | Reviewer | Status | Summary |
 |------|----------|--------|---------|
-| 2026-04-06 | Initial review | 🟡 Maturing | First full architecture review; baseline established |
-
+| 2026-04-06 | Initial review | 🟡 Maturing | First full architecture review; baseline established || 2026-04-13 | Security hardening pass | 🟢 Healthy | S-7/S-8/S-9 fixes applied; email ingestion added; IMAP security review completed |
 ---
 
 ## 1. System Overview
@@ -58,13 +57,14 @@ TicketSystem is a **multi-tenant support-ticket platform** built for hierarchica
 │  │ JWT auth │  │ CRUD     │  │ profile  │  │ config items  │   │
 │  │ TOTP 2FA │  │ status   │  │ avatar   │  │ org hierarchy │   │
 │  │ refresh  │  │ Kanban   │  │ groups   │  │ bulk upload   │   │
-│  │ pwd reset│  │ attach.  │  │          │  │ permissions   │   │
+│  │ HttpOnly │  │ attach.  │  │          │  │ permissions   │   │
+│  │ cookie   │  │ PDF+img  │  │          │  │ email ingest  │   │
 │  └──────────┘  └──────────┘  └──────────┘  └───────────────┘   │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  Services layer                                          │   │
 │  │  UserService · TicketService · OrganizationService       │   │
-│  │  TotpService                                             │   │
+│  │  TotpService · EmailIngestionService · ImapPoller        │   │
 │  └──────────────────────┬───────────────────────────────────┘   │
 │                         │ asyncpg                               │
 └─────────────────────────┼──────────────────────────────────────-┘
@@ -76,10 +76,12 @@ TicketSystem is a **multi-tenant support-ticket platform** built for hierarchica
 │  status_logs · user_groups · permissions · role_permissions      │
 │  config_items · app_settings · email_configs                     │
 └──────────────────────────────────────────────────────────────────┘
-                          │
-                    named volume
-                    (uploads directory for
-                     attachments + avatars)
+          │                   │
+    named volume     ┌─────────────────────────────┐
+    (uploads dir.)   │  External mail server (IMAP) │
+    attachments +    │  SSL/TLS · port 993           │
+    avatars          │  polled by ImapPoller (async) │
+                     └─────────────────────────────┘
 ```
 
 ---
@@ -362,14 +364,20 @@ No TLS termination is configured in the compose stack — expected to be behind 
 ### Strengths
 
 - **Passwords**: bcrypt with salt, never stored or logged in plain.
-- **JWT**: Short-lived access tokens (30 min); refresh token rotation possible.
+- **JWT**: Short-lived access tokens (30 min); **refresh token stored in HttpOnly cookie** — not accessible to JavaScript.
+- **Axios refresh queue**: concurrent 401 responses serialised behind a single in-flight refresh call.
 - **Path traversal prevention**: Attachments and avatars stored under UUID filenames via `get_safe_upload_path`.
-- **MIME validation**: Attachment uploads validate content type.
+- **MIME validation**: Attachment uploads validate content type against magic bytes (not client-supplied header).
+- **PDF support**: PDF attachments validated via `%PDF` magic bytes; allowed in ticket creation and email ingestion.
 - **TOTP 2FA**: Optional per-user, QR code provisioned securely.
 - **Org scoping**: Server-side enforcement; clients cannot escalate visibility.
+- **Email ingestion org-scope**: Non-superuser senders may only comment on tickets in their own organisation.
 - **Permission checks**: Centralised in `UserService.user_has_permission`.
 - **Force password change**: Blocks all endpoints until resolved.
 - **Schema isolation**: All tables in `ticketsystem` Postgres schema.
+- **SMTP credentials encrypted**: Fernet-encrypted at rest using a key derived from `SECRET_KEY`.
+- **CORS origin validation**: Startup validator rejects wildcard or localhost-only origins in production.
+- **IMAP security**: Connection timeout (30 s), message size cap (10 MB), MIME-part count limit (50), filename length cap (255 chars), bracket-only subject pattern, `_mark_seen` decoupled from DB transaction, SSL enforced in production.
 
 ### Weaknesses / Gaps
 
@@ -377,13 +385,14 @@ No TLS termination is configured in the compose stack — expected to be behind 
 
     | # | Issue | Severity | Status |
     |---|-------|----------|--------|
-    | S-1 | Refresh tokens are not revocable (no token blacklist / rotation) | Medium | 🔴 Open |
+    | S-1 | Refresh tokens are not revocable (no token blacklist / rotation) | Medium | � Partial — HttpOnly cookie closes XSS exfil; server-side revocation still open |
     | S-2 | No rate limiting on login / password reset endpoints | Medium | 🔴 Open |
-    | S-3 | `SECRET_KEY` placeholder check only warns; no hard fail at startup in production | Low | 🟡 Open |
-    | S-4 | SMTP passwords stored in plain text in `email_configs` table | Medium | 🔴 Open |
+    | S-3 | `SECRET_KEY` placeholder check raises hard `ValueError` at startup in non-dev environments | Low | ✅ Closed |
+    | S-4 | SMTP passwords stored in plain text in `email_configs` table | Medium | ✅ Closed — Fernet-encrypted at rest |
     | S-5 | No HTTPS enforcement or HSTS header in compose stack (relies on upstream proxy) | Low | 🟡 Open |
     | S-6 | File size limits enforced in code but not at the nginx/proxy layer | Low | 🟡 Open |
     | S-7 | Admin bulk upload XLSX: no row-count cap (DoS potential for very large files) | Low | 🟡 Open |
+    | S-8 | CORS origins not validated at startup in production | Medium | ✅ Closed — startup `model_validator` rejects wildcard/localhost in production |
 
 ---
 
@@ -396,9 +405,12 @@ No TLS termination is configured in the compose stack — expected to be behind 
 
 | # | Item | Priority | Status | Resolved |
 |---|------|----------|--------|----------|
-| B-1 | No background task queue (Celery / ARQ) — email sending would block the request | Medium | 🔴 Open | — |
+| B-1 | No background task queue (Celery / ARQ) — email sending would block the request | Medium | � Mitigated — IMAP ingestion uses asyncio task + run_in_executor | — |
 | B-2 | Email notifications not implemented (SMTP config exists but emails are never sent) | High | 🔴 Open | — |
+| B-3 | Email ingestion (IMAP poller) not implemented | High | ✅ Closed | 2026-04-13 |
 | B-3 | No soft-delete for tickets or users | Low | 🟡 Open | — |
+| B-3 | Email ingestion (IMAP poller) not implemented | High | ✅ Closed | 2026-04-13 |
+| B-3 | Email ingestion (IMAP poller) not implemented | High | ✅ Closed | 2026-04-13 |
 | B-4 | `organization_service.py` not in services layer (only added in migration; isolated) | Low | 🟡 Open | — |
 | B-5 | Single Alembic migration chain — merge conflicts painful for parallel branches | Low | 🟡 Open | — |
 | B-6 | `app_settings` only seeded via `GET /admin/app-settings` side-effect — fragile init path | Low | 🟡 Open | — |
@@ -475,15 +487,54 @@ This section is updated with each review to record what has been resolved since 
 
 ---
 
+### 2026-04-13 — Security Hardening + Email Ingestion
+
+**Completed since baseline:**
+
+- ✅ **HttpOnly refresh-token cookie** — refresh token moved from `localStorage` to an `HttpOnly` `SameSite=Lax` cookie; no longer accessible to JavaScript (closes CR-S8)
+- ✅ **Axios concurrent-refresh queue** — multiple simultaneous 401s serialised behind a single in-flight refresh promise, preventing duplicate logout (closes CR-S7)
+- ✅ **CORS production validator** — `Settings.validate_secret_key` rejects wildcard / localhost-only `ALLOWED_ORIGINS` at startup in production (closes S-8)
+- ✅ **Fernet-encrypted SMTP passwords** — `email_configs.smtp_password` encrypted at rest; key derived from `SECRET_KEY` (closes S-4 / CR-S3)
+- ✅ **PDF attachment support** — `application/pdf` allowed via `%PDF` magic-byte detection; available in ticket creation, ticket detail, and email ingestion
+- ✅ **Single-step ticket creation form** — optional fields (priority / category / group / assignee) hidden on mobile screens (≤ 640 px) for a compact experience
+- ✅ **Email-to-ticket ingestion** (`email_ingestion.py` + `imap_poller.py`)
+    - Background asyncio IMAP polling task (`run_forever` / configurable interval)
+    - `[Ticket #N]` / `[Ticket-N]` / `[Ticket N]` bracket subject parsing (bare-word pattern excluded to avoid false positives)
+    - Comment created from email body (HTML stripped; 50 000-char cap)
+    - Attachments saved via `add_attachment_bytes` (magic-byte validated, 10 MB cap)
+    - Sender resolved to registered + active + approved user; org-scope enforced
+    - Admin endpoint `POST /admin/email-ingestion/poll` for manual trigger (superuser only)
+- ✅ **IMAP security hardening** (10-issue internal review resolved)
+    - 30 s connection timeout — prevents thread-pool starvation on hung server
+    - 10 MB raw message size limit (`IMAP_MAX_MESSAGE_SIZE_MB`) — DoS guard before parsing
+    - 50-part MIME-bomb guard in `extract_text_body` and `extract_file_parts`
+    - Org-scope access control (`_resolve_author` returns `User`; caller checks `organization_id`)
+    - 50 000-char comment body cap
+    - 255-char filename truncation in `add_attachment_bytes`
+    - `_mark_seen` decoupled from DB transaction (prevents duplicate comments on IMAP network blip)
+    - `IMAP_USE_SSL=False` blocked at startup in production by `model_validator`
+    - `sender_prefix` shown only in system-user fallback mode (permissive mode)
+
+**Counts:**
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Backend tests passing | 66 | 66 |
+| Security items resolved (arch + code review combined) | 0 | 6 + 10 IMAP |
+| New services | — | `email_ingestion.py`, `imap_poller.py` |
+| New config vars | — | 11 `IMAP_*` vars |
+
+---
+
 ## 15. Recommendations
 
 ### Near-term (next 1–3 features)
 
-1. **Implement email notifications** — The SMTP infrastructure is in place (`email_configs` model, per-org config UI). The next step is a background task that sends mail on ticket creation, assignment, and status change. Use `asyncio.create_task` for a simple start before introducing a full queue.
+1. **Implement outbound email notifications** — The SMTP infrastructure is in place (`email_configs` model, per-org config UI, Fernet-encrypted credentials). The next step is a background task that sends mail on ticket creation, assignment, and status change. Use the same asyncio-task pattern as the IMAP poller.
 
 2. **Add rate limiting to auth endpoints** — Use `slowapi` (Starlette/FastAPI compatible) on `POST /auth/login` and `POST /auth/password-reset/request`. A simple in-memory store is sufficient for single-instance deployments.
 
-3. **Refresh token revocation** — Store issued refresh tokens (or a per-user `token_family` nonce) in the DB; invalidate on logout. This closes the main auth security gap (S-1).
+3. **Refresh token revocation** — Store issued refresh tokens (or a per-user `token_family` nonce) in the DB; invalidate on logout. Adds the missing server-side revocation layer now that client-side exfiltration is mitigated by HttpOnly cookies.
 
 ### Medium-term
 
@@ -496,7 +547,5 @@ This section is updated with each review to record what has been resolved since 
 ### Long-term
 
 7. **Real-time updates** — Replace the 30-second polling with `WebSocket` or `Server-Sent Events` for the Kanban board. FastAPI supports both natively.
-
-8. **Encrypted SMTP credentials** — Encrypt SMTP passwords at rest using a derived key from `SECRET_KEY` before storing in the DB (addresses S-4).
 
 9. **Deploy pipeline** — Add a `docker push` + `docker compose pull && up` step to `ci.yml` targeting a staging environment on every `master` push.

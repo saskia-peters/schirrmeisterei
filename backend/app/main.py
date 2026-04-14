@@ -1,3 +1,4 @@
+import asyncio
 import os
 from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
@@ -18,15 +19,31 @@ from app.models import models  # noqa: F401  - ensure models are imported for me
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    """Application lifespan handler: creates upload directory structure on startup and disposes the DB engine on shutdown."""
+    """Application lifespan handler: creates upload directory structure on startup,
+    starts the IMAP polling task (if enabled) and disposes the DB engine on shutdown."""
     # Create upload directory tree
     #   uploads/
     #     avatars/          ← one file per user, named {user_id}.{ext}  (served as public static)
     #     attachments/      ← sharded: attachments/{xx}/{uuid}.{ext}   (served via auth endpoint)
     for subdir in ("avatars", "attachments"):
         os.makedirs(os.path.join(settings.UPLOAD_DIR, subdir), exist_ok=True)
+
+    # Start IMAP email-ingestion poller if configured
+    imap_task: asyncio.Task[None] | None = None
+    if settings.IMAP_ENABLED:
+        from app.services import imap_poller  # local import keeps startup fast when disabled
+        imap_task = asyncio.create_task(imap_poller.run_forever(), name="imap-poller")
+
     yield
+
     # Cleanup on shutdown
+    if imap_task is not None:
+        imap_task.cancel()
+        try:
+            await imap_task
+        except asyncio.CancelledError:
+            pass
+
     await engine.dispose()
 
 

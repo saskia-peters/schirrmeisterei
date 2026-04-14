@@ -20,6 +20,8 @@ All endpoints (except `/auth/login`, `/auth/register`, `/auth/refresh`) require 
 Authorization: Bearer <access_token>
 ```
 
+The **refresh token** is stored in an `HttpOnly` cookie (`refresh_token`) set by the login endpoint. `POST /auth/refresh` reads this cookie automatically — no body parameter needed.
+
 ---
 
 ## Auth Endpoints
@@ -69,7 +71,7 @@ Response:
 | `DELETE` | `/tickets/{id}` | Delete ticket (creator or superuser only) |
 | `PATCH` | `/tickets/{id}/status` | Change ticket status |
 | `PATCH` | `/tickets/{id}/waiting-for` | Edit the waiting-for reason |
-| `POST` | `/tickets/{id}/attachments` | Upload an image attachment |
+| `POST` | `/tickets/{id}/attachments` | Upload a file attachment (image or PDF, max 10 MB) |
 | `DELETE` | `/tickets/{id}/attachments/{att_id}` | Delete an attachment |
 | `POST` | `/tickets/{id}/comments` | Add a comment |
 | `PATCH` | `/tickets/{id}/comments/{cmt_id}` | Edit a comment |
@@ -94,6 +96,7 @@ Requires `admin` group or `is_superuser=true`.
 | `GET` | `/admin/permissions` | List all available permissions |
 | `GET/PATCH` | `/admin/app-settings` | Read / update application settings (e.g. age thresholds) |
 | `GET/POST/PATCH` | `/admin/email-configs` | SMTP configuration per organisation |
+| `POST` | `/admin/email-ingestion/poll` | Manually trigger one IMAP poll cycle (returns `{ processed, skipped, errors, error_details }`; 503 if IMAP disabled) |
 | `POST` | `/admin/users/bulk-upload` | Import users from XLSX |
 | `POST` | `/admin/hierarchy/upload` | Import organisation hierarchy from XLSX |
 
