@@ -676,6 +676,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Ticket Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ticket-watchers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket Watchers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -901,6 +918,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Ticket Endpoints">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ticket-watchers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket Watchers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1134,12 +1168,41 @@
 <td>Delete a comment</td>
 </tr>
 <tr>
+<td><code>POST</code></td>
+<td><code>/tickets/{id}/watch</code></td>
+<td>Subscribe (watch) the ticket</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/tickets/{id}/watch</code></td>
+<td>Unsubscribe (unwatch) the ticket</td>
+</tr>
+<tr>
 <td><code>GET</code></td>
 <td><code>/tickets/{id}/status-log</code></td>
 <td>Full status-change history</td>
 </tr>
 </tbody>
 </table>
+<hr />
+<h3 id="ticket-watchers">Ticket Watchers<a class="headerlink" href="#ticket-watchers" title="Permanent link">&para;</a></h3>
+<p><code>POST /tickets/{id}/watch</code> — subscribe the <strong>current user</strong> to ticket updates.
+<code>DELETE /tickets/{id}/watch</code> — unsubscribe the current user.</p>
+<p>Both endpoints return <strong>204 No Content</strong> on success and are idempotent (watching an already-watched ticket or unwatching a non-watched ticket is a no-op).</p>
+<p><strong>Access rule:</strong> the caller must be able to see the ticket (same organisation-visibility rules as <code>GET /tickets/{id}</code>).</p>
+<p>When a ticket's status changes, an email notification is sent to all watchers <strong>except</strong> the user who triggered the change. Notifications are only sent when an SMTP Email Config exists for the ticket's organisation.</p>
+<p>The <code>watchers</code> field on every <code>TicketResponse</code> lists the current watchers as objects with <code>id</code> and <code>full_name</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc123&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">&quot;title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Network outage in OV Schwabing&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;in_progress&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">&quot;watchers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user-uuid-1&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;full_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Alice Smith&quot;</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;user-uuid-2&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;full_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Bob Jones&quot;</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">  </span><span class="err">...</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">}</span>
+</code></pre></div>
 <hr />
 <h2 id="admin-endpoints">Admin Endpoints<a class="headerlink" href="#admin-endpoints" title="Permanent link">&para;</a></h2>
 <p>Requires <code>admin</code> group or <code>is_superuser=true</code>.</p>

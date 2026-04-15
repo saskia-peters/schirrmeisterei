@@ -763,6 +763,45 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#watching-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watching a Ticket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Watching a Ticket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subscribe-unsubscribe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribe / unsubscribe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-are-notifications-sent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When are notifications sent?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#filtering-tickets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -931,6 +970,45 @@
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#watching-a-ticket" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Watching a Ticket
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Watching a Ticket">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subscribe-unsubscribe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subscribe / unsubscribe
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-are-notifications-sent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When are notifications sent?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1127,6 +1205,30 @@
 <li>Superusers may comment on any ticket.</li>
 <li>Messages from unrecognised senders are silently discarded (configurable — see admin settings).</li>
 </ul>
+<hr />
+<hr />
+<h2 id="watching-a-ticket">Watching a Ticket<a class="headerlink" href="#watching-a-ticket" title="Permanent link">&para;</a></h2>
+<p>Any user who can see a ticket can <strong>watch</strong> it to receive email notifications when its status changes.</p>
+<h3 id="subscribe-unsubscribe">Subscribe / unsubscribe<a class="headerlink" href="#subscribe-unsubscribe" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open the ticket detail view by clicking its title.</li>
+<li>Click the <strong>🔔 Watch</strong> button in the top-right area of the ticket header to subscribe.</li>
+<li>Click <strong>🔕 Unwatch</strong> to stop receiving notifications.</li>
+</ol>
+<p>The button label and style reflect your current watch state at a glance.</p>
+<h3 id="when-are-notifications-sent">When are notifications sent?<a class="headerlink" href="#when-are-notifications-sent" title="Permanent link">&para;</a></h3>
+<p>An email is sent to all watchers (except the user who performed the status change) whenever a ticket's status is updated.</p>
+<p><strong>Requirements for notifications:</strong></p>
+<ul>
+<li>Your organisation must have an outgoing SMTP configuration set up in the Admin Panel → <em>Email Config</em> tab.</li>
+<li>Your user account must have a valid email address.</li>
+<li>You must be watching the ticket at the time of the status change.</li>
+</ul>
+<p>The notification email includes the ticket number, title, old status, and new status.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If no Email Config exists for the ticket's organisation, notifications are silently skipped. Contact your administrator to enable outgoing email.</p>
+</div>
 <hr />
 <h2 id="filtering-tickets">Filtering Tickets<a class="headerlink" href="#filtering-tickets" title="Permanent link">&para;</a></h2>
 <p>Use the filter bar above the board to narrow tickets by:</p>

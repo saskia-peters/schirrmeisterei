@@ -592,6 +592,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ticket-watchers-email-notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket Watchers &amp; Email Notifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#navbar-colour-coding" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -854,6 +865,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#ticket-watchers-email-notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ticket Watchers &amp; Email Notifications
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#navbar-colour-coding" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -947,17 +969,17 @@
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  parent_id (FK self)    organization_id (FK)
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>                         is_superuser
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>tickets                user_group_memberships
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  id (UUID)              user_id (FK)
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  title                  group_id (FK)
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>tickets                ticket_watchers
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  id (UUID)              ticket_id (FK, PK)
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>  title                  user_id  (FK, PK)
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>  description
-<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  status (enum)        user_groups
-<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  creator_id (FK)        id (UUID)
-<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  assignee_id (FK)       name
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>  status (enum)        user_group_memberships
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>  creator_id (FK)        user_id (FK)
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>  assignee_id (FK)       group_id (FK)
 <a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>  organization_id (FK)
-<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  priority_id (FK)     permissions / role_permissions
-<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  category_id (FK)       (RBAC permission table)
-<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  affected_group_id (FK)
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>  priority_id (FK)     user_groups
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>  category_id (FK)       id (UUID)
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>  affected_group_id (FK) name
 </code></pre></div>
 <h2 id="authentication-flow">Authentication Flow<a class="headerlink" href="#authentication-flow" title="Permanent link">&para;</a></h2>
 <ol>
@@ -985,6 +1007,39 @@
 </tbody>
 </table>
 <p>The IMAP poller runs as a single <code>asyncio.Task</code> (no separate worker process or queue). IMAP I/O is dispatched to the default <code>ThreadPoolExecutor</code> via <code>run_in_executor</code> so the event loop is never blocked.</p>
+<h2 id="ticket-watchers-email-notifications">Ticket Watchers &amp; Email Notifications<a class="headerlink" href="#ticket-watchers-email-notifications" title="Permanent link">&para;</a></h2>
+<p>Any user who can see a ticket can subscribe as a <strong>watcher</strong> (<code>ticket_watchers</code> join table, composite PK <code>(ticket_id, user_id)</code>).</p>
+<p>When <code>TicketService.update_status()</code> detects a real status change it calls <code>_schedule_watcher_notifications()</code>, which:</p>
+<ol>
+<li>Queries the org's <code>EmailConfig</code> (SMTP credentials, encrypted at rest with Fernet).</li>
+<li>Filters out the user who triggered the change.</li>
+<li>Fires an <code>asyncio.create_task()</code> wrapping <code>email_service.send_watcher_notifications()</code>.</li>
+</ol>
+<p>Using <code>create_task()</code> (fire-and-forget) means SMTP latency or failure <strong>never blocks</strong> the API response.</p>
+<p><code>send_watcher_notifications()</code> (<code>backend/app/services/email_service.py</code>) runs <code>smtplib</code> inside <code>asyncio.to_thread()</code> to keep the event loop free. All SMTP exceptions are caught and logged — they are never re-raised to the caller.</p>
+<p>New API surface:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST</code></td>
+<td><code>/api/v1/tickets/{id}/watch</code></td>
+<td>Subscribe current user</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/api/v1/tickets/{id}/watch</code></td>
+<td>Unsubscribe current user</td>
+</tr>
+</tbody>
+</table>
+<p><code>TicketResponse</code> gains a <code>watchers: list[WatcherInfo]</code> field (each entry has <code>id</code> and <code>full_name</code>) populated on serialisation.</p>
 <h2 id="navbar-colour-coding">Navbar Colour Coding<a class="headerlink" href="#navbar-colour-coding" title="Permanent link">&para;</a></h2>
 <p>The navbar background changes colour depending on the logged-in user's organisation level:</p>
 <table>
