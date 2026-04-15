@@ -72,7 +72,7 @@ class TicketService:
                 selectinload(Ticket.affected_group),
                 selectinload(Ticket.attachments),
                 selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
-                selectinload(Ticket.status_logs),
+                selectinload(Ticket.status_logs).selectinload(StatusLog.changed_by_user),
                 selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
             )
         )
@@ -101,7 +101,7 @@ class TicketService:
             selectinload(Ticket.affected_group),
             selectinload(Ticket.attachments),
             selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
-            selectinload(Ticket.status_logs),
+            selectinload(Ticket.status_logs).selectinload(StatusLog.changed_by_user),
             selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
         )
         if org_ids is not None:
@@ -123,7 +123,7 @@ class TicketService:
                 selectinload(Ticket.affected_group),
                 selectinload(Ticket.attachments),
                 selectinload(Ticket.comments).selectinload(Comment.author).selectinload(User.organization),
-                selectinload(Ticket.status_logs),
+                selectinload(Ticket.status_logs).selectinload(StatusLog.changed_by_user),
                 selectinload(Ticket.watchers).selectinload(TicketWatcher.user),
             )
         )

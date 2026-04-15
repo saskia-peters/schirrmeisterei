@@ -109,7 +109,7 @@ New API surface:
 | `POST` | `/api/v1/tickets/{id}/watch` | Subscribe current user |
 | `DELETE` | `/api/v1/tickets/{id}/watch` | Unsubscribe current user |
 
-`TicketResponse` gains a `watcher_ids: list[str]` field populated on serialisation.
+`TicketResponse` gains a `watchers: list[WatcherInfo]` field (each entry has `id` and `full_name`) populated on serialisation.
 
 ## Navbar Colour Coding
 

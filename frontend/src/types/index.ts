@@ -133,10 +133,16 @@ export interface StatusLog {
   id: string
   ticket_id: string
   changed_by: string
+  changed_by_name: string | null
   from_status: TicketStatus | null
   to_status: TicketStatus
   note: string | null
   changed_at: string
+}
+
+export interface WatcherInfo {
+  id: string
+  full_name: string
 }
 
 export interface Ticket {
@@ -146,6 +152,7 @@ export interface Ticket {
   description: string
   status: TicketStatus
   creator_id: string
+  creator_name: string | null
   assignee_id: string | null
   assignee_name: string | null
   assignee_avatar_url: string | null
@@ -157,7 +164,7 @@ export interface Ticket {
   affected_group_id: string | null
   affected_group_name: string | null
   waiting_for: string | null
-  watcher_ids: string[]
+  watchers: WatcherInfo[]
   created_at: string
   updated_at: string
   attachments: Attachment[]

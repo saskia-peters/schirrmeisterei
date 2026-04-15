@@ -29,7 +29,7 @@ export function Navbar() {
     <nav className="navbar" style={navbarBg ? { backgroundColor: navbarBg } : undefined}>
       <div className="navbar-brand" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>
         <span className="navbar-logo">🎫</span>
-        <span className="navbar-title">TicketSystem</span>
+        <span className="navbar-title">THW e-Schirrmeisterei</span>
       </div>
       <div className="navbar-center">
         {user?.organization_name && <span className="navbar-org-name">{user.organization_name}</span>}

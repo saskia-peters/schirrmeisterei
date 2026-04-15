@@ -93,14 +93,17 @@ Both endpoints return **204 No Content** on success and are idempotent (watching
 
 When a ticket's status changes, an email notification is sent to all watchers **except** the user who triggered the change. Notifications are only sent when an SMTP Email Config exists for the ticket's organisation.
 
-The `watcher_ids` field on every `TicketResponse` lists the UUIDs of current watchers:
+The `watchers` field on every `TicketResponse` lists the current watchers as objects with `id` and `full_name`:
 
 ```json
 {
   "id": "abc123",
   "title": "Network outage in OV Schwabing",
   "status": "in_progress",
-  "watcher_ids": ["user-uuid-1", "user-uuid-2"],
+  "watchers": [
+    { "id": "user-uuid-1", "full_name": "Alice Smith" },
+    { "id": "user-uuid-2", "full_name": "Bob Jones" }
+  ],
   ...
 }
 ```

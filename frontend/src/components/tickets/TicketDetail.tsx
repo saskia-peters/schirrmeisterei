@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { AttachmentThumb } from './AttachmentThumb'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -51,6 +51,19 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   const [editDescription, setEditDescription] = useState('')
   const [isEditingWaitingFor, setIsEditingWaitingFor] = useState(false)
   const [waitingForInput, setWaitingForInput] = useState('')
+  const [showWatchersDropdown, setShowWatchersDropdown] = useState(false)
+  const watchersGroupRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showWatchersDropdown) return
+    const handler = (e: MouseEvent) => {
+      if (watchersGroupRef.current && !watchersGroupRef.current.contains(e.target as Node)) {
+        setShowWatchersDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showWatchersDropdown])
 
   const updateTicket = useUpdateTicket(ticketId)
   const updateStatus = useUpdateTicketStatus()
@@ -63,7 +76,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
   const watchTicket = useWatchTicket(ticketId)
   const unwatchTicket = useUnwatchTicket(ticketId)
 
-  const isWatching = user ? ticket.watcher_ids.includes(user.id) : false
+  const isWatching = user && ticket ? ticket.watchers.some(w => w.id === user.id) : false
 
   const handleToggleWatch = async () => {
     try {
@@ -203,7 +216,12 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal ticket-detail" role="dialog" aria-modal aria-label={ticket.title}>
         <div className="modal-header">
-          <span className="ticket-detail-id">Ticket-{ticket.ticket_number}</span>
+          <div className="header-left">
+            <span className="ticket-detail-id">Ticket-{ticket.ticket_number}</span>
+            {(user?.id === ticket.creator_id || user?.is_superuser) && !isEditing && (
+              <button onClick={handleDelete} className="btn btn-danger btn-sm">Delete</button>
+            )}
+          </div>
           {isEditing ? (
             <input
               value={editTitle}
@@ -214,15 +232,44 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
             <h2>{ticket.title}</h2>
           )}
           <div className="modal-header-actions">
-            <button
-              type="button"
-              className={`btn btn-sm ${isWatching ? 'btn-primary' : 'btn-secondary'}`}
-              onClick={handleToggleWatch}
-              disabled={watchTicket.isPending || unwatchTicket.isPending}
-              title={isWatching ? 'Stop receiving email notifications' : 'Get email notifications on status changes'}
-            >
-              {isWatching ? '🔔 Watching' : '🔕 Watch'}
-            </button>
+            <div className="watcher-group" ref={watchersGroupRef}>
+              <button
+                type="button"
+                className={`btn btn-sm ${isWatching ? 'btn-primary' : 'btn-secondary'}`}
+                onClick={handleToggleWatch}
+                disabled={watchTicket.isPending || unwatchTicket.isPending}
+                title={isWatching ? 'Stop receiving email notifications' : 'Get email notifications on status changes'}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15" aria-hidden="true">
+                  <rect x="3" y="9" width="8" height="6" rx="3"/>
+                  <rect x="13" y="9" width="8" height="6" rx="3"/>
+                  <path d="M11 12h2"/>
+                  <path d="M3 12H1"/>
+                  <path d="M21 12h2"/>
+                </svg>
+                {isWatching ? 'Watching' : 'Watch'}
+              </button>
+              {ticket.watchers.length > 0 && (
+                <button
+                  type="button"
+                  className="watcher-count-btn"
+                  onClick={() => setShowWatchersDropdown(v => !v)}
+                  title="Show watchers"
+                >
+                  {ticket.watchers.length}
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" width="10" height="10" aria-hidden="true">
+                    <path d="M6 9l6 6 6-6"/>
+                  </svg>
+                </button>
+              )}
+              {showWatchersDropdown && (
+                <div className="watcher-dropdown">
+                  {ticket.watchers.map(w => (
+                    <div key={w.id} className="watcher-dropdown-item">{w.full_name}</div>
+                  ))}
+                </div>
+              )}
+            </div>
             <button
               className="btn btn-primary btn-sm"
               onClick={handleSaveAndClose}
@@ -234,94 +281,104 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           </div>
         </div>
 
+        <hr className="section-divider" />
         <div className="ticket-meta">
           <span>Created {formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
           <span>Updated {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}</span>
         </div>
 
-        {/* Status */}
+        <hr className="section-divider" />
+        {/* Creator / Assignee / Status row */}
         <div className="ticket-section">
-          <h3>Status</h3>
-          <div className="status-row">
-            <select
-              value={ticket.status}
-              onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
-              className="status-select"
-            >
-              {STATUS_OPTIONS.filter((s) => canCloseTicket || s.value !== 'closed').map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
+          <div className="ticket-detail-row">
+            {/* Creator */}
+            <div className="form-group">
+              <label>Creator</label>
+              <div className="field-value">{ticket.creator_name ?? ticket.creator_id}</div>
+            </div>
+
+            {/* Assignee */}
+            <div className="form-group">
+              <label>Assignee</label>
+              <select
+                value={ticket.assignee_id ?? ''}
+                onChange={(e) => updateTicket.mutate({ assignee_id: e.target.value || null })}
+                className="status-select"
+              >
+                <option value="">Unassigned</option>
+                {assignableUsers.map((u) => (
+                  <option key={u.id} value={u.id}>{u.full_name}</option>
+                ))}
+              </select>
+              {ticket.assignee_name && (
+                <div className="assignee-info">
+                  {ticket.assignee_avatar_url ? (
+                    <img src={ticket.assignee_avatar_url} alt={ticket.assignee_name} className="assignee-avatar" />
+                  ) : (
+                    <span className="assignee-avatar assignee-avatar-placeholder">
+                      {ticket.assignee_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <span className="assignee-badge">{ticket.assignee_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Status */}
+            <div className="form-group">
+              <label>Status</label>
+              <select
+                value={ticket.status}
+                onChange={(e) => handleStatusChange(e.target.value as TicketStatus)}
+                className="status-select"
+              >
+                {STATUS_OPTIONS.filter((s) => canCloseTicket || s.value !== 'closed').map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+              </select>
+              {!canCloseTicket && (
+                <p className="admin-loading">Only schirrmeister and admin can move tickets to closed.</p>
+              )}
+              {ticket.status === 'waiting' && (
+                <div className="waiting-for-row">
+                  <strong>Waiting for:</strong>
+                  {isEditingWaitingFor ? (
+                    <>
+                      <input
+                        type="text"
+                        value={waitingForInput}
+                        onChange={(e) => setWaitingForInput(e.target.value)}
+                        className="waiting-for-input"
+                        placeholder="Reason for waiting…"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSaveWaitingFor()
+                          if (e.key === 'Escape') setIsEditingWaitingFor(false)
+                        }}
+                      />
+                      <button className="btn btn-primary btn-sm" onClick={handleSaveWaitingFor}>Save</button>
+                      <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingWaitingFor(false)}>Cancel</button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="waiting-for-text">
+                        {ticket.waiting_for ?? <em>Not specified</em>}
+                      </span>
+                      <button
+                        className="btn-icon"
+                        onClick={handleStartEditWaitingFor}
+                        aria-label="Edit waiting reason"
+                        title="Edit"
+                      >✏️</button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-          {!canCloseTicket && (
-            <p className="admin-loading">Only schirrmeister and admin can move tickets to closed.</p>
-          )}
-          {ticket.status === 'waiting' && (
-            <div className="waiting-for-row">
-              <strong>Waiting for:</strong>
-              {isEditingWaitingFor ? (
-                <>
-                  <input
-                    type="text"
-                    value={waitingForInput}
-                    onChange={(e) => setWaitingForInput(e.target.value)}
-                    className="waiting-for-input"
-                    placeholder="Reason for waiting…"
-                    autoFocus
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleSaveWaitingFor()
-                      if (e.key === 'Escape') setIsEditingWaitingFor(false)
-                    }}
-                  />
-                  <button className="btn btn-primary btn-sm" onClick={handleSaveWaitingFor}>Save</button>
-                  <button className="btn btn-secondary btn-sm" onClick={() => setIsEditingWaitingFor(false)}>Cancel</button>
-                </>
-              ) : (
-                <>
-                  <span className="waiting-for-text">
-                    {ticket.waiting_for ?? <em>Not specified</em>}
-                  </span>
-                  <button
-                    className="btn-icon"
-                    onClick={handleStartEditWaitingFor}
-                    aria-label="Edit waiting reason"
-                    title="Edit"
-                  >✏️</button>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Assignee */}
-        <div className="ticket-section">
-          <h3>Assignee</h3>
-          <select
-            value={ticket.assignee_id ?? ''}
-            onChange={(e) =>
-              updateTicket.mutate({ assignee_id: e.target.value || null })
-            }
-            className="status-select"
-          >
-            <option value="">Unassigned</option>
-            {assignableUsers.map((u) => (
-              <option key={u.id} value={u.id}>{u.full_name}</option>
-            ))}
-          </select>
-          {ticket.assignee_name && (
-            <div className="assignee-info">
-              {ticket.assignee_avatar_url ? (
-                <img src={ticket.assignee_avatar_url} alt={ticket.assignee_name} className="assignee-avatar" />
-              ) : (
-                <span className="assignee-avatar assignee-avatar-placeholder">
-                  {ticket.assignee_name.charAt(0).toUpperCase()}
-                </span>
-              )}
-              <span className="assignee-badge">{ticket.assignee_name}</span>
-            </div>
-          )}
-        </div>
-
+        <hr className="section-divider" />
         {/* Priority / Category / Affected Group */}
         <div className="ticket-section">
           <h3>Classification</h3>
@@ -370,7 +427,17 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
 
         {/* Description */}
         <div className="ticket-section">
-          <h3>Description</h3>
+          <div className="section-header-row">
+            <h3>Description</h3>
+            {isEditing ? (
+              <div className="desc-edit-actions">
+                <button onClick={handleSaveEdit} className="btn btn-primary btn-sm">Save</button>
+                <button onClick={() => setIsEditing(false)} className="btn btn-secondary btn-sm">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={handleStartEdit} className="btn btn-secondary btn-sm">Edit</button>
+            )}
+          </div>
           {isEditing ? (
             <textarea
               value={editDescription}
@@ -383,23 +450,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           )}
         </div>
 
-        {/* Actions */}
-        <div className="ticket-actions">
-          {isEditing ? (
-            <>
-              <button onClick={handleSaveEdit} className="btn btn-primary">Save</button>
-              <button onClick={() => setIsEditing(false)} className="btn btn-secondary">Cancel</button>
-            </>
-          ) : (
-            <>
-              <button onClick={handleStartEdit} className="btn btn-secondary">Edit</button>
-              {(user?.id === ticket.creator_id || user?.is_superuser) && (
-                <button onClick={handleDelete} className="btn btn-danger">Delete</button>
-              )}
-            </>
-          )}
-        </div>
-
+        <hr className="section-divider" />
         {/* Attachments */}
         <div className="ticket-section">
           <h3>Attachments ({ticket.attachments.length})</h3>
@@ -424,6 +475,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           </label>
         </div>
 
+        <hr className="section-divider" />
         {/* Comments */}
         <div className="ticket-section">
           <h3>Comments ({ticket.comments.length})</h3>
@@ -462,6 +514,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
           </form>
         </div>
 
+        <hr className="section-divider" />
         {/* Status Log */}
         <div className="ticket-section">
           <h3>Activity Log</h3>
@@ -472,11 +525,12 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
                 time: new Date(log.changed_at),
                 render: () => {
                   const isAssigneeChange = log.note?.startsWith('Assignee changed:')
+                  const byLine = log.changed_by_name ? ` by ${log.changed_by_name}` : ''
                   if (isAssigneeChange) {
                     return (
                       <>
                         <span className="log-icon">👤</span>
-                        <span className="log-status">{log.note}</span>
+                        <span className="log-status">{log.note}{byLine}</span>
                       </>
                     )
                   }
@@ -486,7 +540,7 @@ export function TicketDetail({ ticketId, onClose }: TicketDetailProps) {
                       <span className="log-status">
                         {log.from_status && log.from_status !== log.to_status
                           ? `${log.from_status} → `
-                          : ''}{log.to_status}
+                          : ''}{log.to_status}{byLine}
                       </span>
                       {log.note && !isAssigneeChange && <span className="log-note">: {log.note}</span>}
                     </>

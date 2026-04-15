@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { adminApi, authApi, organizationsApi, ticketsApi, usersApi } from '@/api'
+import { useAuthStore } from '@/store/authStore'
 import type {
   AdminUserCreateRequest,
   AdminUserUpdateRequest,
@@ -193,13 +194,15 @@ export const useDeleteConfigItem = () => {
   })
 }
 
-export const useUserGroups = (enabled = true) =>
-  useQuery({
-    queryKey: ['user-groups'],
+export const useUserGroups = (enabled = true) => {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['user-groups', user?.organization_id ?? null],
     queryFn: adminApi.listUserGroups,
     staleTime: 60_000,
     enabled,
   })
+}
 
 export const useCreateUserGroup = () => {
   const qc = useQueryClient()
@@ -379,12 +382,14 @@ export const usePermissions = () =>
     staleTime: 5 * 60_000,
   })
 
-export const useUserGroupsDetail = () =>
-  useQuery({
-    queryKey: ['user-groups-detail'],
+export const useUserGroupsDetail = () => {
+  const { user } = useAuthStore()
+  return useQuery({
+    queryKey: ['user-groups-detail', user?.organization_id ?? null],
     queryFn: adminApi.listUserGroupsDetail,
     staleTime: 60_000,
   })
+}
 
 export const useSetGroupPermissions = () => {
   const qc = useQueryClient()

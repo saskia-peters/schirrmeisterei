@@ -139,7 +139,7 @@ export function KanbanBoard({ onTicketClick, onNewTicket }: KanbanBoardProps) {
   return (
     <div className="board-container">
       <div className="board-header">
-        <h1>Schirrmeisterei</h1>
+        <h1>Schadensmeldungen</h1>
         <button onClick={onNewTicket} className="btn btn-primary">
           + New Ticket
         </button>

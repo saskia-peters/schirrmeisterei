@@ -85,12 +85,33 @@ class StatusLogResponse(BaseModel):
     id: str
     ticket_id: str
     changed_by: str
+    changed_by_name: str | None = None
     from_status: TicketStatus | None
     to_status: TicketStatus
     note: str | None
     changed_at: datetime
 
     model_config = {"from_attributes": True}
+
+    @model_validator(mode="before")
+    @classmethod
+    def populate_changed_by_name(cls, data: Any) -> Any:
+        if not hasattr(data, "changed_by_user"):
+            return data
+        u = data.changed_by_user
+        name = None
+        if u:
+            name = (u.full_name or "").strip() or u.email
+        return {
+            "id": data.id,
+            "ticket_id": data.ticket_id,
+            "changed_by": data.changed_by,
+            "changed_by_name": name,
+            "from_status": data.from_status,
+            "to_status": data.to_status,
+            "note": data.note,
+            "changed_at": data.changed_at,
+        }
 
 
 # ─── Ticket ───────────────────────────────────────────────────────────────────
@@ -122,6 +143,11 @@ class WaitingForUpdate(BaseModel):
     waiting_for: str | None = Field(None, max_length=1000)
 
 
+class WatcherInfo(BaseModel):
+    id: str
+    full_name: str
+
+
 class TicketResponse(BaseModel):
     id: str
     ticket_number: int
@@ -129,6 +155,7 @@ class TicketResponse(BaseModel):
     description: str
     status: TicketStatus
     creator_id: str
+    creator_name: str | None
     assignee_id: str | None
     assignee_name: str | None
     assignee_avatar_url: str | None = None
@@ -140,7 +167,7 @@ class TicketResponse(BaseModel):
     affected_group_id: str | None
     affected_group_name: str | None
     waiting_for: str | None
-    watcher_ids: list[str] = []
+    watchers: list[WatcherInfo] = []
     created_at: datetime
     updated_at: datetime
     attachments: list[AttachmentResponse] = []
@@ -161,6 +188,7 @@ class TicketResponse(BaseModel):
             "description": data.description,
             "status": data.status,
             "creator_id": data.creator_id,
+            "creator_name": _user_display_name(data.creator) or None,
             "assignee_id": data.owner_id,
             "assignee_name": _user_display_name(data.owner) or None,
             "assignee_avatar_url": data.owner.avatar_url if data.owner else None,
@@ -172,7 +200,7 @@ class TicketResponse(BaseModel):
             "affected_group_id": data.affected_group_id,
             "affected_group_name": data.affected_group.name if data.affected_group is not None else None,
             "waiting_for": data.waiting_for,
-            "watcher_ids": [w.user_id for w in data.watchers] if hasattr(data, "watchers") else [],
+            "watchers": [{"id": w.user_id, "full_name": w.user.full_name if w.user else ""} for w in data.watchers] if hasattr(data, "watchers") else [],
             "created_at": data.created_at,
             "updated_at": data.updated_at,
             "attachments": list(data.attachments),

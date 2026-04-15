@@ -269,6 +269,7 @@ function UserRoleAdmin() {
   const [newGroupName, setNewGroupName] = useState('')
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editingGroupName, setEditingGroupName] = useState('')
+  const [newRoleGroup, setNewRoleGroup] = useState<UserGroup | null>(null)
 
   const coreGroups = new Set(['helfende', 'schirrmeister', 'admin'])
   const sortedGroups = [...groups].sort((a, b) => a.name.localeCompare(b.name))
@@ -277,8 +278,9 @@ function UserRoleAdmin() {
     const name = newGroupName.trim().toLowerCase()
     if (!name) return
     try {
-      await createGroup.mutateAsync({ name })
+      const created = await createGroup.mutateAsync({ name })
       setNewGroupName('')
+      setNewRoleGroup(created)
       toast.success('Role group created')
     } catch {
       toast.error('Failed to create role group')
@@ -427,6 +429,138 @@ function UserRoleAdmin() {
           ))}
         </tbody>
       </table>
+
+      {newRoleGroup && (
+        <NewRolePermissionsModal
+          group={newRoleGroup}
+          onClose={() => setNewRoleGroup(null)}
+        />
+      )}
+    </div>
+  )
+}
+
+function NewRolePermissionsModal({ group, onClose }: { group: UserGroup; onClose: () => void }) {
+  const { data: allPermissions = [], isLoading } = usePermissions()
+  const setGroupPerms = useSetGroupPermissions()
+  const [availableSelected, setAvailableSelected] = useState<string[]>([])
+  const [assignedSelected, setAssignedSelected] = useState<string[]>([])
+  const [assignedCodenames, setAssignedCodenames] = useState<Set<string>>(new Set())
+
+  const availablePerms = allPermissions.filter((p) => !assignedCodenames.has(p.codename))
+  const assignedPerms = allPermissions.filter((p) => assignedCodenames.has(p.codename))
+
+  const handleAdd = () => {
+    setAssignedCodenames((prev) => {
+      const next = new Set(prev)
+      availableSelected.forEach((c) => next.add(c))
+      return next
+    })
+    setAvailableSelected([])
+  }
+
+  const handleRemove = () => {
+    setAssignedCodenames((prev) => {
+      const next = new Set(prev)
+      assignedSelected.forEach((c) => next.delete(c))
+      return next
+    })
+    setAssignedSelected([])
+  }
+
+  const handleSave = async () => {
+    try {
+      await setGroupPerms.mutateAsync({
+        groupId: group.id,
+        data: { permission_codenames: [...assignedCodenames] },
+      })
+      toast.success('Permissions saved')
+      onClose()
+    } catch {
+      toast.error('Failed to save permissions')
+    }
+  }
+
+  return (
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal aria-label="Set Role Permissions">
+        <div className="modal-header">
+          <h2>Set Permissions — {group.name}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
+        </div>
+        {isLoading ? (
+          <p className="admin-loading" style={{ padding: '1.25rem' }}>Loading permissions…</p>
+        ) : (
+          <>
+            <div className="modal-body">
+              <div className="dual-listbox">
+                <div className="dual-listbox-panel">
+                  <h4>Available Permissions</h4>
+                  <select
+                    multiple
+                    className="dual-listbox-select"
+                    value={availableSelected}
+                    onChange={(e) =>
+                      setAvailableSelected(Array.from(e.target.selectedOptions, (o) => o.value))
+                    }
+                  >
+                    {availablePerms.map((p) => (
+                      <option key={p.id} value={p.codename} title={p.description}>
+                        {p.codename}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="dual-listbox-controls">
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleAdd}
+                    disabled={availableSelected.length === 0}
+                    title="Add selected permissions"
+                  >
+                    →
+                  </button>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={handleRemove}
+                    disabled={assignedSelected.length === 0}
+                    title="Remove selected permissions"
+                  >
+                    ←
+                  </button>
+                </div>
+                <div className="dual-listbox-panel">
+                  <h4>Assigned Permissions</h4>
+                  <select
+                    multiple
+                    className="dual-listbox-select"
+                    value={assignedSelected}
+                    onChange={(e) =>
+                      setAssignedSelected(Array.from(e.target.selectedOptions, (o) => o.value))
+                    }
+                  >
+                    {assignedPerms.map((p) => (
+                      <option key={p.id} value={p.codename} title={p.description}>
+                        {p.codename}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-ghost btn-sm" onClick={onClose}>Skip</button>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={handleSave}
+                disabled={setGroupPerms.isPending}
+              >
+                {setGroupPerms.isPending ? 'Saving…' : 'Save Permissions'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
